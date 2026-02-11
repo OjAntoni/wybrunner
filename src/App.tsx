@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 const GRID_W = 96;
 const GRID_H = 64;
@@ -11,6 +17,7 @@ const EXTRA_CONNECTION_RATIO = 0.2;
 const ENTITY_RADIUS = 0.3; // tiles
 const CAMERA_ZOOM = 2.2;
 const TURN_ASSIST_TILES = 0.22; // how far we can "snap" into a corridor while turning
+const TOUCH_TURN_ASSIST_TILES = 0.46;
 const BOMB_RADIUS_TILES = 8;
 const FOG_RADIUS_TILES = 4;
 const FOG_DURATION_MS = 8000;
@@ -25,6 +32,9 @@ const HELPER_COUNT = 3;
 const HELPER_MIN_DIST = 10; // tiles from player at spawn
 const HELPER_MIN_PATH_LEN = 16; // tiles
 const HELPER_SPEED_MULT = 0.6;
+const TOUCH_CHASER_SPEED_MULT = 0.8;
+const TOUCH_JOYSTICK_MAX = 58;
+const TOUCH_JOYSTICK_DEADZONE = 0.18;
 
 let helperIdCounter = 1;
 let fogAreaIdCounter = 1;
@@ -651,6 +661,15 @@ export default function App() {
   const screenRef = useRef<UIScreen>("menu");
   const confirmRestartRef = useRef(false);
   const pausedRef = useRef(false);
+  const equipmentOpenRef = useRef(false);
+  const controlsReturnToGameRef = useRef(false);
+  const movePointerIdRef = useRef<number | null>(null);
+  const joystickRef = useRef<HTMLDivElement | null>(null);
+  const joystickKnobRef = useRef<HTMLDivElement | null>(null);
+  const joystickFrameRef = useRef<number | null>(null);
+  const joystickVisualRef = useRef({ x: 0, y: 0 });
+  const touchEnabledRef = useRef(false);
+  const touchMoveRef = useRef<Vec>({ x: 0, y: 0 });
   const hudRectsRef = useRef<{
     hudTop: DOMRect | null;
     inventory: DOMRect | null;
@@ -665,11 +684,75 @@ export default function App() {
   const [loseReason, setLoseReason] = useState<LoseReason>("caught");
   const [confirmRestartOpen, setConfirmRestartOpen] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [equipmentOpen, setEquipmentOpen] = useState(false);
+  const [touchEnabled, setTouchEnabled] = useState(false);
+  const [compactHud, setCompactHud] = useState(false);
+  const [controlsReturnToGame, setControlsReturnToGame] = useState(false);
 
   const helpText = useMemo(
-    () => "Move with WASD or arrow keys. Collect 10 artifacts. Avoid the chaser.",
-    []
+    () =>
+      touchEnabled
+        ? "Use the joystick to move. Tap Trap and Bomb buttons to place gear."
+        : "Move with WASD or arrow keys. Collect 10 artifacts. Avoid the chaser.",
+    [touchEnabled]
   );
+
+  const flushJoystickVisual = () => {
+    joystickFrameRef.current = null;
+    const knob = joystickKnobRef.current;
+    if (!knob) return;
+    const { x, y } = joystickVisualRef.current;
+    knob.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+  };
+
+  const setJoystickVisual = (x: number, y: number) => {
+    joystickVisualRef.current = { x, y };
+    if (joystickFrameRef.current !== null) return;
+    joystickFrameRef.current = requestAnimationFrame(flushJoystickVisual);
+  };
+
+  const setJoystickActive = (active: boolean) => {
+    const zone = joystickRef.current;
+    if (!zone) return;
+    zone.classList.toggle("active", active);
+  };
+
+  const resetTouchInput = () => {
+    movePointerIdRef.current = null;
+    touchMoveRef.current = { x: 0, y: 0 };
+    setJoystickActive(false);
+    setJoystickVisual(0, 0);
+  };
+
+  const pauseGame = () => {
+    keysRef.current.clear();
+    resetTouchInput();
+    setPaused(true);
+  };
+
+  const openEquipment = () => {
+    if (screenRef.current !== "game") return;
+    if (stateRef.current.status !== "playing") return;
+    pauseGame();
+    setEquipmentOpen(true);
+  };
+
+  const closeEquipment = () => {
+    setEquipmentOpen(false);
+  };
+
+  const openControls = (fromGame: boolean) => {
+    controlsReturnToGameRef.current = fromGame;
+    setControlsReturnToGame(fromGame);
+    goToScreen("controls");
+  };
+
+  const closeControls = () => {
+    const returnToGame = controlsReturnToGameRef.current;
+    controlsReturnToGameRef.current = false;
+    setControlsReturnToGame(false);
+    goToScreen(returnToGame ? "game" : "menu");
+  };
 
   const goToScreen = (next: UIScreen) => {
     screenRef.current = next;
@@ -678,6 +761,10 @@ export default function App() {
 
   const goToMainMenu = () => {
     keysRef.current.clear();
+    setEquipmentOpen(false);
+    controlsReturnToGameRef.current = false;
+    setControlsReturnToGame(false);
+    resetTouchInput();
     confirmRestartRef.current = false;
     setConfirmRestartOpen(false);
     pausedRef.current = false;
@@ -687,6 +774,10 @@ export default function App() {
 
   const openRestartConfirm = () => {
     keysRef.current.clear();
+    setEquipmentOpen(false);
+    controlsReturnToGameRef.current = false;
+    setControlsReturnToGame(false);
+    resetTouchInput();
     confirmRestartRef.current = true;
     setConfirmRestartOpen(true);
   };
@@ -710,19 +801,86 @@ export default function App() {
   }, [paused]);
 
   useEffect(() => {
+    equipmentOpenRef.current = equipmentOpen;
+  }, [equipmentOpen]);
+
+  useEffect(() => {
+    controlsReturnToGameRef.current = controlsReturnToGame;
+  }, [controlsReturnToGame]);
+
+  useEffect(() => {
+    touchEnabledRef.current = touchEnabled;
+  }, [touchEnabled]);
+
+  useEffect(() => {
+    const updateTouchMode = () => {
+      const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+      const hasCoarsePrimaryPointer = window.matchMedia("(pointer: coarse)").matches;
+      const hasFinePrimaryPointer = window.matchMedia("(pointer: fine)").matches;
+      const hasHover = window.matchMedia("(hover: hover)").matches;
+      const isSmallTouchScreen = window.matchMedia("(max-width: 900px)").matches;
+      const isCompactHudScreen = window.matchMedia(
+        "(max-width: 1200px), (max-height: 860px)"
+      ).matches;
+      const shouldUseTouchUi =
+        hasCoarsePrimaryPointer &&
+        !hasFinePrimaryPointer &&
+        !hasHover &&
+        isSmallTouchScreen;
+      setTouchEnabled(shouldUseTouchUi);
+      setCompactHud(isCompactHudScreen || (hasTouch && !shouldUseTouchUi));
+    };
+    updateTouchMode();
+    window.addEventListener("resize", updateTouchMode);
+    return () => {
+      window.removeEventListener("resize", updateTouchMode);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      screen !== "game" ||
+      paused ||
+      confirmRestartOpen ||
+      equipmentOpen ||
+      status !== "playing"
+    ) {
+      resetTouchInput();
+    }
+  }, [screen, paused, confirmRestartOpen, equipmentOpen, status]);
+
+  useEffect(() => {
+    return () => {
+      if (joystickFrameRef.current !== null) {
+        cancelAnimationFrame(joystickFrameRef.current);
+        joystickFrameRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const handleDown = (e: KeyboardEvent) => {
+      const lowerKey = e.key.toLowerCase();
+      const dirKey = keyToDir[e.key] ? e.key : keyToDir[lowerKey] ? lowerKey : "";
       const ui = screenRef.current;
       if (ui !== "game") {
+        const controlsFromGame =
+          screenRef.current === "controls" && controlsReturnToGameRef.current;
+        if (controlsFromGame && (e.key === "Enter" || e.key === " " || e.key === "Escape")) {
+          closeControls();
+          e.preventDefault();
+          return;
+        }
         if (e.key === "Enter" || e.key === " ") {
           startNewGame();
           e.preventDefault();
-        } else if (e.key.toLowerCase() === "c") {
-          goToScreen("controls");
+        } else if (lowerKey === "c") {
+          openControls(false);
           e.preventDefault();
         } else if (e.key === "Escape") {
-          goToScreen("menu");
+          closeControls();
           e.preventDefault();
-        } else if (keyToDir[e.key]) {
+        } else if (dirKey) {
           e.preventDefault();
         }
         return;
@@ -735,7 +893,7 @@ export default function App() {
           e.preventDefault();
           return;
         }
-        if (keyToDir[e.key] || e.key.toLowerCase() === "r") {
+        if (dirKey || lowerKey === "r") {
           e.preventDefault();
           return;
         }
@@ -749,7 +907,23 @@ export default function App() {
         } else if (e.key === "Escape") {
           closeRestartConfirm();
           e.preventDefault();
-        } else if (keyToDir[e.key]) {
+        } else if (dirKey) {
+          e.preventDefault();
+        }
+        return;
+      }
+
+      if (equipmentOpenRef.current) {
+        if (e.key === "Escape" || lowerKey === "i") {
+          closeEquipment();
+          e.preventDefault();
+        } else if (
+          dirKey ||
+          e.key === " " ||
+          lowerKey === "e" ||
+          lowerKey === "b" ||
+          lowerKey === "r"
+        ) {
           e.preventDefault();
         }
         return;
@@ -758,43 +932,55 @@ export default function App() {
       if (e.key === "Escape") {
         // Pause/unpause only while actively playing.
         if (stateRef.current.status === "playing") {
-          keysRef.current.clear();
-          setPaused((p) => !p);
+          if (pausedRef.current) {
+            setPaused(false);
+          } else {
+            pauseGame();
+          }
         }
         e.preventDefault();
         return;
       }
 
       if (pausedRef.current) {
-        if (e.key === "r") {
+        if (lowerKey === "r") {
           openRestartConfirm();
           e.preventDefault();
-        } else if (keyToDir[e.key]) {
+        } else if (lowerKey === "i") {
+          setEquipmentOpen(true);
+          e.preventDefault();
+        } else if (dirKey) {
           e.preventDefault();
         }
         return;
       }
 
-      if (keyToDir[e.key]) {
-        keysRef.current.add(e.key);
+      if (dirKey) {
+        keysRef.current.add(dirKey);
         e.preventDefault();
       }
-      if (e.key === " " || e.key === "e") {
+      if (e.key === " " || lowerKey === "e") {
         placeSpike();
         e.preventDefault();
       }
-      if (e.key === "b") {
+      if (lowerKey === "b") {
         placeBomb();
         e.preventDefault();
       }
-      if (e.key === "r") {
+      if (lowerKey === "r") {
         openRestartConfirm();
+        e.preventDefault();
+      }
+      if (lowerKey === "i") {
+        openEquipment();
         e.preventDefault();
       }
     };
     const handleUp = (e: KeyboardEvent) => {
-      if (screenRef.current === "game" && keyToDir[e.key]) {
-        keysRef.current.delete(e.key);
+      const lowerKey = e.key.toLowerCase();
+      const dirKey = keyToDir[e.key] ? e.key : keyToDir[lowerKey] ? lowerKey : "";
+      if (screenRef.current === "game" && dirKey) {
+        keysRef.current.delete(dirKey);
         e.preventDefault();
       }
     };
@@ -872,6 +1058,10 @@ export default function App() {
     setBombsLeft(1);
     setLoseReason("caught");
     keysRef.current.clear();
+    controlsReturnToGameRef.current = false;
+    setControlsReturnToGame(false);
+    setEquipmentOpen(false);
+    resetTouchInput();
     setPaused(false);
   };
 
@@ -881,118 +1071,246 @@ export default function App() {
     goToScreen("game");
   };
 
+  const updateTouchVector = (clientX: number, clientY: number) => {
+    const zone = joystickRef.current;
+    if (!zone) return;
+
+    const rect = zone.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const rawX = clientX - cx;
+    const rawY = clientY - cy;
+    const distanceRaw = Math.hypot(rawX, rawY);
+    if (distanceRaw <= 0.0001) {
+      touchMoveRef.current = { x: 0, y: 0 };
+      setJoystickVisual(0, 0);
+      return;
+    }
+
+    const clamped = Math.min(TOUCH_JOYSTICK_MAX, distanceRaw);
+    const nx = rawX / distanceRaw;
+    const ny = rawY / distanceRaw;
+    const knobRatio = clamped / TOUCH_JOYSTICK_MAX;
+    const moveRatio =
+      knobRatio <= TOUCH_JOYSTICK_DEADZONE
+        ? 0
+        : (knobRatio - TOUCH_JOYSTICK_DEADZONE) / (1 - TOUCH_JOYSTICK_DEADZONE);
+
+    touchMoveRef.current = { x: nx * moveRatio, y: ny * moveRatio };
+    setJoystickVisual(nx * clamped, ny * clamped);
+  };
+
+  const onJoystickPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!touchEnabled || e.pointerType === "mouse") return;
+    if (screenRef.current !== "game") return;
+    if (
+      pausedRef.current ||
+      confirmRestartRef.current ||
+      equipmentOpenRef.current ||
+      stateRef.current.status !== "playing"
+    ) {
+      return;
+    }
+    movePointerIdRef.current = e.pointerId;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setJoystickActive(true);
+    updateTouchVector(e.clientX, e.clientY);
+    e.preventDefault();
+  };
+
+  const onJoystickPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (movePointerIdRef.current !== e.pointerId) return;
+    updateTouchVector(e.clientX, e.clientY);
+    e.preventDefault();
+  };
+
+  const onJoystickPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (movePointerIdRef.current !== e.pointerId) return;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // Ignore if capture was already released by browser.
+    }
+    resetTouchInput();
+    e.preventDefault();
+  };
+
+  const inventoryPanel = (
+    <>
+      <div className="inventory-title">Inventory</div>
+      <div className="inventory-group">
+        <div className="inventory-label">Spikes</div>
+        <div className="inventory-slots">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={`spike-${i}`}
+              className={`inventory-slot ${i < spikesLeft ? "filled" : ""}`}
+            >
+              <svg className="inventory-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2 L18 10 L12 8 L6 10 Z" fill="currentColor" />
+                <rect x="10.5" y="10" width="3" height="10" />
+                <rect x="7" y="20" width="10" height="2" />
+              </svg>
+            </div>
+          ))}
+        </div>
+        <div className="inventory-hint">
+          {touchEnabled ? "Tap Trap button" : "Place with Space or E"}
+        </div>
+      </div>
+
+      <div className="inventory-group">
+        <div className="inventory-label">Bombs</div>
+        <div className="inventory-slots">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={`bomb-${i}`}
+              className={`inventory-slot ${i < bombsLeft ? "filled" : ""}`}
+            >
+              <svg className="inventory-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10" cy="14" r="6" />
+                <rect x="14" y="6" width="6" height="2" />
+                <circle cx="20" cy="6" r="2" />
+              </svg>
+            </div>
+          ))}
+        </div>
+        <div className="inventory-hint">{touchEnabled ? "Tap Bomb button" : "Place with B"}</div>
+      </div>
+
+      <div className="inventory-group">
+        <div className="inventory-label">Artifacts</div>
+        <div className="inventory-counter">
+          <svg className="inventory-icon small" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="6" y="6" width="12" height="12" rx="2" />
+            <path d="M12 3 L14 6 L10 6 Z" />
+            <path d="M12 21 L14 18 L10 18 Z" />
+          </svg>
+          <span>
+            {ITEMS_TARGET - itemsLeft} / {ITEMS_TARGET}
+          </span>
+        </div>
+      </div>
+
+      <div className="inventory-group">
+        <div className="inventory-label">Coins</div>
+        <div className="inventory-counter coin-counter">
+          <svg className="inventory-icon small" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="8" />
+            <rect x="11" y="7" width="2" height="10" fill="#05070c" opacity="0.35" />
+          </svg>
+          <span className="coins-count">{coinsCollected}</span>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="app">
       <canvas ref={canvasRef} className="game-canvas" />
       {screen === "game" && (
         <div className="hud">
-        <div className="hud-top" ref={hudTopRef}>
-          <header className="title">
-            <div>Labyrinth Runner</div>
-            <div className="sub">96x64 Retro Maze</div>
-          </header>
-          <div className="stats">
-            <div>
-              Artifacts: {ITEMS_TARGET - itemsLeft} / {ITEMS_TARGET}
-            </div>
-            <div className="coins-stat">
-              Coins: <span className="coins-count">{coinsCollected}</span>
-            </div>
-            <div>
-              Status:{" "}
-              {status === "playing" ? "Running" : status.toUpperCase()}
-            </div>
-            <div>R: restart</div>
+          <div
+            className={`hud-top${compactHud ? " hud-top-compact" : ""}`}
+            ref={hudTopRef}
+          >
+            {compactHud ? (
+              <div className="stats stats-compact">
+                <div>
+                  Artifacts: {ITEMS_TARGET - itemsLeft} / {ITEMS_TARGET}
+                </div>
+                <div className="coins-stat">
+                  Coins: <span className="coins-count">{coinsCollected}</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <header className="title">
+                  <div>Labyrinth Runner</div>
+                  <div className="sub">96x64 Retro Maze</div>
+                </header>
+                <div className="stats">
+                  <div>
+                    Artifacts: {ITEMS_TARGET - itemsLeft} / {ITEMS_TARGET}
+                  </div>
+                  <div className="coins-stat">
+                    Coins: <span className="coins-count">{coinsCollected}</span>
+                  </div>
+                  <div>
+                    Status: {status === "playing" ? "Running" : status.toUpperCase()}
+                  </div>
+                  <div>{touchEnabled ? "Tap Menu to pause" : "R: restart"}</div>
+                </div>
+                <div className="help">{helpText}</div>
+              </>
+            )}
           </div>
-          <div className="help">{helpText}</div>
+          {!touchEnabled && !compactHud && (
+            <aside className="inventory" ref={inventoryRef}>
+              {inventoryPanel}
+            </aside>
+          )}
         </div>
-
-        <aside className="inventory" ref={inventoryRef}>
-          <div className="inventory-title">Inventory</div>
-          <div className="inventory-group">
-            <div className="inventory-label">Spikes</div>
-            <div className="inventory-slots">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={`spike-${i}`}
-                  className={`inventory-slot ${
-                    i < spikesLeft ? "filled" : ""
-                  }`}
-                >
-                  <svg
-                    className="inventory-icon"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M12 2 L18 10 L12 8 L6 10 Z"
-                      fill="currentColor"
-                    />
-                    <rect x="10.5" y="10" width="3" height="10" />
-                    <rect x="7" y="20" width="10" height="2" />
-                  </svg>
-                </div>
-              ))}
-            </div>
-            <div className="inventory-hint">Place with Space or E</div>
-          </div>
-
-          <div className="inventory-group">
-            <div className="inventory-label">Bombs</div>
-            <div className="inventory-slots">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={`bomb-${i}`}
-                  className={`inventory-slot ${
-                    i < bombsLeft ? "filled" : ""
-                  }`}
-                >
-                  <svg
-                    className="inventory-icon"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle cx="10" cy="14" r="6" />
-                    <rect x="14" y="6" width="6" height="2" />
-                    <circle cx="20" cy="6" r="2" />
-                  </svg>
-                </div>
-              ))}
-            </div>
-            <div className="inventory-hint">Place with B</div>
-          </div>
-
-          <div className="inventory-group">
-            <div className="inventory-label">Artifacts</div>
-            <div className="inventory-counter">
-              <svg
-                className="inventory-icon small"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <rect x="6" y="6" width="12" height="12" rx="2" />
-                <path d="M12 3 L14 6 L10 6 Z" />
-                <path d="M12 21 L14 18 L10 18 Z" />
-              </svg>
-              <span>
-                {ITEMS_TARGET - itemsLeft} / {ITEMS_TARGET}
-              </span>
-            </div>
-          </div>
-
-          <div className="inventory-group">
-            <div className="inventory-label">Coins</div>
-            <div className="inventory-counter coin-counter">
-              <svg className="inventory-icon small" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="12" r="8" />
-                <rect x="11" y="7" width="2" height="10" fill="#05070c" opacity="0.35" />
-              </svg>
-              <span className="coins-count">{coinsCollected}</span>
-            </div>
-          </div>
-        </aside>
-      </div>
       )}
+
+      {screen === "game" &&
+        touchEnabled &&
+        status === "playing" &&
+        !paused &&
+        !confirmRestartOpen &&
+        !equipmentOpen && (
+          <div className="touch-layer">
+            <div className="touch-top-actions">
+              <button className="touch-top-button" onClick={pauseGame}>
+                Menu
+              </button>
+              <button className="touch-top-button" onClick={openEquipment}>
+                Gear
+              </button>
+            </div>
+
+            <div
+              ref={joystickRef}
+              className="touch-joystick"
+              onPointerDown={onJoystickPointerDown}
+              onPointerMove={onJoystickPointerMove}
+              onPointerUp={onJoystickPointerUp}
+              onPointerCancel={onJoystickPointerUp}
+            >
+              <div className="touch-joystick-ring" />
+              <div ref={joystickKnobRef} className="touch-joystick-knob" />
+            </div>
+
+            <div className="touch-actions">
+              <button
+                className="touch-action touch-action-trap"
+                onClick={placeSpike}
+                disabled={spikesLeft <= 0}
+                aria-label="Place trap"
+              >
+                <svg className="touch-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2 L18 10 L12 8 L6 10 Z" fill="currentColor" />
+                  <rect x="10.5" y="10" width="3" height="10" />
+                  <rect x="7" y="20" width="10" height="2" />
+                </svg>
+                <span className="touch-action-count">x{spikesLeft}</span>
+              </button>
+              <button
+                className="touch-action touch-action-bomb"
+                onClick={placeBomb}
+                disabled={bombsLeft <= 0}
+                aria-label="Place bomb"
+              >
+                <svg className="touch-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="10" cy="14" r="6" />
+                  <rect x="14" y="6" width="6" height="2" />
+                  <circle cx="20" cy="6" r="2" />
+                </svg>
+                <span className="touch-action-count">x{bombsLeft}</span>
+              </button>
+            </div>
+          </div>
+        )}
 
       {screen === "game" && status !== "playing" && (
         <div className="overlay">
@@ -1023,40 +1341,107 @@ export default function App() {
               Main Menu
             </button>
             <div className="menu-hint">
-              Press <span className="keycap">Enter</span> or{" "}
-              <span className="keycap">Esc</span>
+              {touchEnabled ? (
+                "Tap Main Menu to continue."
+              ) : (
+                <>
+                  Press <span className="keycap">Enter</span> or{" "}
+                  <span className="keycap">Esc</span>
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {screen === "game" && paused && status === "playing" && !confirmRestartOpen && (
+      {screen === "game" &&
+        paused &&
+        status === "playing" &&
+        !confirmRestartOpen &&
+        !equipmentOpen && (
         <div className="overlay overlay-pause">
           <div className="overlay-box pause-box">
             <div className="overlay-title">Paused</div>
             <div className="overlay-text">
-              Press <span className="keycap">Esc</span> to resume.
+              {touchEnabled ? (
+                "Game paused. Open equipment, view controls, or resume."
+              ) : (
+                <>
+                  Press <span className="keycap">Esc</span> to resume.
+                </>
+              )}
             </div>
             <div className="confirm-actions">
-              <button className="overlay-button" onClick={() => goToScreen("controls")}>
-                Controls
-              </button>
               <button
                 className="overlay-button"
                 onClick={() => {
                   keysRef.current.clear();
+                  setEquipmentOpen(false);
                   setPaused(false);
                 }}
               >
                 Resume
               </button>
+              <button className="overlay-button" onClick={() => setEquipmentOpen(true)}>
+                Equipment
+              </button>
+              <button className="overlay-button" onClick={() => openControls(true)}>
+                Controls
+              </button>
+              <button className="overlay-button" onClick={openRestartConfirm}>
+                Restart
+              </button>
+              <button className="overlay-button" onClick={goToMainMenu}>
+                Main Menu
+              </button>
             </div>
             <div className="menu-hint">
-              <span className="keycap">R</span> restart
+              {touchEnabled ? (
+                "Use the buttons below to resume, open equipment, restart, or return to menu."
+              ) : (
+                <>
+                  <span className="keycap">Esc</span> resume <span className="keycap">I</span>{" "}
+                  equipment <span className="keycap">R</span> restart
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
+
+      {screen === "game" &&
+        equipmentOpen &&
+        status === "playing" &&
+        !confirmRestartOpen && (
+          <div className="overlay overlay-equipment">
+            <div className="overlay-box equipment-box">
+              <div className="equipment-header">
+                <div className="overlay-title">Equipment</div>
+                <button className="overlay-button" onClick={closeEquipment}>
+                  Close
+                </button>
+              </div>
+              <div className="overlay-text">
+                Trap and Bomb actions are mapped to touch buttons while playing.
+              </div>
+              <div className="equipment-panel">{inventoryPanel}</div>
+              <div className="confirm-actions equipment-actions">
+                <button className="overlay-button" onClick={closeEquipment}>
+                  Back
+                </button>
+                <button
+                  className="overlay-button"
+                  onClick={() => {
+                    closeEquipment();
+                    setPaused(false);
+                  }}
+                >
+                  Resume
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       {screen === "game" && confirmRestartOpen && (
         <div className="overlay overlay-confirm">
@@ -1080,8 +1465,14 @@ export default function App() {
               </button>
             </div>
             <div className="menu-hint">
-              <span className="keycap">Enter</span> confirm{" "}
-              <span className="keycap">Esc</span> cancel
+              {touchEnabled ? (
+                "Tap Restart to confirm or Cancel to keep playing."
+              ) : (
+                <>
+                  <span className="keycap">Enter</span> confirm{" "}
+                  <span className="keycap">Esc</span> cancel
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1098,67 +1489,127 @@ export default function App() {
                   <button className="menu-button" onClick={startNewGame}>
                     Start New Game
                   </button>
-                  <button className="menu-button" onClick={() => goToScreen("controls")}>
+                  <button className="menu-button" onClick={() => openControls(false)}>
                     Controls
                   </button>
                 </div>
                 <div className="menu-hint">
-                  Press <span className="keycap">Enter</span> to start,{" "}
-                  <span className="keycap">C</span> for controls
+                  {touchEnabled ? (
+                    "Tap Start New Game or Controls."
+                  ) : (
+                    <>
+                      Press <span className="keycap">Enter</span> to start,{" "}
+                      <span className="keycap">C</span> for controls
+                    </>
+                  )}
                 </div>
               </>
             ) : (
               <>
                 <div className="menu-title">Controls</div>
                 <div className="controls-panel">
-                  <div className="controls-row">
-                    <div className="controls-label">Move</div>
-                    <div className="controls-value">
-                      <span className="keycap">W</span>
-                      <span className="keycap">A</span>
-                      <span className="keycap">S</span>
-                      <span className="keycap">D</span>
-                      <span className="controls-or">or</span>
-                      <span className="keycap">↑</span>
-                      <span className="keycap">←</span>
-                      <span className="keycap">↓</span>
-                      <span className="keycap">→</span>
-                    </div>
-                  </div>
-                  <div className="controls-row">
-                    <div className="controls-label">Spike</div>
-                    <div className="controls-value">
-                      <span className="keycap">Space</span>
-                      <span className="controls-or">or</span>
-                      <span className="keycap">E</span>
-                      <span className="controls-note">stuns chaser for 5s</span>
-                    </div>
-                  </div>
-                  <div className="controls-row">
-                    <div className="controls-label">Bomb</div>
-                    <div className="controls-value">
-                      <span className="keycap">B</span>
-                      <span className="controls-note">blasts walls (radius 8)</span>
-                    </div>
-                  </div>
-                  <div className="controls-row">
-                    <div className="controls-label">Restart</div>
-                    <div className="controls-value">
-                      <span className="keycap">R</span>
-                    </div>
-                  </div>
-                  <div className="controls-row">
-                    <div className="controls-label">Pause</div>
-                    <div className="controls-value">
-                      <span className="keycap">Esc</span>
-                    </div>
-                  </div>
-                  <div className="controls-row">
-                    <div className="controls-label">Arrows</div>
-                    <div className="controls-value">
-                      Wall throwers fire every <span className="keycap">3s</span> down straight corridors.
-                    </div>
-                  </div>
+                  {touchEnabled ? (
+                    <>
+                      <div className="controls-row">
+                        <div className="controls-label">Move</div>
+                        <div className="controls-value">Use the joystick at the bottom-left.</div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Trap</div>
+                        <div className="controls-value">
+                          Tap the trap icon button to place a trap and stun the chaser for 5s.
+                        </div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Bomb</div>
+                        <div className="controls-value">
+                          Tap the bomb icon button to blast walls (radius 8).
+                        </div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Pause</div>
+                        <div className="controls-value">Tap Menu in the top-right corner.</div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Equipment</div>
+                        <div className="controls-value">
+                          Tap Gear in the top-right, or open it from the pause screen.
+                        </div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Restart</div>
+                        <div className="controls-value">Open Menu, then tap Restart.</div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Arrows</div>
+                        <div className="controls-value">
+                          Wall throwers fire every 3s down straight corridors.
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="controls-row">
+                        <div className="controls-label">Move</div>
+                        <div className="controls-value">
+                          <span className="keycap">W</span>
+                          <span className="keycap">A</span>
+                          <span className="keycap">S</span>
+                          <span className="keycap">D</span>
+                          <span className="controls-or">or</span>
+                          <span className="keycap">Arrows</span>
+                        </div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Spike</div>
+                        <div className="controls-value">
+                          <span className="keycap">Space</span>
+                          <span className="controls-or">or</span>
+                          <span className="keycap">E</span>
+                          <span className="controls-note">stuns chaser for 5s</span>
+                        </div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Bomb</div>
+                        <div className="controls-value">
+                          <span className="keycap">B</span>
+                          <span className="controls-note">blasts walls (radius 8)</span>
+                        </div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Restart</div>
+                        <div className="controls-value">
+                          <span className="keycap">R</span>
+                        </div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Pause</div>
+                        <div className="controls-value">
+                          <span className="keycap">Esc</span>
+                        </div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Equipment</div>
+                        <div className="controls-value">
+                          <span className="keycap">I</span>
+                        </div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Touch</div>
+                        <div className="controls-value">
+                          Joystick movement plus Trap and Bomb action buttons. Use Menu and Gear
+                          buttons in the top-right while playing.
+                        </div>
+                      </div>
+                      <div className="controls-row">
+                        <div className="controls-label">Arrows</div>
+                        <div className="controls-value">
+                          Wall throwers fire every <span className="keycap">3s</span> down straight
+                          corridors.
+                        </div>
+                      </div>
+                    </>
+                  )}
                   <div className="controls-divider" />
                   <div className="controls-blurb">
                     Collect all <span className="keycap">10</span> artifacts to win. Avoid traps and
@@ -1166,15 +1617,25 @@ export default function App() {
                   </div>
                 </div>
                 <div className="menu-options">
-                  <button className="menu-button" onClick={() => goToScreen("menu")}>
+                  <button className="menu-button" onClick={closeControls}>
                     Back
                   </button>
-                  <button className="menu-button primary" onClick={startNewGame}>
-                    Start
-                  </button>
+                  {!touchEnabled && !controlsReturnToGame && (
+                    <button className="menu-button primary" onClick={startNewGame}>
+                      Start
+                    </button>
+                  )}
                 </div>
                 <div className="menu-hint">
-                  Press <span className="keycap">Esc</span> to go back
+                  {touchEnabled ? (
+                    controlsReturnToGame
+                      ? "Tap Back to return to the paused game."
+                      : "Tap Back to return."
+                  ) : (
+                    <>
+                      Press <span className="keycap">Esc</span> to go back
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -1321,6 +1782,7 @@ export default function App() {
       const chaserSpeed =
         PLAYER_SPEED *
         dt *
+        (touchEnabledRef.current ? TOUCH_CHASER_SPEED_MULT : 1) *
         (now < state.boostUntil ? CHASER_BOOST_MULT : 1);
       const atCenter = isAtCellCenter(state.monster);
 
@@ -1403,9 +1865,15 @@ export default function App() {
         dy += dir.y;
       }
     });
-    if (dx !== 0 && dy !== 0) {
-      const inv = 1 / Math.sqrt(2);
-      return { x: dx * inv, y: dy * inv };
+    dx += touchMoveRef.current.x;
+    dy += touchMoveRef.current.y;
+
+    const len = Math.hypot(dx, dy);
+    if (len > 1) {
+      return { x: dx / len, y: dy / len };
+    }
+    if (len < 0.0001) {
+      return { x: 0, y: 0 };
     }
     return { x: dx, y: dy };
   }
@@ -1422,6 +1890,9 @@ export default function App() {
 
   function tryMove(grid: Cell[][], pos: Vec, dir: Vec, speed: number): Vec {
     if (dir.x === 0 && dir.y === 0) return pos;
+    const turnAssistTiles = touchEnabledRef.current
+      ? TOUCH_TURN_ASSIST_TILES
+      : TURN_ASSIST_TILES;
     const tileCenter = (v: number) => Math.floor(v) + 0.5;
     const nudgeToward = (v: number, target: number, maxDelta: number) => {
       const d = target - v;
@@ -1436,7 +1907,7 @@ export default function App() {
     } else if (dir.x !== 0) {
       // Corner assist: if we're slightly misaligned in the corridor, nudge toward the
       // current tile's center on the perpendicular axis and retry.
-      const maxNudge = Math.min(TURN_ASSIST_TILES, Math.max(speed, 0.01));
+      const maxNudge = Math.min(turnAssistTiles, Math.max(speed, 0.01));
       const nudgedY = nudgeToward(pos.y, tileCenter(pos.y), maxNudge);
       const movedXNudged = { x: next.x, y: nudgedY };
       if (!isBlocked(grid, movedXNudged)) pos = movedXNudged;
@@ -1445,7 +1916,7 @@ export default function App() {
     if (!isBlocked(grid, movedY)) {
       pos = movedY;
     } else if (dir.y !== 0) {
-      const maxNudge = Math.min(TURN_ASSIST_TILES, Math.max(speed, 0.01));
+      const maxNudge = Math.min(turnAssistTiles, Math.max(speed, 0.01));
       const nudgedX = nudgeToward(pos.x, tileCenter(pos.x), maxNudge);
       const movedYNudged = { x: nudgedX, y: next.y };
       if (!isBlocked(grid, movedYNudged)) pos = movedYNudged;
@@ -1623,6 +2094,28 @@ export default function App() {
         );
       }
     });
+
+    const monsterScreenX = state.monster.x * TILE_SIZE - camX;
+    const monsterScreenY = state.monster.y * TILE_SIZE - camY;
+    const monsterOnScreen =
+      monsterScreenX >= 0 &&
+      monsterScreenX <= viewW &&
+      monsterScreenY >= 0 &&
+      monsterScreenY <= viewH;
+    if (!monsterOnScreen) {
+      drawArtifactIndicator(
+        ctx,
+        playerScreenX,
+        playerScreenY,
+        monsterScreenX,
+        monsterScreenY,
+        viewW,
+        viewH,
+        now,
+        "rgba(255, 78, 78, 1)",
+        "rgba(255, 215, 215, 0.12)"
+      );
+    }
 
     state.boosters.forEach((key) => {
       const [x, y] = key.split(",").map(Number);
@@ -1878,7 +2371,9 @@ export default function App() {
     toY: number,
     viewW: number,
     viewH: number,
-    now: number
+    now: number,
+    color: string = "rgba(246, 201, 69, 1)",
+    shineColor: string = "rgba(255, 255, 255, 0.10)"
   ) {
     const dx = toX - fromX;
     const dy = toY - fromY;
@@ -1912,7 +2407,8 @@ export default function App() {
     ctx.translate(px, py);
     ctx.rotate(angle);
     ctx.globalCompositeOperation = "lighter";
-    ctx.fillStyle = `rgba(246, 201, 69, ${0.55 + pulse * 0.25})`;
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.55 + pulse * 0.25;
     ctx.beginPath();
     ctx.moveTo(size, 0);
     ctx.lineTo(-size * 0.7, size * 0.55);
@@ -1920,7 +2416,8 @@ export default function App() {
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.10)";
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = shineColor;
     ctx.beginPath();
     ctx.moveTo(size * 0.55, 0);
     ctx.lineTo(-size * 0.35, size * 0.35);
@@ -2596,3 +3093,4 @@ export default function App() {
     ctx.restore();
   }
 }
+
