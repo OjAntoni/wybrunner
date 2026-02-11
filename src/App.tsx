@@ -1124,10 +1124,25 @@ export default function App() {
     ) {
       return;
     }
+    if (movePointerIdRef.current !== null && movePointerIdRef.current !== e.pointerId) {
+      return;
+    }
     movePointerIdRef.current = e.pointerId;
     e.currentTarget.setPointerCapture(e.pointerId);
     setJoystickActive(true);
     updateTouchVector(e.clientX, e.clientY);
+    e.preventDefault();
+  };
+
+  const onTrapPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!touchEnabled || e.pointerType === "mouse") return;
+    placeSpike();
+    e.preventDefault();
+  };
+
+  const onBombPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!touchEnabled || e.pointerType === "mouse") return;
+    placeBomb();
     e.preventDefault();
   };
 
@@ -1303,9 +1318,10 @@ export default function App() {
             <div className="touch-actions">
               <button
                 className="touch-action touch-action-trap"
-                onClick={placeSpike}
+                onPointerDown={onTrapPointerDown}
                 disabled={spikesLeft <= 0}
                 aria-label="Place trap"
+                type="button"
               >
                 <svg className="touch-action-icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M12 2 L18 10 L12 8 L6 10 Z" fill="currentColor" />
@@ -1316,9 +1332,10 @@ export default function App() {
               </button>
               <button
                 className="touch-action touch-action-bomb"
-                onClick={placeBomb}
+                onPointerDown={onBombPointerDown}
                 disabled={bombsLeft <= 0}
                 aria-label="Place bomb"
+                type="button"
               >
                 <svg className="touch-action-icon" viewBox="0 0 24 24" aria-hidden="true">
                   <circle cx="10" cy="14" r="6" />
