@@ -507,6 +507,10 @@ body,
     max(12px, env(safe-area-inset-left));
 }
 
+.overlay.overlay-menu.overlay-menu-main {
+  align-items: center;
+}
+
 .menu-box {
   width: min(720px, calc(100vw - 40px));
   max-height: calc(100dvh - 24px);

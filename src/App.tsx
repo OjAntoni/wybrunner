@@ -1515,7 +1515,9 @@ export default function App() {
       )}
 
       {screen !== "game" && (
-        <div className="overlay overlay-menu">
+        <div
+          className={`overlay overlay-menu${screen === "menu" ? " overlay-menu-main" : ""}`}
+        >
           <div className="overlay-box menu-box">
             {screen === "menu" ? (
               <>
