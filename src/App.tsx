@@ -815,11 +815,15 @@ export default function App() {
   useEffect(() => {
     const updateTouchMode = () => {
       const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-      const hasCoarsePrimaryPointer = window.matchMedia("(pointer: coarse)").matches;
-      const hasFinePrimaryPointer = window.matchMedia("(pointer: fine)").matches;
-      const hasHover = window.matchMedia("(hover: hover)").matches;
+      const hasAnyCoarsePointer = window.matchMedia("(any-pointer: coarse)").matches;
+      const hasAnyFinePointer = window.matchMedia("(any-pointer: fine)").matches;
+      const hasAnyHover = window.matchMedia("(any-hover: hover)").matches;
       const ua = navigator.userAgent || "";
+      const uaDataMobile = (
+        navigator as Navigator & { userAgentData?: { mobile?: boolean } }
+      ).userAgentData?.mobile;
       const isMobileUa =
+        !!uaDataMobile ||
         /Android|iPhone|iPad|iPod|Mobile|Windows Phone|webOS|BlackBerry/i.test(
           ua
         );
@@ -827,13 +831,17 @@ export default function App() {
       const isCompactHudScreen = window.matchMedia(
         "(max-width: 1200px), (max-height: 860px)"
       ).matches;
+      const isDesktopHybridTouch =
+        !isMobileUa &&
+        hasAnyFinePointer &&
+        hasAnyHover &&
+        window.matchMedia("(min-width: 901px)").matches;
       const shouldUseTouchUi =
         hasTouch &&
-        (isMobileUa || hasCoarsePrimaryPointer) &&
-        (!hasFinePrimaryPointer || !hasHover) &&
-        (isSmallTouchScreen || isMobileUa);
+        !isDesktopHybridTouch &&
+        (isMobileUa || isSmallTouchScreen || hasAnyCoarsePointer);
       setTouchEnabled(shouldUseTouchUi);
-      setCompactHud(isCompactHudScreen || (hasTouch && !shouldUseTouchUi));
+      setCompactHud(shouldUseTouchUi && isCompactHudScreen);
     };
     updateTouchMode();
     window.addEventListener("resize", updateTouchMode);
@@ -1222,7 +1230,7 @@ export default function App() {
             {compactHud ? (
               <div className="stats stats-compact">
                 <div>
-                  Artifacts: {ITEMS_TARGET - itemsLeft} / {ITEMS_TARGET}
+                  Artifacts: {ITEMS_TARGET - itemsLeft}/{ITEMS_TARGET}
                 </div>
                 <div className="coins-stat">
                   Coins: <span className="coins-count">{coinsCollected}</span>
@@ -1235,16 +1243,22 @@ export default function App() {
                   <div className="sub">96x64 Retro Maze</div>
                 </header>
                 <div className="stats">
-                  <div>
-                    Artifacts: {ITEMS_TARGET - itemsLeft} / {ITEMS_TARGET}
+                  <div className="stats-primary">
+                    <div className="stat-item">
+                      Artifacts: {ITEMS_TARGET - itemsLeft}/{ITEMS_TARGET}
+                    </div>
+                    <div className="stat-item coins-stat">
+                      Coins: <span className="coins-count">{coinsCollected}</span>
+                    </div>
                   </div>
-                  <div className="coins-stat">
-                    Coins: <span className="coins-count">{coinsCollected}</span>
+                  <div className="stats-secondary">
+                    <div className="stat-item">
+                      Status: {status === "playing" ? "Running" : status.toUpperCase()}
+                    </div>
+                    <div className="stat-item">
+                      {touchEnabled ? "Tap Menu to pause" : "R: restart"}
+                    </div>
                   </div>
-                  <div>
-                    Status: {status === "playing" ? "Running" : status.toUpperCase()}
-                  </div>
-                  <div>{touchEnabled ? "Tap Menu to pause" : "R: restart"}</div>
                 </div>
                 <div className="help">{helpText}</div>
               </>
