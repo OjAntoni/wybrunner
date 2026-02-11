@@ -818,15 +818,20 @@ export default function App() {
       const hasCoarsePrimaryPointer = window.matchMedia("(pointer: coarse)").matches;
       const hasFinePrimaryPointer = window.matchMedia("(pointer: fine)").matches;
       const hasHover = window.matchMedia("(hover: hover)").matches;
+      const ua = navigator.userAgent || "";
+      const isMobileUa =
+        /Android|iPhone|iPad|iPod|Mobile|Windows Phone|webOS|BlackBerry/i.test(
+          ua
+        );
       const isSmallTouchScreen = window.matchMedia("(max-width: 900px)").matches;
       const isCompactHudScreen = window.matchMedia(
         "(max-width: 1200px), (max-height: 860px)"
       ).matches;
       const shouldUseTouchUi =
-        hasCoarsePrimaryPointer &&
-        !hasFinePrimaryPointer &&
-        !hasHover &&
-        isSmallTouchScreen;
+        hasTouch &&
+        (isMobileUa || hasCoarsePrimaryPointer) &&
+        (!hasFinePrimaryPointer || !hasHover) &&
+        (isSmallTouchScreen || isMobileUa);
       setTouchEnabled(shouldUseTouchUi);
       setCompactHud(isCompactHudScreen || (hasTouch && !shouldUseTouchUi));
     };
