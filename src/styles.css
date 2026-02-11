@@ -499,10 +499,20 @@ body,
 .overlay.overlay-menu {
   background: rgba(5, 7, 12, 0.65);
   backdrop-filter: blur(2px);
+  align-items: flex-start;
+  overflow-y: auto;
+  padding: max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
 }
 
 .menu-box {
   width: min(720px, calc(100vw - 40px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 28px;
 }
 
@@ -631,6 +641,19 @@ body,
 }
 
 @media (max-width: 720px) {
+  .overlay.overlay-menu {
+    padding: max(8px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+  }
+
+  .menu-box {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    padding: 18px 14px;
+  }
+
   .stats-primary,
   .stats-secondary {
     flex-direction: column;
