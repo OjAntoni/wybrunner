@@ -1,5 +1,7 @@
-import { TILE_SIZE } from "../config/constants";
+import { HUNTER_CHASER_PLACE_DOT_STEP_MS, TILE_SIZE } from "../config/constants";
 import type { GameState } from "../model/types";
+import { getHunterFacingAngle } from "../world/hunterFacing";
+import { isCellCoveredByExploreClouds } from "../world/exploration";
 
 export function drawHelpers(
   ctx: CanvasRenderingContext2D,
@@ -57,31 +59,106 @@ export function drawMonster(
   camX: number,
   camY: number
 ) {
-  const stunned = now < state.stunUntil;
-  if (stunned) {
-    const flicker = Math.sin(now / 60) > 0;
-    ctx.fillStyle = flicker ? "#ff4e4e" : "#ffd166";
-  } else {
-    ctx.fillStyle = "#ff4e4e";
-  }
+  for (const monster of state.monsters) {
+    const monsterCell = {
+      x: Math.floor(monster.pos.x),
+      y: Math.floor(monster.pos.y),
+    };
+    if (isCellCoveredByExploreClouds(state, monsterCell.x, monsterCell.y)) continue;
 
-  if (now < state.boostUntil) {
-    const glow = 0.35 + 0.25 * Math.sin(now / 80);
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.fillStyle = `rgba(80,255,140,${glow})`;
-    ctx.beginPath();
-    ctx.arc(state.monster.x * TILE_SIZE - camX, state.monster.y * TILE_SIZE - camY, 9, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
+    const stunned = now < monster.stunUntil;
+    if (stunned) {
+      const flicker = Math.sin(now / 60) > 0;
+      ctx.fillStyle = flicker ? "#ff4e4e" : "#ffd166";
+    } else {
+      ctx.fillStyle = "#ff4e4e";
+    }
 
-  ctx.fillRect(
-    state.monster.x * TILE_SIZE - camX - TILE_SIZE / 2 + 1,
-    state.monster.y * TILE_SIZE - camY - TILE_SIZE / 2 + 1,
-    TILE_SIZE - 2,
-    TILE_SIZE - 2
-  );
+    if (now < monster.boostUntil) {
+      const glow = 0.35 + 0.25 * Math.sin(now / 80);
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = `rgba(80,255,140,${glow})`;
+      ctx.beginPath();
+      ctx.arc(monster.pos.x * TILE_SIZE - camX, monster.pos.y * TILE_SIZE - camY, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.fillRect(
+      monster.pos.x * TILE_SIZE - camX - TILE_SIZE / 2 + 1,
+      monster.pos.y * TILE_SIZE - camY - TILE_SIZE / 2 + 1,
+      TILE_SIZE - 2,
+      TILE_SIZE - 2
+    );
+  }
+}
+
+function drawHunterPlacingPopup(
+  ctx: CanvasRenderingContext2D,
+  hunterX: number,
+  hunterY: number,
+  now: number,
+  startMs: number
+) {
+  const elapsed = Math.max(0, now - startMs);
+  const dotCount = (Math.floor(elapsed / HUNTER_CHASER_PLACE_DOT_STEP_MS) % 3) + 1;
+  const text = `Placing the chaser${".".repeat(dotCount)}`;
+  ctx.save();
+  ctx.font = "400 4px 'Press Start 2P', monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "rgba(232, 98, 98, 0.75)";
+  ctx.fillText(text, hunterX, hunterY - TILE_SIZE * 0.8);
+  ctx.restore();
+}
+
+export function drawHunters(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  now: number,
+  camX: number,
+  camY: number
+) {
+  for (let i = 0; i < state.hunters.length; i += 1) {
+    const hunter = state.hunters[i];
+    const hunterCell = {
+      x: Math.floor(hunter.pos.x),
+      y: Math.floor(hunter.pos.y),
+    };
+    if (hunter.mode !== "chase" && isCellCoveredByExploreClouds(state, hunterCell.x, hunterCell.y)) {
+      continue;
+    }
+
+    const patrolPulse = 0.75 + (Math.sin(now / 220 + i * 0.7) + 1) * 0.125;
+    const isChasing = hunter.mode === "chase";
+    const facingAngle = getHunterFacingAngle(hunter, now);
+    ctx.fillStyle = isChasing
+      ? "rgba(255, 130, 80, 1)"
+      : `rgba(255, 192, 110, ${patrolPulse.toFixed(3)})`;
+
+    const px = hunter.pos.x * TILE_SIZE - camX - TILE_SIZE / 2 + 1;
+    const py = hunter.pos.y * TILE_SIZE - camY - TILE_SIZE / 2 + 1;
+    ctx.fillRect(px, py, TILE_SIZE - 2, TILE_SIZE - 2);
+
+    const eyeOffsetX = Math.cos(facingAngle) * 2;
+    const eyeOffsetY = Math.sin(facingAngle) * 2;
+    const centerX = px + (TILE_SIZE - 2) / 2;
+    const centerY = py + (TILE_SIZE - 2) / 2;
+
+    ctx.fillStyle = "rgba(22, 18, 14, 0.9)";
+    ctx.fillRect(centerX + eyeOffsetX - 1, centerY + eyeOffsetY - 1, 2, 2);
+
+    if (hunter.chaserPlaceEndMs > now) {
+      drawHunterPlacingPopup(
+        ctx,
+        hunter.pos.x * TILE_SIZE - camX,
+        hunter.pos.y * TILE_SIZE - camY,
+        now,
+        hunter.chaserPlaceStartMs
+      );
+    }
+  }
 }
 
 function clamp01(value: number) {

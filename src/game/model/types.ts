@@ -14,5 +14,13 @@ export type {
   FogBounds,
   FogCloud,
 } from "./types/clouds";
-export type { Arrow, ArrowThrower, Helper } from "./types/entities";
+export type {
+  Arrow,
+  ArrowThrower,
+  Helper,
+  Hunter,
+  HunterBackCheckState,
+  HunterMode,
+  Monster,
+} from "./types/entities";
 export type { Explosion, GameState, PlayerPopup } from "./types/state";

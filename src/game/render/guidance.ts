@@ -1,5 +1,6 @@
 import { TILE_SIZE } from "../config/constants";
 import type { GameState } from "../model/types";
+import { isCellCoveredByExploreClouds } from "../world/exploration";
 import { drawArtifactIndicator } from "./primitives";
 
 export function drawGuidanceArrows(
@@ -32,20 +33,48 @@ export function drawGuidanceArrows(
     );
   });
 
-  const monsterScreenX = state.monster.x * TILE_SIZE - camX;
-  const monsterScreenY = state.monster.y * TILE_SIZE - camY;
-  const monsterOnScreen =
-    monsterScreenX >= 0 &&
-    monsterScreenX <= viewW &&
-    monsterScreenY >= 0 &&
-    monsterScreenY <= viewH;
-  if (monsterOnScreen) return;
+  let markerX = 0;
+  let markerY = 0;
+  let markerFound = false;
+  let hasOnScreenMonster = false;
+  let bestDistSq = Number.POSITIVE_INFINITY;
+
+  for (const monster of state.monsters) {
+    const monsterCell = {
+      x: Math.floor(monster.pos.x),
+      y: Math.floor(monster.pos.y),
+    };
+    if (isCellCoveredByExploreClouds(state, monsterCell.x, monsterCell.y)) continue;
+
+    const monsterScreenX = monster.pos.x * TILE_SIZE - camX;
+    const monsterScreenY = monster.pos.y * TILE_SIZE - camY;
+    const monsterOnScreen =
+      monsterScreenX >= 0 &&
+      monsterScreenX <= viewW &&
+      monsterScreenY >= 0 &&
+      monsterScreenY <= viewH;
+    if (monsterOnScreen) {
+      hasOnScreenMonster = true;
+      continue;
+    }
+    const dx = monsterScreenX - playerScreenX;
+    const dy = monsterScreenY - playerScreenY;
+    const distSq = dx * dx + dy * dy;
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq;
+      markerX = monsterScreenX;
+      markerY = monsterScreenY;
+      markerFound = true;
+    }
+  }
+
+  if (hasOnScreenMonster || !markerFound) return;
   drawArtifactIndicator(
     ctx,
     playerScreenX,
     playerScreenY,
-    monsterScreenX,
-    monsterScreenY,
+    markerX,
+    markerY,
     viewW,
     viewH,
     now,

@@ -54,7 +54,8 @@
 - `src/game/render/collectibleShared.ts`: collectible cell/bounds helpers.
 - `src/game/render/sceneHazardsLayer.ts`: traps/spikes/underground traps.
 - `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions).
-- `src/game/render/sceneActors.ts`: player, monster, helpers, and temporary player popup text.
+- `src/game/render/sceneActors.ts`: player, dynamic chaser list, hunters, helpers, player popup text, and hunter chaser-placement popup text.
+- `src/game/render/hunterVisionLayer.ts`: hunter vision cone rendering for all hunters (semi-transparent, wall-clipped sectors).
 - `src/game/render/cloudLayers.ts`: compatibility export for cloud layer entry points.
 - `src/game/render/exploreCloudLayer.ts`: explored-area cloud rendering.
 - `src/game/render/fogAreaLayer.ts`: fog-area cloud rendering.
@@ -71,7 +72,8 @@
 - `src/game/systems/update/projectiles.ts`
 - `src/game/systems/update/items.ts`
 - `src/game/systems/update/timers.ts`
-- `src/game/systems/update/monster.ts`
+- `src/game/systems/update/monster.ts` (dynamic `monsters[]` chase update and spawn helper for hunter-placed chasers)
+- `src/game/systems/update/hunter.ts` (multi-hunter patrol/chase update + last-seen nervous scan + occasional 180-degree back-check behavior + timed chaser placement after failed chase)
 - `src/game/systems/outcome.ts`: lose-state transition.
 - `src/game/systems/artifactSpawns.ts`: booster/trap artifact effects.
 - `src/game/systems/fogAreaSpawns.ts`: fog-area artifact generation.
@@ -80,6 +82,8 @@
 - `src/game/systems/fogAreaCells.ts`: fog-area cell growth and anchor generation.
 - `src/game/systems/helpers/spawnHelpers.ts`: helper spawn setup.
 - `src/game/systems/helpers/updateHelpers.ts`: helper movement/combat update.
+- `src/game/world/hunterVision.ts`: hunter line-of-sight and cone ray sampling.
+- `src/game/world/hunterFacing.ts`: hunter facing-angle/turn-animation helpers (1s rotation interpolation).
 
 ## UI Layers
 

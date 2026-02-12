@@ -1,8 +1,10 @@
 import { generateMaze } from "../world/maze";
 import { buildExploreCloudBuckets, buildExploreClouds } from "../world/exploreClouds";
 import { cellCenter } from "../utils/grid";
-import type { GameState } from "./types";
+import type { GameState, Hunter } from "./types";
 import { buildInitialPlacements } from "./initGamePlacements";
+import { CARDINAL_DIRS } from "../world/pathingDirections";
+import { directionToAngle } from "../world/hunterFacing";
 
 function createRngSeed() {
   return ((Date.now() & 0xffffffff) ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
@@ -12,12 +14,37 @@ export function initGame(now: number = performance.now()): GameState {
   const grid = generateMaze();
   const {
     playerCell,
-    monsterCell,
+    hunterCells,
     items,
     coins,
     undergroundTrapsHidden,
     arrowThrowers,
   } = buildInitialPlacements(grid, now);
+  const hunters: Hunter[] = hunterCells.map((cell) => {
+    const dir = CARDINAL_DIRS[Math.floor(Math.random() * CARDINAL_DIRS.length)];
+    const angle = directionToAngle(dir);
+    return {
+      pos: cellCenter(cell),
+      dir,
+      target: null,
+      mode: "patrol",
+      lastSeenPlayer: null,
+      nervousScanActive: false,
+      nervousScanIndex: 0,
+      nervousScanStep: 1,
+      nervousScanNextStepMs: 0,
+      backCheckState: "none",
+      backCheckForwardDir: null,
+      backCheckHoldUntilMs: 0,
+      stunUntil: 0,
+      turnFromAngle: angle,
+      turnToAngle: angle,
+      turnStartMs: now,
+      turnEndMs: now,
+      chaserPlaceStartMs: 0,
+      chaserPlaceEndMs: 0,
+    };
+  });
 
   const exploreClouds = buildExploreClouds(createRngSeed());
   const exploreCloudBuckets = buildExploreCloudBuckets(exploreClouds);
@@ -25,7 +52,8 @@ export function initGame(now: number = performance.now()): GameState {
   return {
     grid,
     player: cellCenter(playerCell),
-    monster: cellCenter(monsterCell),
+    monsters: [],
+    hunters,
     items,
     coins,
     coinsCollected: 0,
@@ -50,16 +78,10 @@ export function initGame(now: number = performance.now()): GameState {
     fogAreaInside: new Map(),
     fogStart: 0,
     fogUntil: 0,
-    boostUntil: 0,
     explosions: [],
     playerPopup: null,
     status: "playing",
     loseReason: "caught",
-    monsterDir: { x: 0, y: 0 },
-    monsterTarget: null,
-    lastPathTime: 0,
-    stunUntil: 0,
-    lastMonsterCell: { x: monsterCell.x, y: monsterCell.y },
     lastPlayerCell: { x: playerCell.x, y: playerCell.y },
   };
 }

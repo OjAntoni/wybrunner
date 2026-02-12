@@ -1,6 +1,6 @@
 import type { Cell, GameStatus, LoseReason, Vec } from "./basic";
 import type { ExploreCloud, ExploreCloudBuckets, FogArea } from "./clouds";
-import type { Arrow, ArrowThrower, Helper } from "./entities";
+import type { Arrow, ArrowThrower, Helper, Hunter, Monster } from "./entities";
 
 export type Explosion = {
   x: number;
@@ -17,7 +17,8 @@ export type PlayerPopup = {
 export type GameState = {
   grid: Cell[][];
   player: Vec;
-  monster: Vec;
+  monsters: Monster[];
+  hunters: Hunter[];
   items: Set<string>;
   coins: Set<string>;
   coinsCollected: number;
@@ -42,15 +43,9 @@ export type GameState = {
   fogAreaInside: Map<number, number>;
   fogStart: number;
   fogUntil: number;
-  boostUntil: number;
   explosions: Explosion[];
   playerPopup: PlayerPopup | null;
   status: GameStatus;
   loseReason: LoseReason;
-  monsterDir: Vec;
-  monsterTarget: Vec | null;
-  lastPathTime: number;
-  stunUntil: number;
-  lastMonsterCell: Vec;
   lastPlayerCell: Vec;
 };

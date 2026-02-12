@@ -1,5 +1,6 @@
 import type { GameState } from "../model/types";
 import { updateHelpers } from "./helpers";
+import { updateHunters } from "./update/hunter";
 import { updateItems } from "./update/items";
 import { updateMonster } from "./update/monster";
 import { updatePlayerProgress } from "./update/playerProgress";
@@ -31,6 +32,7 @@ export function updateGameState(
   updateTimedSystems(state, dt, now, playerProgress.playerCell);
 
   if (!updateMonster(state, dt, now, deps.touchEnabled, deps.onLoseReason)) return;
+  if (!updateHunters(state, dt, now, deps.onLoseReason)) return;
 
   if (state.status === "playing" && state.helpers.length > 0) {
     updateHelpers(state, dt, now, deps.onLoseReason);

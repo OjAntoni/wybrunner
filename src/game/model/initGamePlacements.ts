@@ -1,6 +1,6 @@
 import { mulberry32 } from "../utils/random";
 import type { Cell } from "./types";
-import { pickPlayerAndMonsterCells } from "./init/spawnActors";
+import { pickActorSpawnCells } from "./init/spawnActors";
 import {
   placeCoins,
   placeItems,
@@ -15,7 +15,7 @@ function createRngSeed() {
 
 export function buildInitialPlacements(grid: Cell[][], baseNow: number): InitialPlacements {
   const taken = new Set<string>();
-  const { playerCell, monsterCell } = pickPlayerAndMonsterCells(grid, taken);
+  const { playerCell, hunterCells } = pickActorSpawnCells(grid, taken);
 
   const items = placeItems(grid, taken);
   const rng = mulberry32(createRngSeed());
@@ -25,7 +25,7 @@ export function buildInitialPlacements(grid: Cell[][], baseNow: number): Initial
 
   return {
     playerCell,
-    monsterCell,
+    hunterCells,
     items,
     coins,
     undergroundTrapsHidden,

@@ -20,7 +20,12 @@ export function spawnHelpers(state: GameState, playerCell: Vec) {
     exclude.add(cellKey(Math.floor(h.pos.x), Math.floor(h.pos.y)));
   });
   exclude.add(cellKey(playerCell.x, playerCell.y));
-  exclude.add(cellKey(Math.floor(state.monster.x), Math.floor(state.monster.y)));
+  state.monsters.forEach((monster) => {
+    exclude.add(cellKey(Math.floor(monster.pos.x), Math.floor(monster.pos.y)));
+  });
+  state.hunters.forEach((hunter) => {
+    exclude.add(cellKey(Math.floor(hunter.pos.x), Math.floor(hunter.pos.y)));
+  });
   state.helpers.forEach((h) => {
     exclude.add(cellKey(Math.floor(h.pos.x), Math.floor(h.pos.y)));
   });

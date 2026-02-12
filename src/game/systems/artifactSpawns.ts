@@ -12,7 +12,12 @@ function buildArtifactExclusionSet(state: GameState, playerCell: Vec) {
   state.boosters.forEach((k) => exclude.add(k));
   state.traps.forEach((k) => exclude.add(k));
   exclude.add(cellKey(playerCell.x, playerCell.y));
-  exclude.add(cellKey(Math.floor(state.monster.x), Math.floor(state.monster.y)));
+  for (const monster of state.monsters) {
+    exclude.add(cellKey(Math.floor(monster.pos.x), Math.floor(monster.pos.y)));
+  }
+  for (const hunter of state.hunters) {
+    exclude.add(cellKey(Math.floor(hunter.pos.x), Math.floor(hunter.pos.y)));
+  }
   return exclude;
 }
 

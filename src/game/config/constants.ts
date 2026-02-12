@@ -44,6 +44,27 @@ export const CHASER_BOOST_MS = 3000;
 // 20% slower globally
 export const CHASER_SPEED_MULT = 0.8;
 
+// tiles from player at spawn
+export const HUNTER_MIN_DIST = 12;
+export const HUNTER_COUNT_MIN = 10;
+export const HUNTER_COUNT_MAX = 15;
+export const HUNTER_WALK_SPEED_MULT = 0.45;
+export const HUNTER_CHASE_SPEED_MULT = 1.3;
+export const HUNTER_VISION_RADIUS_TILES = 9;
+export const HUNTER_VISION_ANGLE_DEG = 60;
+export const HUNTER_VISION_RAY_COUNT = 48;
+export const HUNTER_ROTATE_ANIM_MS = 1000;
+export const HUNTER_CHASE_ROTATE_ANIM_MULT = 0.5;
+export const HUNTER_BACK_CHECK_CHANCE = 0.1;
+export const HUNTER_BACK_CHECK_LOOK_MS = 900;
+export const HUNTER_BACK_CHECK_MIN_CLEAR_TILES = 2;
+export const HUNTER_NERVOUS_SCAN_TURN_MS = 220;
+export const HUNTER_NERVOUS_SCAN_HOLD_MS = 80;
+export const HUNTER_CHASER_PLACE_DURATION_MS = 5000;
+export const HUNTER_CHASER_PLACE_CHANCE_NO_CHASER = 0.5;
+export const HUNTER_CHASER_PLACE_CHANCE_WITH_CHASER = 0.25;
+export const HUNTER_CHASER_PLACE_DOT_STEP_MS = 350;
+
 export const HELPER_COUNT = 3;
 // tiles from player at spawn
 export const HELPER_MIN_DIST = 10;

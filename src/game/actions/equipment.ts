@@ -96,22 +96,30 @@ export function placeBomb(
     const hy = Math.floor(h.pos.y);
     return !blastSet.has(cellKey(hx, hy));
   });
+  state.hunters = state.hunters.filter((hunter) => {
+    const hx = Math.floor(hunter.pos.x);
+    const hy = Math.floor(hunter.pos.y);
+    return !blastSet.has(cellKey(hx, hy));
+  });
   state.explosions.push({
     x: cell.x + 0.5,
     y: cell.y + 0.5,
     start: now,
   });
-  const monsterCell = {
-    x: Math.floor(state.monster.x),
-    y: Math.floor(state.monster.y),
-  };
-  if (
-    (monsterCell.x - cell.x) * (monsterCell.x - cell.x) +
-      (monsterCell.y - cell.y) * (monsterCell.y - cell.y) <=
-    BOMB_RADIUS_TILES * BOMB_RADIUS_TILES
-  ) {
-    state.stunUntil = Math.max(state.stunUntil, now + 3000);
-  }
+  state.monsters = state.monsters.filter((monster) => {
+    const monsterCell = {
+      x: Math.floor(monster.pos.x),
+      y: Math.floor(monster.pos.y),
+    };
+    const inBlast =
+      (monsterCell.x - cell.x) * (monsterCell.x - cell.x) +
+        (monsterCell.y - cell.y) * (monsterCell.y - cell.y) <=
+      BOMB_RADIUS_TILES * BOMB_RADIUS_TILES;
+    if (!inBlast) return true;
+    if (monster.bombKillable) return false;
+    monster.stunUntil = Math.max(monster.stunUntil, now + 3000);
+    return true;
+  });
   if (payWithCoins) {
     spendCoins(state, BOMB_PURCHASE_COINS, onCoinsCollectedChange);
   } else {

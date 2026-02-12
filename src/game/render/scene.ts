@@ -3,7 +3,8 @@ import type { Vec } from "../model/types";
 import { drawExploreClouds, drawFogAreas } from "./cloudLayers";
 import { drawFog } from "./fogOverlay";
 import { drawGuidanceArrows } from "./guidance";
-import { drawHelpers, drawMonster, drawPlayer, drawPlayerPopup } from "./sceneActors";
+import { drawHunterVisions } from "./hunterVisionLayer";
+import { drawHelpers, drawHunters, drawMonster, drawPlayer, drawPlayerPopup } from "./sceneActors";
 import { drawWorldObjects } from "./sceneObjectLayer";
 import { drawArrows } from "./sceneProjectileLayer";
 import { drawArrowThrowers, drawTerrainTiles } from "./sceneTerrainLayer";
@@ -61,7 +62,9 @@ export function drawScene({
     exploreCloudSpritesRef
   );
 
+  drawHunterVisions(ctx, state, now, camX, camY);
   drawHelpers(ctx, state, now, camX, camY);
+  drawHunters(ctx, state, now, camX, camY);
   drawPlayer(ctx, state, camX, camY);
   drawMonster(ctx, state, now, camX, camY);
 

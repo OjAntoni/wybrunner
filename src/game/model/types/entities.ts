@@ -24,3 +24,39 @@ export type Helper = {
   targetIndex: number | null;
   boostUntil: number;
 };
+
+export type Monster = {
+  pos: Vec;
+  dir: Vec;
+  target: Vec | null;
+  boostUntil: number;
+  stunUntil: number;
+  lastPathTime: number;
+  lastCell: Vec;
+  bombKillable: boolean;
+};
+
+export type HunterMode = "patrol" | "chase";
+export type HunterBackCheckState = "none" | "looking_back" | "returning";
+
+export type Hunter = {
+  pos: Vec;
+  dir: Vec;
+  target: Vec | null;
+  mode: HunterMode;
+  lastSeenPlayer: Vec | null;
+  nervousScanActive: boolean;
+  nervousScanIndex: number;
+  nervousScanStep: 1 | -1;
+  nervousScanNextStepMs: number;
+  backCheckState: HunterBackCheckState;
+  backCheckForwardDir: Vec | null;
+  backCheckHoldUntilMs: number;
+  stunUntil: number;
+  turnFromAngle: number;
+  turnToAngle: number;
+  turnStartMs: number;
+  turnEndMs: number;
+  chaserPlaceStartMs: number;
+  chaserPlaceEndMs: number;
+};

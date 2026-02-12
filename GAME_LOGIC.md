@@ -6,7 +6,7 @@ This document explains the current gameplay logic, mechanics, features, and comp
 
 - The player explores a procedurally generated maze, collects artifacts, and avoids lethal threats.
 - Win condition: collect all artifacts.
-- Lose conditions: caught by chaser, trap hit, helper collision, or arrow hit.
+- Lose conditions: caught by chaser or hunters, trap hit, helper collision, or arrow hit.
 
 Code references:
 - `src/game/config/constants.ts`
@@ -31,7 +31,8 @@ Code references:
 ## 3. World Generation and Initial Placement
 
 - Maze uses DFS carving + extra connection pass for less linear paths.
-- Initial placement pipeline spawns player/chaser (with min distance), artifacts/coins, underground traps, wall arrow throwers, and the exploration cloud field + bucket index.
+- Initial placement pipeline spawns player plus a hunter pack (randomly 10-15 hunters, minimum 10), artifacts/coins, underground traps, wall arrow throwers, and the exploration cloud field + bucket index.
+- No red chaser is spawned at game start; chasers are introduced later by hunter behavior.
 
 Code references:
 - `src/game/world/maze.ts`
@@ -65,6 +66,7 @@ Code references:
 - If no spikes are left, player can still place one by paying 6 coins.
 - If no spikes are left and coins are below 6, a short "Not enough money" popup appears above the player.
 - Chaser stepping on spike is stunned.
+- Hunters stepping on spike are stunned the same way as chaser.
 
 Code references:
 - `src/game/actions/equipment.ts`
@@ -76,8 +78,8 @@ Code references:
 - If no bombs are left, player can still use one by paying 10 coins.
 - If no bombs are left and coins are below 10, a short "Not enough money" popup appears above the player.
 - Also clears traps and underground traps in blast.
-- Can remove helpers and invalidate arrows/throwers affected by wall destruction.
-- Applies stun to chaser if within blast radius.
+- Can remove helpers/hunters and invalidate arrows/throwers affected by wall destruction.
+- Chasers placed by hunters are bomb-killable (removed if inside blast radius).
 
 Code references:
 - `src/game/actions/equipment.ts`
@@ -85,9 +87,12 @@ Code references:
 
 ## 6. Chaser (Monster) AI
 
+- Chaser runtime uses a dynamic list of active chasers (`state.monsters`), which can be empty.
+- No chaser exists initially; hunters may place chasers later.
 - Chaser pathing uses BFS next step; falls back to nearest-neighbor steering.
 - Avoids immediate reverse turns when possible.
 - Speed modifiers include base multiplier, touch-mode multiplier, and temporary boost multiplier.
+- Chaser body is hidden while the chaser tile is still on undiscovered land.
 - Collision with player triggers lose state.
 
 Code references:
@@ -96,7 +101,48 @@ Code references:
 - `src/game/world/pathingSteering.ts`
 - `src/game/config/constants.ts`
 
-## 7. Projectile System (Arrow Throwers)
+## 7. Hunters AI
+
+- Hunters are spawned during map generation as additional enemies (at least 10, up to 15).
+- Patrol mode: slow random roaming with no predefined path.
+- Movement model:
+  - Hunters can move in 8 directions.
+  - Diagonal movement is allowed only when there is enough corner space (no wall clipping through blocked corners).
+- Vision model:
+  - Circular sector with radius `R` and central angle `60°` per hunter.
+  - Orientation follows each hunter heading (cardinal direction).
+  - Walls block line-of-sight; vision rays stop at wall boundaries.
+  - Hunter body and vision cone are hidden while hunter is on undiscovered land, except chase mode where hunter and cone remain visible.
+- Chase model:
+  - If player is inside visible cone with clear line-of-sight, that hunter enters chase.
+  - Chase speed is `1.3 * player speed`.
+  - If player leaves vision while chasing, hunter continues toward last seen player position.
+  - If hunter reaches last seen position without reacquiring vision, it nervously scans all directions in place.
+  - Nervous scan direction is randomized per scan (clockwise or counterclockwise).
+  - If player is still not seen after that scan, hunter returns to patrol mode.
+  - After an unsuccessful nervous scan, hunter can start chaser placement at its current tile:
+    - placement duration is `5s`.
+    - chance is `50%` when no chaser exists, `25%` when at least one chaser already exists.
+    - while placing, hunter shows `Placing the chaser` text with loading dots (`. -> .. -> ...`) above itself.
+    - when placement completes, a bomb-killable chaser is spawned on the hunter tile.
+- Rotation model:
+  - When hunter changes heading, facing rotation is animated for `1s`.
+  - While chasing, rotation animation is `2x` faster (`0.5s`).
+  - Vision cone and hunter eye direction use the animated facing angle.
+- Back-check behavior:
+  - In straight corridor cells (middle-of-road), a patrol hunter can occasionally turn `180°` to scan behind.
+  - Trigger condition includes at least `2` open tiles behind hunter before the nearest wall.
+  - Trigger probability on applicable cells is low (`10%`).
+  - Hunter pauses, rotates to back view, checks for a short time, rotates back, then continues patrol.
+- Contact with any hunter triggers lose state (`caught`).
+
+Code references:
+- `src/game/systems/update/hunter.ts`
+- `src/game/world/hunterVision.ts`
+- `src/game/world/hunterFacing.ts`
+- `src/game/config/constants.ts`
+
+## 8. Projectile System (Arrow Throwers)
 
 - Throwers are embedded in wall cells and fire on intervals.
 - Arrows move continuously and collide with walls/player.
@@ -108,7 +154,7 @@ Code references:
 - `src/game/render/sceneTerrainLayer.ts`
 - `src/game/render/sceneProjectileLayer.ts`
 
-## 8. Artifact Effects and Dynamic Hazards
+## 9. Artifact Effects and Dynamic Hazards
 
 - Each artifact pickup can trigger one of three effects: spawn boosters, spawn traps, or activate fog-of-war and fog areas.
 - After enough artifact progress, helper enemies spawn.
@@ -120,7 +166,7 @@ Code references:
 - `src/game/systems/fogAreaSpawns.ts`
 - `src/game/systems/helpers/spawnHelpers.ts`
 
-## 9. Helpers (Secondary Enemies)
+## 10. Helpers (Secondary Enemies)
 
 - Helpers spawn with generated patrol paths.
 - They move along path endpoints with direction reversal.
@@ -131,7 +177,7 @@ Code references:
 - `src/game/systems/helpers/updateHelpers.ts`
 - `src/game/world/pathingHelperPath.ts`
 
-## 10. Exploration and Fog Systems
+## 11. Exploration and Fog Systems
 
 ### Exploration Clouds
 
@@ -158,7 +204,7 @@ Code references:
 - `src/game/render/fogAreaLayer.ts`
 - `src/game/render/fogOverlay.ts`
 
-## 11. Rendering Pipeline
+## 12. Rendering Pipeline
 
 Per frame, draw order is orchestrated in `drawScene`:
 
@@ -166,9 +212,9 @@ Per frame, draw order is orchestrated in `drawScene`:
 2. Terrain + throwers.
 3. World objects and arrows.
 4. Fog areas and exploration clouds.
-5. Helpers, player, chaser.
+5. Hunter vision cone layers, helpers, hunters, player, chaser.
 6. Temporary fog overlay + guidance arrows.
-7. Temporary player popup text (e.g. insufficient money notice), animated and timed.
+7. Temporary popup text layers (player insufficient-money popup, hunter chaser-placement popup).
 
 Code references:
 - `src/game/render/scene.ts`
@@ -177,9 +223,11 @@ Code references:
 - `src/game/render/sceneObjectLayer.ts`
 - `src/game/render/sceneProjectileLayer.ts`
 - `src/game/render/sceneActors.ts`
+- `src/game/render/hunterVisionLayer.ts`
+- `src/game/world/hunterVision.ts`
 - `src/game/render/guidance.ts`
 
-## 12. Input Model
+## 13. Input Model
 
 ### Keyboard
 
@@ -212,7 +260,7 @@ Code references:
 - `src/input/touch/joystickGuard.ts`
 - `src/hooks/useTouchMode.ts`
 
-## 13. UI Components
+## 14. UI Components
 
 - `GameView` chooses between game screen and menu screen composition.
 - HUD, overlays, touch layer, and menu content are split into dedicated UI modules.
@@ -237,7 +285,7 @@ Code references:
 - `src/ui/gameView/overlays/`
 - `src/game/render/mapWindowScene.ts`
 
-## 14. Key Tunables
+## 15. Key Tunables
 
 Gameplay and balancing constants are centralized in:
 
@@ -245,7 +293,7 @@ Gameplay and balancing constants are centralized in:
 
 Examples: map size, speeds, bomb radius, fog durations, helper counts, touch multipliers.
 
-## 15. State Model
+## 16. State Model
 
 Game state and domain types are organized as:
 
@@ -255,7 +303,7 @@ Game state and domain types are organized as:
 - `src/game/model/types/state.ts`
 - `src/game/model/types.ts` (public facade)
 
-## 16. Additional Architecture Reference
+## 17. Additional Architecture Reference
 
 For module layering and current refactor boundaries:
 
