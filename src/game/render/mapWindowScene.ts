@@ -4,7 +4,7 @@ import { clamp } from "../utils/math";
 import { drawExploreClouds, drawFogAreas } from "./cloudLayers";
 import type { SpriteCacheRef } from "./cloudSprites";
 import { drawHunterVisions } from "./hunterVisionLayer";
-import { drawHelpers, drawHunters, drawMonster, drawPlayer } from "./sceneActors";
+import { drawHelpers, drawHunters, drawMonster, drawPlayer, drawTurrets } from "./sceneActors";
 import { drawWorldObjects } from "./sceneObjectLayer";
 import { drawArrows } from "./sceneProjectileLayer";
 import { drawArrowThrowers, drawTerrainTiles } from "./sceneTerrainLayer";
@@ -118,6 +118,7 @@ export function drawMapWindowScene({
   drawHunterVisions(ctx, state, now, camX, camY);
   drawHelpers(ctx, state, now, camX, camY);
   drawHunters(ctx, state, now, camX, camY);
+  drawTurrets(ctx, state, now, camX, camY);
   drawMonster(ctx, state, now, camX, camY);
   drawPlayer(ctx, state, camX, camY);
 

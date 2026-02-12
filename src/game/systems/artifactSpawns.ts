@@ -18,6 +18,9 @@ function buildArtifactExclusionSet(state: GameState, playerCell: Vec) {
   for (const hunter of state.hunters) {
     exclude.add(cellKey(Math.floor(hunter.pos.x), Math.floor(hunter.pos.y)));
   }
+  for (const turret of state.turrets) {
+    exclude.add(cellKey(Math.floor(turret.pos.x), Math.floor(turret.pos.y)));
+  }
   return exclude;
 }
 

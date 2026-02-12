@@ -99,11 +99,12 @@ function drawHunterPlacingPopup(
   hunterX: number,
   hunterY: number,
   now: number,
-  startMs: number
+  startMs: number,
+  kind: "chaser" | "turret"
 ) {
   const elapsed = Math.max(0, now - startMs);
   const dotCount = (Math.floor(elapsed / HUNTER_CHASER_PLACE_DOT_STEP_MS) % 3) + 1;
-  const text = `Placing the chaser${".".repeat(dotCount)}`;
+  const text = `Placing the ${kind}${".".repeat(dotCount)}`;
   ctx.save();
   ctx.font = "400 4px 'Press Start 2P', monospace";
   ctx.textAlign = "center";
@@ -155,9 +156,57 @@ export function drawHunters(
         hunter.pos.x * TILE_SIZE - camX,
         hunter.pos.y * TILE_SIZE - camY,
         now,
-        hunter.chaserPlaceStartMs
+        hunter.chaserPlaceStartMs,
+        "chaser"
+      );
+    } else if (hunter.turretPlaceEndMs > now) {
+      drawHunterPlacingPopup(
+        ctx,
+        hunter.pos.x * TILE_SIZE - camX,
+        hunter.pos.y * TILE_SIZE - camY,
+        now,
+        hunter.turretPlaceStartMs,
+        "turret"
       );
     }
+  }
+}
+
+export function drawTurrets(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  now: number,
+  camX: number,
+  camY: number
+) {
+  for (const turret of state.turrets) {
+    const turretCell = {
+      x: Math.floor(turret.pos.x),
+      y: Math.floor(turret.pos.y),
+    };
+    if (isCellCoveredByExploreClouds(state, turretCell.x, turretCell.y)) continue;
+
+    const cx = turret.pos.x * TILE_SIZE - camX;
+    const cy = turret.pos.y * TILE_SIZE - camY;
+    const pulse = 0.7 + (Math.sin(now / 190 + turret.id * 0.4) + 1) * 0.15;
+
+    ctx.save();
+    ctx.fillStyle = `rgba(170, 58, 58, ${pulse.toFixed(3)})`;
+    ctx.fillRect(cx - TILE_SIZE / 2 + 1, cy - TILE_SIZE / 2 + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+    ctx.fillStyle = "rgba(34, 14, 14, 0.9)";
+    ctx.fillRect(cx - 2, cy - 2, 4, 4);
+
+    const barrelLen = 5;
+    ctx.strokeStyle = "rgba(255, 160, 160, 0.95)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(
+      cx + Math.cos(turret.facingAngle) * barrelLen,
+      cy + Math.sin(turret.facingAngle) * barrelLen
+    );
+    ctx.stroke();
+    ctx.restore();
   }
 }
 

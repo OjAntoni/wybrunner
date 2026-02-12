@@ -26,6 +26,7 @@ export function updateProjectiles(
         pos: { x: spawnX + 0.5, y: spawnY + 0.5 },
         dir: thrower.dir,
         speed: arrowSpeed,
+        source: "thrower",
       });
     }
 

@@ -1,6 +1,6 @@
 import { generateMaze } from "../world/maze";
 import { buildExploreCloudBuckets, buildExploreClouds } from "../world/exploreClouds";
-import { cellCenter } from "../utils/grid";
+import { cellCenter, cellKey } from "../utils/grid";
 import type { GameState, Hunter } from "./types";
 import { HUNTER_PATROL_MAX_STRAIGHT_STEPS, HUNTER_PATROL_MIN_STRAIGHT_STEPS } from "../config/constants";
 import { buildInitialPlacements } from "./initGamePlacements";
@@ -52,6 +52,9 @@ export function initGame(now: number = performance.now()): GameState {
       turnEndMs: now,
       chaserPlaceStartMs: 0,
       chaserPlaceEndMs: 0,
+      turretPlaceStartMs: 0,
+      turretPlaceEndMs: 0,
+      patrolRecentCells: [cellKey(cell.x, cell.y)],
     };
   });
 
@@ -63,6 +66,7 @@ export function initGame(now: number = performance.now()): GameState {
     player: cellCenter(playerCell),
     monsters: [],
     hunters,
+    turrets: [],
     items,
     coins,
     coinsCollected: 0,

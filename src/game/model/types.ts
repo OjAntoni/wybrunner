@@ -22,5 +22,7 @@ export type {
   HunterBackCheckState,
   HunterMode,
   Monster,
+  Turret,
+  TurretMode,
 } from "./types/entities";
 export type { Explosion, GameState, PlayerPopup } from "./types/state";

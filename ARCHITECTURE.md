@@ -54,8 +54,8 @@
 - `src/game/render/collectibleShared.ts`: collectible cell/bounds helpers.
 - `src/game/render/sceneHazardsLayer.ts`: traps/spikes/underground traps.
 - `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions).
-- `src/game/render/sceneActors.ts`: player, dynamic chaser list, hunters, helpers, player popup text, and hunter chaser-placement popup text.
-- `src/game/render/hunterVisionLayer.ts`: hunter vision cone rendering for all hunters (semi-transparent, wall-clipped sectors).
+- `src/game/render/sceneActors.ts`: player, dynamic chaser list, hunters, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text.
+- `src/game/render/hunterVisionLayer.ts`: hunter + turret vision rendering (wall-clipped sectors with turret cone-to-line targeting transition).
 - `src/game/render/cloudLayers.ts`: compatibility export for cloud layer entry points.
 - `src/game/render/exploreCloudLayer.ts`: explored-area cloud rendering.
 - `src/game/render/fogAreaLayer.ts`: fog-area cloud rendering.
@@ -70,10 +70,11 @@
 - `src/game/systems/updateState.ts`: orchestrator.
 - `src/game/systems/update/playerProgress.ts`
 - `src/game/systems/update/projectiles.ts`
+- `src/game/systems/update/turret.ts` (static turret sweep/track/cooldown state machine + turret projectile firing)
 - `src/game/systems/update/items.ts`
 - `src/game/systems/update/timers.ts`
 - `src/game/systems/update/monster.ts` (dynamic `monsters[]` chase update and spawn helper for hunter-placed chasers)
-- `src/game/systems/update/hunter.ts` (multi-hunter patrol/chase update with patrol momentum/open-space steering + last-seen nervous scan + occasional 180-degree back-check behavior + timed chaser placement after failed chase)
+- `src/game/systems/update/hunter.ts` (multi-hunter patrol/chase update with patrol momentum/open-space steering + short-corridor escape bias + recent-cell anti-loop penalty + tight-loop 3x3 escape + last-seen nervous scan + occasional 180-degree back-check behavior + timed chaser placement after failed chase + per-step probabilistic turret placement)
 - `src/game/systems/outcome.ts`: lose-state transition.
 - `src/game/systems/artifactSpawns.ts`: booster/trap artifact effects.
 - `src/game/systems/fogAreaSpawns.ts`: fog-area artifact generation.

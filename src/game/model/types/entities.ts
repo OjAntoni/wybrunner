@@ -10,8 +10,9 @@ export type ArrowThrower = {
 
 export type Arrow = {
   pos: Vec; // tile coords (center-based)
-  dir: Vec; // cardinal
+  dir: Vec;
   speed: number; // tiles per second
+  source: "thrower" | "turret";
 };
 
 export type Helper = {
@@ -60,4 +61,21 @@ export type Hunter = {
   turnEndMs: number;
   chaserPlaceStartMs: number;
   chaserPlaceEndMs: number;
+  turretPlaceStartMs: number;
+  turretPlaceEndMs: number;
+  patrolRecentCells: string[];
+};
+
+export type TurretMode = "sweep" | "track" | "cooldown";
+
+export type Turret = {
+  id: number;
+  pos: Vec;
+  facingAngle: number;
+  mode: TurretMode;
+  trackingAngle: number;
+  seenTargetAtMs: number;
+  nextShotMs: number;
+  lockTransitionStartMs: number;
+  lockTransitionDir: 1 | -1;
 };

@@ -6,6 +6,7 @@ import { updateMonster } from "./update/monster";
 import { updatePlayerProgress } from "./update/playerProgress";
 import { updateProjectiles } from "./update/projectiles";
 import { updateTimedSystems } from "./update/timers";
+import { updateTurrets } from "./update/turret";
 import type { UpdateGameStateDeps } from "./update/types";
 
 export type { UpdateGameStateDeps } from "./update/types";
@@ -18,6 +19,8 @@ export function updateGameState(
 ) {
   const playerProgress = updatePlayerProgress(state, dt, now, deps);
   if (!playerProgress.alive) return;
+
+  updateTurrets(state, dt, now);
 
   if (!updateProjectiles(state, dt, now, deps.onLoseReason)) return;
 

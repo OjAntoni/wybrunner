@@ -101,6 +101,11 @@ export function placeBomb(
     const hy = Math.floor(hunter.pos.y);
     return !blastSet.has(cellKey(hx, hy));
   });
+  state.turrets = state.turrets.filter((turret) => {
+    const tx = Math.floor(turret.pos.x);
+    const ty = Math.floor(turret.pos.y);
+    return !blastSet.has(cellKey(tx, ty));
+  });
   state.explosions.push({
     x: cell.x + 0.5,
     y: cell.y + 0.5,

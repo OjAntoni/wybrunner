@@ -4,7 +4,14 @@ import { drawExploreClouds, drawFogAreas } from "./cloudLayers";
 import { drawFog } from "./fogOverlay";
 import { drawGuidanceArrows } from "./guidance";
 import { drawHunterVisions } from "./hunterVisionLayer";
-import { drawHelpers, drawHunters, drawMonster, drawPlayer, drawPlayerPopup } from "./sceneActors";
+import {
+  drawHelpers,
+  drawHunters,
+  drawMonster,
+  drawPlayer,
+  drawPlayerPopup,
+  drawTurrets,
+} from "./sceneActors";
 import { drawWorldObjects } from "./sceneObjectLayer";
 import { drawArrows } from "./sceneProjectileLayer";
 import { drawArrowThrowers, drawTerrainTiles } from "./sceneTerrainLayer";
@@ -65,6 +72,7 @@ export function drawScene({
   drawHunterVisions(ctx, state, now, camX, camY);
   drawHelpers(ctx, state, now, camX, camY);
   drawHunters(ctx, state, now, camX, camY);
+  drawTurrets(ctx, state, now, camX, camY);
   drawPlayer(ctx, state, camX, camY);
   drawMonster(ctx, state, now, camX, camY);
 

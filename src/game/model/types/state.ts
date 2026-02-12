@@ -1,6 +1,6 @@
 import type { Cell, GameStatus, LoseReason, Vec } from "./basic";
 import type { ExploreCloud, ExploreCloudBuckets, FogArea } from "./clouds";
-import type { Arrow, ArrowThrower, Helper, Hunter, Monster } from "./entities";
+import type { Arrow, ArrowThrower, Helper, Hunter, Monster, Turret } from "./entities";
 
 export type Explosion = {
   x: number;
@@ -19,6 +19,7 @@ export type GameState = {
   player: Vec;
   monsters: Monster[];
   hunters: Hunter[];
+  turrets: Turret[];
   items: Set<string>;
   coins: Set<string>;
   coinsCollected: number;

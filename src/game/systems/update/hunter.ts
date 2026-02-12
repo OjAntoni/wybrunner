@@ -12,10 +12,14 @@ import {
   HUNTER_PATROL_MAX_STRAIGHT_STEPS,
   HUNTER_PATROL_MIN_STRAIGHT_STEPS,
   HUNTER_ROTATE_ANIM_MS,
+  HUNTER_SHORT_CORRIDOR_TILES,
+  HUNTER_TURRET_PLACE_CHANCE_PER_STEP,
+  HUNTER_TURRET_PLACE_DURATION_MS,
   HUNTER_VISION_ANGLE_DEG,
   HUNTER_VISION_RADIUS_TILES,
   HUNTER_WALK_SPEED_MULT,
   PLAYER_SPEED,
+  TURRET_MAX_COUNT,
 } from "../../config/constants";
 import type { GameState, Hunter, LoseReason, Vec } from "../../model/types";
 import { cellKey, inBounds } from "../../utils/grid";
@@ -25,6 +29,7 @@ import { CARDINAL_DIRS } from "../../world/pathingDirections";
 import { isTargetVisibleInVisionCone } from "../../world/hunterVision";
 import { isAtCellCenter, isOpposite } from "../movement";
 import { createMonsterAt } from "./monster";
+import { createTurretAt } from "./turret";
 import { loseGame } from "../outcome";
 
 function randomInt(maxExclusive: number) {
@@ -57,6 +62,8 @@ const NERVOUS_SCAN_DIRS: Vec[] = [
   { x: 0, y: -1 },
   { x: 1, y: -1 },
 ];
+const HUNTER_PATROL_RECENT_MEMORY = 8;
+const HUNTER_TIGHT_LOOP_MIN_SAMPLES = 6;
 
 function isDiagonalMove(direction: Vec) {
   return direction.x !== 0 && direction.y !== 0;
@@ -156,6 +163,94 @@ function clearChaserPlacementState(hunter: Hunter) {
   hunter.chaserPlaceEndMs = 0;
 }
 
+function rememberPatrolCell(hunter: Hunter, cell: Vec) {
+  const key = cellKey(cell.x, cell.y);
+  const prev = hunter.patrolRecentCells;
+  if (prev.length > 0 && prev[prev.length - 1] === key) return;
+  prev.push(key);
+  if (prev.length > HUNTER_PATROL_RECENT_MEMORY) {
+    prev.splice(0, prev.length - HUNTER_PATROL_RECENT_MEMORY);
+  }
+}
+
+function patrolRevisitPenalty(hunter: Hunter, nextCell: Vec) {
+  const key = cellKey(nextCell.x, nextCell.y);
+  const recent = hunter.patrolRecentCells;
+  for (let i = recent.length - 1; i >= 0; i -= 1) {
+    if (recent[i] !== key) continue;
+    const recency = recent.length - i;
+    return (HUNTER_PATROL_RECENT_MEMORY - recency + 1) * 0.8;
+  }
+  return 0;
+}
+
+function parseCellKey(key: string): Vec {
+  const [x, y] = key.split(",").map(Number);
+  return { x, y };
+}
+
+function tryChooseTightLoopEscape(
+  hunter: Hunter,
+  grid: GameState["grid"],
+  hunterCell: Vec,
+  openNeighbors: Vec[]
+) {
+  if (hunter.patrolRecentCells.length < HUNTER_TIGHT_LOOP_MIN_SAMPLES) return null;
+
+  const recent = hunter.patrolRecentCells.map(parseCellKey);
+  recent.push(hunterCell);
+
+  let minX = recent[0].x;
+  let maxX = recent[0].x;
+  let minY = recent[0].y;
+  let maxY = recent[0].y;
+  for (const cell of recent) {
+    if (cell.x < minX) minX = cell.x;
+    if (cell.x > maxX) maxX = cell.x;
+    if (cell.y < minY) minY = cell.y;
+    if (cell.y > maxY) maxY = cell.y;
+  }
+
+  // Recent path confined to a 3x3 neighborhood: likely orbiting a tiny obstacle.
+  if (maxX - minX > 2 || maxY - minY > 2) return null;
+
+  const escapeDirs: Vec[] = [];
+  for (const direction of openNeighbors) {
+    const nx = hunterCell.x + direction.x;
+    const ny = hunterCell.y + direction.y;
+    if (nx < minX || nx > maxX || ny < minY || ny > maxY) {
+      escapeDirs.push(direction);
+    }
+  }
+  if (escapeDirs.length === 0) return null;
+
+  let bestScore = Number.NEGATIVE_INFINITY;
+  const bestDirs: Vec[] = [];
+  for (const direction of escapeDirs) {
+    const straightOpen = countOpenMovesInDirection(grid, hunterCell, direction);
+    const score = straightOpen - patrolRevisitPenalty(hunter, {
+      x: hunterCell.x + direction.x,
+      y: hunterCell.y + direction.y,
+    });
+    if (score > bestScore) {
+      bestScore = score;
+      bestDirs.length = 0;
+      bestDirs.push(direction);
+      continue;
+    }
+    if (score === bestScore) {
+      bestDirs.push(direction);
+    }
+  }
+
+  return bestDirs[randomInt(bestDirs.length)] ?? null;
+}
+
+function clearTurretPlacementState(hunter: Hunter) {
+  hunter.turretPlaceStartMs = 0;
+  hunter.turretPlaceEndMs = 0;
+}
+
 function startNervousScan(hunter: Hunter, now: number) {
   if (hunter.nervousScanActive) return;
   hunter.nervousScanActive = true;
@@ -168,6 +263,7 @@ function startNervousScan(hunter: Hunter, now: number) {
 
 function maybeStartChaserPlacement(state: GameState, hunter: Hunter, now: number) {
   if (hunter.chaserPlaceEndMs > now) return;
+  if (hunter.turretPlaceEndMs > now) return;
   const chance =
     state.monsters.length === 0
       ? HUNTER_CHASER_PLACE_CHANCE_NO_CHASER
@@ -184,10 +280,31 @@ function maybeStartChaserPlacement(state: GameState, hunter: Hunter, now: number
   hunter.chaserPlaceEndMs = now + HUNTER_CHASER_PLACE_DURATION_MS;
 }
 
+function maybeStartTurretPlacement(state: GameState, hunter: Hunter, now: number) {
+  if (hunter.chaserPlaceEndMs > now || hunter.turretPlaceEndMs > now) return;
+  if (state.turrets.length >= TURRET_MAX_COUNT) return;
+  if (Math.random() >= HUNTER_TURRET_PLACE_CHANCE_PER_STEP) return;
+
+  clearBackCheckState(hunter);
+  clearNervousScanState(hunter);
+  hunter.target = null;
+  hunter.patrolStepsUntilTurn = 0;
+  hunter.turretPlaceStartMs = now;
+  hunter.turretPlaceEndMs = now + HUNTER_TURRET_PLACE_DURATION_MS;
+}
+
 function completeChaserPlacement(state: GameState, hunter: Hunter, now: number) {
   if (hunter.chaserPlaceEndMs <= 0 || now < hunter.chaserPlaceEndMs) return;
   state.monsters.push(createMonsterAt(hunter.pos, now, true));
   clearChaserPlacementState(hunter);
+}
+
+function completeTurretPlacement(state: GameState, hunter: Hunter, now: number) {
+  if (hunter.turretPlaceEndMs <= 0 || now < hunter.turretPlaceEndMs) return;
+  if (state.turrets.length < TURRET_MAX_COUNT) {
+    state.turrets.push(createTurretAt(hunter.pos, now));
+  }
+  clearTurretPlacementState(hunter);
 }
 
 function updateNervousScan(hunter: Hunter, now: number) {
@@ -271,8 +388,51 @@ function choosePatrolDirection(hunter: Hunter, grid: GameState["grid"], hunterCe
   const nonReverse = openNeighbors.filter((direction) => !isOpposite(direction, hunter.dir));
   const candidatePool = nonReverse.length > 0 ? nonReverse : openNeighbors;
 
+  const tightLoopEscape = tryChooseTightLoopEscape(hunter, grid, hunterCell, openNeighbors);
+  if (tightLoopEscape) {
+    resetPatrolStepsUntilTurn(hunter);
+    return tightLoopEscape;
+  }
+
+  const hasHeading = hunter.dir.x !== 0 || hunter.dir.y !== 0;
+  if (hasHeading) {
+    const backwardDir = { x: -hunter.dir.x, y: -hunter.dir.y };
+    const hasForward = openNeighbors.some((direction) => isSameDirection(direction, hunter.dir));
+    const hasBackward = openNeighbors.some((direction) => isSameDirection(direction, backwardDir));
+    const sideDirs = candidatePool.filter(
+      (direction) => !isSameDirection(direction, hunter.dir) && !isSameDirection(direction, backwardDir)
+    );
+
+    if (hasForward && hasBackward && sideDirs.length > 0) {
+      const forwardOpen = countOpenMovesInDirection(grid, hunterCell, hunter.dir, 10);
+      const backwardOpen = countOpenMovesInDirection(grid, hunterCell, backwardDir, 10);
+      const shortestAxisRun = Math.min(forwardOpen, backwardOpen);
+
+      if (shortestAxisRun <= HUNTER_SHORT_CORRIDOR_TILES) {
+        let bestSideScore = Number.NEGATIVE_INFINITY;
+        const bestSideDirs: Vec[] = [];
+        for (const direction of sideDirs) {
+          const sideOpen = countOpenMovesInDirection(grid, hunterCell, direction, 10);
+          if (sideOpen > bestSideScore) {
+            bestSideScore = sideOpen;
+            bestSideDirs.length = 0;
+            bestSideDirs.push(direction);
+            continue;
+          }
+          if (sideOpen === bestSideScore) {
+            bestSideDirs.push(direction);
+          }
+        }
+
+        const sideDir = bestSideDirs[randomInt(bestSideDirs.length)];
+        resetPatrolStepsUntilTurn(hunter);
+        return sideDir;
+      }
+    }
+  }
+
   const canContinue =
-    (hunter.dir.x !== 0 || hunter.dir.y !== 0) &&
+    hasHeading &&
     candidatePool.some((direction) => isSameDirection(direction, hunter.dir));
   if (canContinue && hunter.patrolStepsUntilTurn > 0) {
     hunter.patrolStepsUntilTurn -= 1;
@@ -284,7 +444,12 @@ function choosePatrolDirection(hunter: Hunter, grid: GameState["grid"], hunterCe
   for (const direction of candidatePool) {
     const straightOpen = countOpenMovesInDirection(grid, hunterCell, direction);
     const sameDirBonus = isSameDirection(direction, hunter.dir) ? 0.5 : 0;
-    const score = straightOpen + sameDirBonus;
+    const nextCell = {
+      x: hunterCell.x + direction.x,
+      y: hunterCell.y + direction.y,
+    };
+    const revisitPenalty = patrolRevisitPenalty(hunter, nextCell);
+    const score = straightOpen + sameDirBonus - revisitPenalty;
     if (score > bestScore) {
       bestScore = score;
       bestDirs.length = 0;
@@ -432,7 +597,8 @@ function updateSingleHunter(
     hunter.stunUntil = Math.max(hunter.stunUntil, now + 5000);
   }
   completeChaserPlacement(state, hunter, now);
-  if (hunter.chaserPlaceEndMs > now) {
+  completeTurretPlacement(state, hunter, now);
+  if (hunter.chaserPlaceEndMs > now || hunter.turretPlaceEndMs > now) {
     if (distance(state.player, hunter.pos) < 0.45) {
       loseGame(state, "caught", onLoseReason);
       return false;
@@ -498,6 +664,15 @@ function updateSingleHunter(
       y: Math.floor(hunter.pos.y),
     };
 
+    maybeStartTurretPlacement(state, hunter, now);
+    if (hunter.turretPlaceEndMs > now) {
+      if (distance(state.player, hunter.pos) < 0.45) {
+        loseGame(state, "caught", onLoseReason);
+        return false;
+      }
+      return true;
+    }
+
     if (hunter.mode === "chase" && hunter.lastSeenPlayer) {
       const chaseCell = {
         x: Math.floor(hunter.lastSeenPlayer.x),
@@ -537,6 +712,10 @@ function updateSingleHunter(
     if (dist <= hunterSpeed) {
       hunter.pos = { ...hunter.target };
       hunter.target = null;
+      rememberPatrolCell(hunter, {
+        x: Math.floor(hunter.pos.x),
+        y: Math.floor(hunter.pos.y),
+      });
     } else {
       hunter.pos = {
         x: hunter.pos.x + (toTarget.x / dist) * hunterSpeed,

@@ -33,6 +33,7 @@ Code references:
 - Maze uses DFS carving + extra connection pass for less linear paths.
 - Initial placement pipeline spawns player plus a hunter pack (randomly 10-15 hunters, minimum 10), artifacts/coins, underground traps, wall arrow throwers, and the exploration cloud field + bucket index.
 - No red chaser is spawned at game start; chasers are introduced later by hunter behavior.
+- No turrets are spawned at game start; turrets are introduced later by hunter behavior.
 
 Code references:
 - `src/game/world/maze.ts`
@@ -106,6 +107,9 @@ Code references:
 - Hunters are spawned during map generation as additional enemies (at least 10, up to 15).
 - Patrol mode: slow random roaming with no predefined path.
 - Patrol movement uses short straight-run momentum (`2-6` tiles before re-evaluating turns) and prefers directions with more open forward space, reducing tiny-area loops in wide open zones.
+- Short-corridor escape bias: at junctions connected to a short corridor axis (<= `4` tiles each side), patrol hunters prefer side exits over bouncing forward/backward, which prevents corridor ping-pong loops.
+- Patrol anti-loop memory: recent patrol cells are tracked and revisits are penalized during patrol direction scoring, reducing stuck circular orbits around tiny obstacles (e.g. `1x1` wall islands).
+- Tight-loop escape: if recent patrol movement is confined to a `3x3` neighborhood, hunters try to pick an exit direction that leaves that neighborhood to break micro-orbits.
 - Movement model:
   - Hunters can move in 8 directions.
   - Diagonal movement is allowed only when there is enough corner space (no wall clipping through blocked corners).
@@ -121,11 +125,15 @@ Code references:
   - If hunter reaches last seen position without reacquiring vision, it nervously scans all directions in place.
   - Nervous scan direction is randomized per scan (clockwise or counterclockwise).
   - If player is still not seen after that scan, hunter returns to patrol mode.
-  - After an unsuccessful nervous scan, hunter can start chaser placement at its current tile:
+- After an unsuccessful nervous scan, hunter can start chaser placement at its current tile:
     - placement duration is `5s`.
     - chance is `50%` when no chaser exists, `25%` when at least one chaser already exists.
     - while placing, hunter shows `Placing the chaser` text with loading dots (`. -> .. -> ...`) above itself.
     - when placement completes, a bomb-killable chaser is spawned on the hunter tile.
+- Turret placement:
+  - On each completed hunter movement step, that hunter can start turret placement with `10%` probability (if under turret cap).
+  - Placement duration is `5s` and uses the same loading-dots popup style as chaser placement (`Placing the turret...`).
+  - Turret cap is `10` active turrets.
 - Rotation model:
   - When hunter changes heading, facing rotation is animated for `1s`.
   - While chasing, rotation animation is `2x` faster (`0.5s`).
@@ -143,11 +151,36 @@ Code references:
 - `src/game/world/hunterFacing.ts`
 - `src/game/config/constants.ts`
 
-## 8. Projectile System (Arrow Throwers)
+## 8. Turret AI
+
+- Turrets are static enemies spawned by hunters during gameplay.
+- Vision model:
+  - Radius `10` tiles, sector angle `60°`, wall-clipped line-of-sight (same visibility constraints as other enemies on unexplored land).
+- Default mode (`sweep`):
+  - Continuously rotates `360°` every `5s`.
+- Targeting mode (`track`):
+  - When player is visible, turret tracks player angle.
+  - First shot is fired only after the lock-in aiming animation completes (`0.5s`), then it fires once per second.
+  - Turret projectiles fly at `5x` player speed.
+  - Vision presentation transitions from cone to a narrow red targeting line.
+- Lost-target mode (`cooldown`):
+  - If line-of-sight is lost, turret keeps its last lock for `3s`.
+  - If vision is not reacquired, it transitions back to sweep mode with reversed line-to-cone animation.
+- Turrets are bomb-destroyable and are unaffected by spikes.
+
+Code references:
+- `src/game/systems/update/turret.ts`
+- `src/game/systems/update/hunter.ts`
+- `src/game/render/hunterVisionLayer.ts`
+- `src/game/render/sceneActors.ts`
+- `src/game/config/constants.ts`
+
+## 9. Projectile System (Arrow Throwers + Turret Shots)
 
 - Throwers are embedded in wall cells and fire on intervals.
 - Arrows move continuously and collide with walls/player.
 - Bombed thrower walls disable corresponding throwers.
+- Turrets also fire projectiles that share the projectile update/collision pipeline.
 
 Code references:
 - `src/game/systems/update/projectiles.ts`
@@ -155,7 +188,7 @@ Code references:
 - `src/game/render/sceneTerrainLayer.ts`
 - `src/game/render/sceneProjectileLayer.ts`
 
-## 9. Artifact Effects and Dynamic Hazards
+## 10. Artifact Effects and Dynamic Hazards
 
 - Each artifact pickup can trigger one of three effects: spawn boosters, spawn traps, or activate fog-of-war and fog areas.
 - After enough artifact progress, helper enemies spawn.
@@ -167,7 +200,7 @@ Code references:
 - `src/game/systems/fogAreaSpawns.ts`
 - `src/game/systems/helpers/spawnHelpers.ts`
 
-## 10. Helpers (Secondary Enemies)
+## 11. Helpers (Secondary Enemies)
 
 - Helpers spawn with generated patrol paths.
 - They move along path endpoints with direction reversal.
@@ -178,7 +211,7 @@ Code references:
 - `src/game/systems/helpers/updateHelpers.ts`
 - `src/game/world/pathingHelperPath.ts`
 
-## 11. Exploration and Fog Systems
+## 12. Exploration and Fog Systems
 
 ### Exploration Clouds
 
@@ -205,7 +238,7 @@ Code references:
 - `src/game/render/fogAreaLayer.ts`
 - `src/game/render/fogOverlay.ts`
 
-## 12. Rendering Pipeline
+## 13. Rendering Pipeline
 
 Per frame, draw order is orchestrated in `drawScene`:
 
@@ -213,9 +246,9 @@ Per frame, draw order is orchestrated in `drawScene`:
 2. Terrain + throwers.
 3. World objects and arrows.
 4. Fog areas and exploration clouds.
-5. Hunter vision cone layers, helpers, hunters, player, chaser.
+5. Hunter + turret vision layers, helpers, hunters, turrets, player, chaser.
 6. Temporary fog overlay + guidance arrows.
-7. Temporary popup text layers (player insufficient-money popup, hunter chaser-placement popup).
+7. Temporary popup text layers (player insufficient-money popup, hunter chaser/turret-placement popups).
 
 Code references:
 - `src/game/render/scene.ts`
@@ -228,7 +261,7 @@ Code references:
 - `src/game/world/hunterVision.ts`
 - `src/game/render/guidance.ts`
 
-## 13. Input Model
+## 14. Input Model
 
 ### Keyboard
 
@@ -261,7 +294,7 @@ Code references:
 - `src/input/touch/joystickGuard.ts`
 - `src/hooks/useTouchMode.ts`
 
-## 14. UI Components
+## 15. UI Components
 
 - `GameView` chooses between game screen and menu screen composition.
 - HUD, overlays, touch layer, and menu content are split into dedicated UI modules.
@@ -286,7 +319,7 @@ Code references:
 - `src/ui/gameView/overlays/`
 - `src/game/render/mapWindowScene.ts`
 
-## 15. Key Tunables
+## 16. Key Tunables
 
 Gameplay and balancing constants are centralized in:
 
@@ -294,7 +327,7 @@ Gameplay and balancing constants are centralized in:
 
 Examples: map size, speeds, bomb radius, fog durations, helper counts, touch multipliers.
 
-## 16. State Model
+## 17. State Model
 
 Game state and domain types are organized as:
 
@@ -304,7 +337,7 @@ Game state and domain types are organized as:
 - `src/game/model/types/state.ts`
 - `src/game/model/types.ts` (public facade)
 
-## 17. Additional Architecture Reference
+## 18. Additional Architecture Reference
 
 For module layering and current refactor boundaries:
 

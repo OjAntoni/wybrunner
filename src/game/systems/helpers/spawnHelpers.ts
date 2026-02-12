@@ -26,6 +26,9 @@ export function spawnHelpers(state: GameState, playerCell: Vec) {
   state.hunters.forEach((hunter) => {
     exclude.add(cellKey(Math.floor(hunter.pos.x), Math.floor(hunter.pos.y)));
   });
+  state.turrets.forEach((turret) => {
+    exclude.add(cellKey(Math.floor(turret.pos.x), Math.floor(turret.pos.y)));
+  });
   state.helpers.forEach((h) => {
     exclude.add(cellKey(Math.floor(h.pos.x), Math.floor(h.pos.y)));
   });
