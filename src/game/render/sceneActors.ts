@@ -83,3 +83,46 @@ export function drawMonster(
     TILE_SIZE - 2
   );
 }
+
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
+export function drawPlayerPopup(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  now: number,
+  camX: number,
+  camY: number,
+  touchEnabled: boolean
+) {
+  const popup = state.playerPopup;
+  if (!popup) return;
+  if (now >= popup.endMs) return;
+
+  const duration = popup.endMs - popup.startMs;
+  if (duration <= 0) return;
+
+  const t = clamp01((now - popup.startMs) / duration);
+  const fadeIn = clamp01(t / 0.15);
+  const fadeOut = clamp01((1 - t) / 0.2);
+  const alpha = Math.min(fadeIn, fadeOut);
+  if (alpha <= 0) return;
+
+  const playerX = state.player.x * TILE_SIZE - camX;
+  const playerY = state.player.y * TILE_SIZE - camY;
+  const rise = 2 + t * 8;
+  const textY = playerY - TILE_SIZE / 2 - rise;
+
+  const text = popup.text;
+  const fontPx = touchEnabled ? 9 : 4;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.font = `400 ${fontPx}px 'Press Start 2P', monospace`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.fillStyle = "rgba(232, 98, 98, 0.75)";
+  ctx.fillText(text, playerX, textY + 0.5);
+  ctx.restore();
+}

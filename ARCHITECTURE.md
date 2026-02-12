@@ -9,6 +9,7 @@
 ## Runtime Layers
 
 - `src/game/model/*`: game state shape and initialization.
+- `src/game/actions/*`: immediate player-triggered actions (equipment placement, purchases).
 - `src/game/systems/*`: state mutation/update logic.
 - `src/game/world/*`: pathing, exploration, fog, maze generation.
 - `src/game/render/*`: canvas render pipeline and scene layers.
@@ -50,7 +51,7 @@
 - `src/game/render/collectibleShared.ts`: collectible cell/bounds helpers.
 - `src/game/render/sceneHazardsLayer.ts`: traps/spikes/underground traps.
 - `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions).
-- `src/game/render/sceneActors.ts`: player, monster, helpers.
+- `src/game/render/sceneActors.ts`: player, monster, helpers, and temporary player popup text.
 - `src/game/render/cloudLayers.ts`: compatibility export for cloud layer entry points.
 - `src/game/render/exploreCloudLayer.ts`: explored-area cloud rendering.
 - `src/game/render/fogAreaLayer.ts`: fog-area cloud rendering.
@@ -83,6 +84,8 @@
 - `src/ui/gameView/overlays/*`: game overlay widgets.
 - `src/ui/gameView/GameScreenView.tsx`: in-game layer composition.
 - `src/ui/gameView/MenuScreenView.tsx`: menu/controls overlay composition.
+- `src/ui/gameView/InventoryPanel.tsx`: desktop/equipment inventory visuals and conditional item cost badges (shown when item count reaches zero).
+- `src/ui/gameView/TouchLayer.tsx`: mobile controls including conditional trap/bomb cost badges (shown when item count reaches zero).
 
 ## Current Refactor Rule
 

@@ -1,27 +1,72 @@
-import { BOMB_RADIUS_TILES } from "../config/constants";
+import {
+  BOMB_PURCHASE_COINS,
+  BOMB_RADIUS_TILES,
+  NOT_ENOUGH_MONEY_POPUP_MS,
+  SPIKE_PURCHASE_COINS,
+} from "../config/constants";
 import type { GameState } from "../model/types";
 import { cellKey, inBounds } from "../utils/grid";
 import { blowUp, keysInBlast } from "../world/bombs";
 
-export function placeSpike(state: GameState, onSpikesLeftChange: (next: number) => void) {
+function showNotEnoughMoneyPopup(state: GameState, now: number) {
+  state.playerPopup = {
+    text: "Not enough money",
+    startMs: now,
+    endMs: now + NOT_ENOUGH_MONEY_POPUP_MS,
+  };
+}
+
+function spendCoins(
+  state: GameState,
+  amount: number,
+  onCoinsCollectedChange: (next: number) => void
+) {
+  state.coinsCollected -= amount;
+  onCoinsCollectedChange(state.coinsCollected);
+}
+
+export function placeSpike(
+  state: GameState,
+  onSpikesLeftChange: (next: number) => void,
+  onCoinsCollectedChange: (next: number) => void
+) {
   if (state.status !== "playing") return;
-  if (state.spikesLeft <= 0) return;
+  const now = performance.now();
+  const payWithCoins = state.spikesLeft <= 0;
+  if (payWithCoins && state.coinsCollected < SPIKE_PURCHASE_COINS) {
+    showNotEnoughMoneyPopup(state, now);
+    return;
+  }
   const cell = {
     x: Math.floor(state.player.x),
     y: Math.floor(state.player.y),
   };
+  if (!inBounds(cell.x, cell.y)) return;
   const key = cellKey(cell.x, cell.y);
   if (state.grid[cell.y][cell.x] === 1) return;
   if (state.items.has(key)) return;
   if (state.spikes.has(key)) return;
   state.spikes.add(key);
-  state.spikesLeft -= 1;
-  onSpikesLeftChange(state.spikesLeft);
+  if (payWithCoins) {
+    spendCoins(state, SPIKE_PURCHASE_COINS, onCoinsCollectedChange);
+  } else {
+    state.spikesLeft -= 1;
+    onSpikesLeftChange(state.spikesLeft);
+  }
 }
 
-export function placeBomb(state: GameState, onBombsLeftChange: (next: number) => void) {
+export function placeBomb(
+  state: GameState,
+  onBombsLeftChange: (next: number) => void,
+  onCoinsCollectedChange: (next: number) => void
+) {
   if (state.status !== "playing") return;
-  if (state.bombsLeft <= 0) return;
+  const now = performance.now();
+  const payWithCoins = state.bombsLeft <= 0;
+  if (payWithCoins && state.coinsCollected < BOMB_PURCHASE_COINS) {
+    showNotEnoughMoneyPopup(state, now);
+    return;
+  }
   const cell = {
     x: Math.floor(state.player.x),
     y: Math.floor(state.player.y),
@@ -54,7 +99,7 @@ export function placeBomb(state: GameState, onBombsLeftChange: (next: number) =>
   state.explosions.push({
     x: cell.x + 0.5,
     y: cell.y + 0.5,
-    start: performance.now(),
+    start: now,
   });
   const monsterCell = {
     x: Math.floor(state.monster.x),
@@ -65,9 +110,12 @@ export function placeBomb(state: GameState, onBombsLeftChange: (next: number) =>
       (monsterCell.y - cell.y) * (monsterCell.y - cell.y) <=
     BOMB_RADIUS_TILES * BOMB_RADIUS_TILES
   ) {
-    const now = performance.now();
     state.stunUntil = Math.max(state.stunUntil, now + 3000);
   }
-  state.bombsLeft -= 1;
-  onBombsLeftChange(state.bombsLeft);
+  if (payWithCoins) {
+    spendCoins(state, BOMB_PURCHASE_COINS, onCoinsCollectedChange);
+  } else {
+    state.bombsLeft -= 1;
+    onBombsLeftChange(state.bombsLeft);
+  }
 }

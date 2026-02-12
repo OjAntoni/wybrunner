@@ -3,7 +3,7 @@ import type { Vec } from "../model/types";
 import { drawExploreClouds, drawFogAreas } from "./cloudLayers";
 import { drawFog } from "./fogOverlay";
 import { drawGuidanceArrows } from "./guidance";
-import { drawHelpers, drawMonster, drawPlayer } from "./sceneActors";
+import { drawHelpers, drawMonster, drawPlayer, drawPlayerPopup } from "./sceneActors";
 import { drawWorldObjects } from "./sceneObjectLayer";
 import { drawArrows } from "./sceneProjectileLayer";
 import { drawArrowThrowers, drawTerrainTiles } from "./sceneTerrainLayer";
@@ -89,4 +89,5 @@ export function drawScene({
     playerScreenX,
     playerScreenY
   );
+  drawPlayerPopup(ctx, state, now, camX, camY, touchEnabled);
 }

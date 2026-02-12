@@ -61,6 +61,8 @@ Code references:
 ### Spikes
 
 - Can place spike on current walkable cell if inventory allows.
+- If no spikes are left, player can still place one by paying 6 coins.
+- If no spikes are left and coins are below 6, a short "Not enough money" popup appears above the player.
 - Chaser stepping on spike is stunned.
 
 Code references:
@@ -70,6 +72,8 @@ Code references:
 ### Bombs
 
 - Bomb destroys walls in circular radius.
+- If no bombs are left, player can still use one by paying 10 coins.
+- If no bombs are left and coins are below 10, a short "Not enough money" popup appears above the player.
 - Also clears traps and underground traps in blast.
 - Can remove helpers and invalidate arrows/throwers affected by wall destruction.
 - Applies stun to chaser if within blast radius.
@@ -163,6 +167,7 @@ Per frame, draw order is orchestrated in `drawScene`:
 4. Fog areas and exploration clouds.
 5. Helpers, player, chaser.
 6. Temporary fog overlay + guidance arrows.
+7. Temporary player popup text (e.g. insufficient money notice), animated and timed.
 
 Code references:
 - `src/game/render/scene.ts`
@@ -204,6 +209,7 @@ Code references:
 
 - `GameView` chooses between game screen and menu screen composition.
 - HUD, overlays, touch layer, and menu content are split into dedicated UI modules.
+- Equipment costs are surfaced only when an item inventory is empty: desktop inventory shows spike/bomb coin cost on the first slot icon; mobile touch action buttons show the same costs.
 
 Code references:
 - `src/ui/GameView.tsx`

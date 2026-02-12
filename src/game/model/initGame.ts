@@ -52,6 +52,7 @@ export function initGame(): GameState {
     fogUntil: 0,
     boostUntil: 0,
     explosions: [],
+    playerPopup: null,
     status: "playing",
     loseReason: "caught",
     monsterDir: { x: 0, y: 0 },

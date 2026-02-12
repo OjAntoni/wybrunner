@@ -1,3 +1,4 @@
+import { BOMB_PURCHASE_COINS, SPIKE_PURCHASE_COINS } from "../../game/config/constants";
 import type { GameViewActions, GameViewModel, GameViewRefs } from "./types";
 
 type TouchLayerProps = {
@@ -15,8 +16,22 @@ type TouchLayerProps = {
   >;
 };
 
+function TouchCostBadge({ amount }: { amount: number }) {
+  return (
+    <span className="touch-action-cost" aria-hidden="true">
+      <svg className="cost-coin-icon" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8" />
+        <rect x="11" y="7" width="2" height="10" fill="#05070c" opacity="0.35" />
+      </svg>
+      <span>{amount}</span>
+    </span>
+  );
+}
+
 export function TouchLayer({ view, refs, actions }: TouchLayerProps) {
   const { spikesLeft, bombsLeft } = view;
+  const spikeOutOfStock = spikesLeft <= 0;
+  const bombOutOfStock = bombsLeft <= 0;
   const { joystickRef, joystickKnobRef } = refs;
   const {
     onPauseGame,
@@ -52,12 +67,12 @@ export function TouchLayer({ view, refs, actions }: TouchLayerProps) {
 
       <div className="touch-actions">
         <button
-          className="touch-action touch-action-trap"
+          className={`touch-action touch-action-trap${spikeOutOfStock ? " touch-action-has-cost" : ""}`}
           onPointerDown={onTrapPointerDown}
-          disabled={spikesLeft <= 0}
           aria-label="Place trap"
           type="button"
         >
+          {spikeOutOfStock && <TouchCostBadge amount={SPIKE_PURCHASE_COINS} />}
           <svg className="touch-action-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 2 L18 10 L12 8 L6 10 Z" fill="currentColor" />
             <rect x="10.5" y="10" width="3" height="10" />
@@ -66,12 +81,12 @@ export function TouchLayer({ view, refs, actions }: TouchLayerProps) {
           <span className="touch-action-count">x{spikesLeft}</span>
         </button>
         <button
-          className="touch-action touch-action-bomb"
+          className={`touch-action touch-action-bomb${bombOutOfStock ? " touch-action-has-cost" : ""}`}
           onPointerDown={onBombPointerDown}
-          disabled={bombsLeft <= 0}
           aria-label="Place bomb"
           type="button"
         >
+          {bombOutOfStock && <TouchCostBadge amount={BOMB_PURCHASE_COINS} />}
           <svg className="touch-action-icon" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="10" cy="14" r="6" />
             <rect x="14" y="6" width="6" height="2" />

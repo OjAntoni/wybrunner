@@ -15,4 +15,4 @@ export type {
   FogCloud,
 } from "./types/clouds";
 export type { Arrow, ArrowThrower, Helper } from "./types/entities";
-export type { Explosion, GameState } from "./types/state";
+export type { Explosion, GameState, PlayerPopup } from "./types/state";

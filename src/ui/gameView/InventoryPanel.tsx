@@ -1,4 +1,4 @@
-import { ITEMS_TARGET } from "../../game/config/constants";
+import { BOMB_PURCHASE_COINS, ITEMS_TARGET, SPIKE_PURCHASE_COINS } from "../../game/config/constants";
 
 type InventoryPanelProps = {
   touchEnabled: boolean;
@@ -7,6 +7,18 @@ type InventoryPanelProps = {
   itemsLeft: number;
   coinsCollected: number;
 };
+
+function CoinCostBadge({ amount }: { amount: number }) {
+  return (
+    <span className="inventory-slot-cost" aria-hidden="true">
+      <svg className="cost-coin-icon" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8" />
+        <rect x="11" y="7" width="2" height="10" fill="#05070c" opacity="0.35" />
+      </svg>
+      <span>{amount}</span>
+    </span>
+  );
+}
 
 export function InventoryPanel({
   touchEnabled,
@@ -31,6 +43,7 @@ export function InventoryPanel({
                 <rect x="10.5" y="10" width="3" height="10" />
                 <rect x="7" y="20" width="10" height="2" />
               </svg>
+              {i === 0 && spikesLeft <= 0 && <CoinCostBadge amount={SPIKE_PURCHASE_COINS} />}
             </div>
           ))}
         </div>
@@ -52,6 +65,7 @@ export function InventoryPanel({
                 <rect x="14" y="6" width="6" height="2" />
                 <circle cx="20" cy="6" r="2" />
               </svg>
+              {i === 0 && bombsLeft <= 0 && <CoinCostBadge amount={BOMB_PURCHASE_COINS} />}
             </div>
           ))}
         </div>

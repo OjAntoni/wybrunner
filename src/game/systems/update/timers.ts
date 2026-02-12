@@ -8,6 +8,9 @@ export function updateTimedSystems(
   playerCell: Vec
 ) {
   state.explosions = state.explosions.filter((explosion) => now - explosion.start < 600);
+  if (state.playerPopup && now >= state.playerPopup.endMs) {
+    state.playerPopup = null;
+  }
   state.fogAreas = state.fogAreas.filter((area) => now < area.end);
 
   // Smooth "inside fog area" factor to avoid flicker at boundaries while walking.

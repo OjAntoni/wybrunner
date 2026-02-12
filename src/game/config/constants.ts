@@ -18,6 +18,9 @@ export const TURN_ASSIST_TILES = 0.22;
 export const TOUCH_TURN_ASSIST_TILES = 0.46;
 
 export const BOMB_RADIUS_TILES = 8;
+export const SPIKE_PURCHASE_COINS = 6;
+export const BOMB_PURCHASE_COINS = 10;
+export const NOT_ENOUGH_MONEY_POPUP_MS = 2000;
 
 // 5x5 around player tile
 export const EXPLORE_CLEAR_RADIUS_TILES = 2;

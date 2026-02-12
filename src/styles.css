@@ -149,6 +149,7 @@ body,
   justify-content: center;
   color: #2a3a4a;
   background: rgba(8, 12, 18, 0.6);
+  position: relative;
 }
 
 .inventory-slot.filled {
@@ -167,6 +168,19 @@ body,
 .inventory-icon.small {
   width: 20px;
   height: 20px;
+}
+
+.inventory-slot-cost {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 7px;
+  line-height: 1;
+  color: #ffd65c;
+  text-shadow: 0 0 6px rgba(5, 7, 12, 0.9);
 }
 
 .inventory-counter {
@@ -375,6 +389,40 @@ body,
   line-height: 1;
   color: #d6e9ff;
   pointer-events: none;
+}
+
+.touch-action-cost {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 7px;
+  line-height: 1;
+  color: #ffd65c;
+  text-shadow: 0 0 6px rgba(5, 7, 12, 0.9);
+  pointer-events: none;
+}
+
+.cost-coin-icon {
+  width: 8px;
+  height: 8px;
+  fill: currentColor;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.inventory-slot-cost > span,
+.touch-action-cost > span {
+  display: block;
+  line-height: 1;
+}
+
+.touch-action.touch-action-has-cost .touch-action-icon {
+  opacity: 0.25;
+  transform: translateY(-8px);
 }
 
 .overlay {

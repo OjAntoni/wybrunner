@@ -8,6 +8,12 @@ export type Explosion = {
   start: number;
 };
 
+export type PlayerPopup = {
+  text: string;
+  startMs: number;
+  endMs: number;
+};
+
 export type GameState = {
   grid: Cell[][];
   player: Vec;
@@ -38,6 +44,7 @@ export type GameState = {
   fogUntil: number;
   boostUntil: number;
   explosions: Explosion[];
+  playerPopup: PlayerPopup | null;
   status: GameStatus;
   loseReason: LoseReason;
   monsterDir: Vec;

@@ -43,6 +43,7 @@ export function useGameRuntime({
     stateRef,
     setSpikesLeft,
     setBombsLeft,
+    setCoinsCollected,
   });
 
   return {
