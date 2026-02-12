@@ -16,7 +16,7 @@ export function handleRestartConfirmKeyDown({ e, refs, callbacks, ctx }: KeyDown
     return true;
   }
 
-  if (ctx.dirKey) {
+  if (ctx.dirKey || ctx.lowerKey === "m") {
     e.preventDefault();
     return true;
   }

@@ -28,10 +28,10 @@ function spendCoins(
 export function placeSpike(
   state: GameState,
   onSpikesLeftChange: (next: number) => void,
-  onCoinsCollectedChange: (next: number) => void
+  onCoinsCollectedChange: (next: number) => void,
+  now: number
 ) {
   if (state.status !== "playing") return;
-  const now = performance.now();
   const payWithCoins = state.spikesLeft <= 0;
   if (payWithCoins && state.coinsCollected < SPIKE_PURCHASE_COINS) {
     showNotEnoughMoneyPopup(state, now);
@@ -58,10 +58,10 @@ export function placeSpike(
 export function placeBomb(
   state: GameState,
   onBombsLeftChange: (next: number) => void,
-  onCoinsCollectedChange: (next: number) => void
+  onCoinsCollectedChange: (next: number) => void,
+  now: number
 ) {
   if (state.status !== "playing") return;
-  const now = performance.now();
   const payWithCoins = state.bombsLeft <= 0;
   if (payWithCoins && state.coinsCollected < BOMB_PURCHASE_COINS) {
     showNotEnoughMoneyPopup(state, now);

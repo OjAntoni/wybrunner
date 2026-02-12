@@ -4,6 +4,7 @@ import type { GameState } from "../../game/model/types";
 
 type UseRuntimeEquipmentParams = {
   stateRef: MutableRefObject<GameState>;
+  gameNowRef: MutableRefObject<number>;
   setSpikesLeft: (value: number) => void;
   setBombsLeft: (value: number) => void;
   setCoinsCollected: (value: number) => void;
@@ -11,17 +12,28 @@ type UseRuntimeEquipmentParams = {
 
 export function useRuntimeEquipment({
   stateRef,
+  gameNowRef,
   setSpikesLeft,
   setBombsLeft,
   setCoinsCollected,
 }: UseRuntimeEquipmentParams) {
   const placeSpike = useCallback(() => {
-    performPlaceSpike(stateRef.current, setSpikesLeft, setCoinsCollected);
-  }, [setCoinsCollected, setSpikesLeft, stateRef]);
+    performPlaceSpike(
+      stateRef.current,
+      setSpikesLeft,
+      setCoinsCollected,
+      gameNowRef.current
+    );
+  }, [gameNowRef, setCoinsCollected, setSpikesLeft, stateRef]);
 
   const placeBomb = useCallback(() => {
-    performPlaceBomb(stateRef.current, setBombsLeft, setCoinsCollected);
-  }, [setBombsLeft, setCoinsCollected, stateRef]);
+    performPlaceBomb(
+      stateRef.current,
+      setBombsLeft,
+      setCoinsCollected,
+      gameNowRef.current
+    );
+  }, [gameNowRef, setBombsLeft, setCoinsCollected, stateRef]);
 
   return { placeSpike, placeBomb };
 }

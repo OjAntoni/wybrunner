@@ -8,7 +8,7 @@ function createRngSeed() {
   return ((Date.now() & 0xffffffff) ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
 }
 
-export function initGame(): GameState {
+export function initGame(now: number = performance.now()): GameState {
   const grid = generateMaze();
   const {
     playerCell,
@@ -17,7 +17,7 @@ export function initGame(): GameState {
     coins,
     undergroundTrapsHidden,
     arrowThrowers,
-  } = buildInitialPlacements(grid);
+  } = buildInitialPlacements(grid, now);
 
   const exploreClouds = buildExploreClouds(createRngSeed());
   const exploreCloudBuckets = buildExploreCloudBuckets(exploreClouds);

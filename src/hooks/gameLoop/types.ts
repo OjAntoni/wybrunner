@@ -5,6 +5,7 @@ export type UseGameLoopParams = {
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
   dprRef: MutableRefObject<number>;
   canvasCssSizeRef: MutableRefObject<{ w: number; h: number }>;
+  gameNowRef: MutableRefObject<number>;
   stateRef: MutableRefObject<GameState>;
   screenRef: MutableRefObject<UIScreen>;
   confirmRestartRef: MutableRefObject<boolean>;
@@ -14,5 +15,5 @@ export type UseGameLoopParams = {
   setItemsLeft: (value: number) => void;
   setCoinsCollected: (value: number) => void;
   updateState: (state: GameState, dt: number, now: number) => void;
-  draw: (ctx: CanvasRenderingContext2D, state: GameState) => void;
+  draw: (ctx: CanvasRenderingContext2D, state: GameState, now: number) => void;
 };

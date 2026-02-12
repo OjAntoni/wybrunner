@@ -15,6 +15,12 @@ export function handlePausedKeyDown({ e, refs, callbacks, ctx }: KeyDownHandlerP
     return true;
   }
 
+  if (ctx.lowerKey === "m" && !refs.touchEnabledRef.current) {
+    callbacks.openMap();
+    e.preventDefault();
+    return true;
+  }
+
   if (ctx.dirKey) {
     e.preventDefault();
     return true;

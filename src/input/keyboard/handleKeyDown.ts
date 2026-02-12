@@ -2,6 +2,7 @@ import { getKeyboardContext } from "./keyboardContext";
 import { handleEndScreenKeyDown } from "./handlers/handleEndScreenKeyDown";
 import { handleEquipmentKeyDown } from "./handlers/handleEquipmentKeyDown";
 import { handleEscapeGameKeyDown } from "./handlers/handleEscapeGameKeyDown";
+import { handleMapKeyDown } from "./handlers/handleMapKeyDown";
 import { handleMenuKeyDown } from "./handlers/handleMenuKeyDown";
 import { handlePausedKeyDown } from "./handlers/handlePausedKeyDown";
 import { handlePlayingKeyDown } from "./handlers/handlePlayingKeyDown";
@@ -22,6 +23,7 @@ export function handleKeyDown(
   }
 
   if (handleEndScreenKeyDown(params)) return;
+  if (handleMapKeyDown(params)) return;
   if (handleRestartConfirmKeyDown(params)) return;
   if (handleEquipmentKeyDown(params)) return;
   if (handleEscapeGameKeyDown(params)) return;

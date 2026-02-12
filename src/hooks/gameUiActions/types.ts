@@ -3,11 +3,16 @@ import type { GameState, LoseReason, UIScreen } from "../../game/model/types";
 
 export type UseGameUiActionsParams = {
   stateRef: MutableRefObject<GameState>;
+  gameNowRef: MutableRefObject<number>;
   keysRef: MutableRefObject<Set<string>>;
   screenRef: MutableRefObject<UIScreen>;
+  touchEnabledRef: MutableRefObject<boolean>;
+  mapOpenRef: MutableRefObject<boolean>;
   confirmRestartRef: MutableRefObject<boolean>;
   pausedRef: MutableRefObject<boolean>;
+  equipmentOpenRef: MutableRefObject<boolean>;
   controlsReturnToGameRef: MutableRefObject<boolean>;
+  mapReturnToPauseRef: MutableRefObject<boolean>;
   resetTouchInput: () => void;
   setScreen: (value: UIScreen) => void;
   setStatus: (value: "playing" | "win" | "lose") => void;
@@ -20,4 +25,5 @@ export type UseGameUiActionsParams = {
   setPaused: (value: boolean) => void;
   setEquipmentOpen: (value: boolean) => void;
   setControlsReturnToGame: (value: boolean) => void;
+  setMapOpen: (value: boolean) => void;
 };

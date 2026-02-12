@@ -6,6 +6,7 @@ import type { UseGameRuntimeParams } from "./runtime/types";
 
 export function useGameRuntime({
   stateRef,
+  gameNowRef,
   keysRef,
   touchMoveRef,
   touchEnabledRef,
@@ -41,6 +42,7 @@ export function useGameRuntime({
   });
   const { placeSpike, placeBomb } = useRuntimeEquipment({
     stateRef,
+    gameNowRef,
     setSpikesLeft,
     setBombsLeft,
     setCoinsCollected,

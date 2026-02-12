@@ -12,6 +12,8 @@ export function useKeyboardControls({
   controlsReturnToGameRef,
   confirmRestartRef,
   pausedRef,
+  touchEnabledRef,
+  mapOpenRef,
   equipmentOpenRef,
   stateRef,
   keysRef,
@@ -29,6 +31,8 @@ export function useKeyboardControls({
       controlsReturnToGameRef,
       confirmRestartRef,
       pausedRef,
+      touchEnabledRef,
+      mapOpenRef,
       equipmentOpenRef,
       stateRef,
       keysRef,
@@ -53,8 +57,10 @@ export function useKeyboardControls({
     controlsReturnToGameRef,
     equipmentOpenRef,
     keysRef,
+    mapOpenRef,
     pausedRef,
     screenRef,
     stateRef,
+    touchEnabledRef,
   ]);
 }

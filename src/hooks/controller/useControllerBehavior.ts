@@ -26,6 +26,7 @@ export function useControllerBehavior({
 
   const {
     screen,
+    mapOpen,
     status,
     loseReason,
     touchEnabled,
@@ -46,6 +47,7 @@ export function useControllerBehavior({
   return {
     view: {
       screen,
+      mapOpen,
       status,
       loseReason,
       touchEnabled,
@@ -62,6 +64,10 @@ export function useControllerBehavior({
     },
     refs: {
       canvasRef,
+      stateRef: refs.stateRef,
+      gameNowRef: refs.gameNowRef,
+      fogSpritesRef: refs.fogSpritesRef,
+      exploreCloudSpritesRef: refs.exploreCloudSpritesRef,
       hudTopRef,
       inventoryRef,
       joystickRef,
@@ -70,6 +76,8 @@ export function useControllerBehavior({
     actions: {
       onPauseGame: uiActions.pauseGame,
       onOpenEquipment: uiActions.openEquipment,
+      onOpenMap: uiActions.openMap,
+      onCloseMap: uiActions.closeMap,
       onCloseEquipment: uiActions.closeEquipment,
       onOpenControls: uiActions.openControls,
       onCloseControls: uiActions.closeControls,

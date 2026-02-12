@@ -33,5 +33,11 @@ export function handlePlayingKeyDown({ e, refs, callbacks, ctx }: KeyDownHandler
     handled = true;
   }
 
+  if (ctx.lowerKey === "m" && !refs.touchEnabledRef.current) {
+    callbacks.openMap();
+    e.preventDefault();
+    handled = true;
+  }
+
   return handled;
 }

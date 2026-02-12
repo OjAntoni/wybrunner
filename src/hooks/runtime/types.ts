@@ -4,6 +4,7 @@ import type { HudRectsCache } from "../../game/render/hudOcclusion";
 
 export type UseGameRuntimeParams = {
   stateRef: MutableRefObject<GameState>;
+  gameNowRef: MutableRefObject<number>;
   keysRef: MutableRefObject<Set<string>>;
   touchMoveRef: MutableRefObject<Vec>;
   touchEnabledRef: MutableRefObject<boolean>;

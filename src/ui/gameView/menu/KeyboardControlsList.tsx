@@ -30,6 +30,18 @@ export function KeyboardControlsList() {
       <ControlsRow label="Equipment">
         <span className="keycap">I</span>
       </ControlsRow>
+      <ControlsRow label="Map">
+        <span className="keycap">M</span>
+        <span className="controls-note">or open from pause menu</span>
+      </ControlsRow>
+      <ControlsRow label="Map Pan/Zoom">
+        <span className="keycap">W</span>
+        <span className="keycap">A</span>
+        <span className="keycap">S</span>
+        <span className="keycap">D</span>
+        <span className="controls-or">or drag</span>
+        <span className="controls-note">wheel / +/- to zoom</span>
+      </ControlsRow>
       <ControlsRow label="Touch">
         Joystick movement plus Trap and Bomb action buttons. Use Menu and Gear buttons in the
         top-right while playing.

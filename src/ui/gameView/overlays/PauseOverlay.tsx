@@ -3,25 +3,33 @@ import type { GameViewActions, GameViewModel } from "../types";
 type PauseOverlayProps = {
   view: Pick<
     GameViewModel,
-    "status" | "touchEnabled" | "paused" | "confirmRestartOpen" | "equipmentOpen"
+    "status" | "touchEnabled" | "paused" | "mapOpen" | "confirmRestartOpen" | "equipmentOpen"
   >;
   actions: Pick<
     GameViewActions,
-    "onResumeFromPause" | "onPauseOpenEquipment" | "onOpenControls" | "onOpenRestartConfirm" | "onGoToMainMenu"
+    | "onResumeFromPause"
+    | "onPauseOpenEquipment"
+    | "onOpenMap"
+    | "onOpenControls"
+    | "onOpenRestartConfirm"
+    | "onGoToMainMenu"
   >;
 };
 
 export function PauseOverlay({ view, actions }: PauseOverlayProps) {
-  const { status, touchEnabled, paused, confirmRestartOpen, equipmentOpen } = view;
+  const { status, touchEnabled, paused, mapOpen, confirmRestartOpen, equipmentOpen } = view;
   const {
     onResumeFromPause,
     onPauseOpenEquipment,
+    onOpenMap,
     onOpenControls,
     onOpenRestartConfirm,
     onGoToMainMenu,
   } = actions;
 
-  if (!paused || status !== "playing" || confirmRestartOpen || equipmentOpen) return null;
+  if (!paused || mapOpen || status !== "playing" || confirmRestartOpen || equipmentOpen) {
+    return null;
+  }
 
   return (
     <div className="overlay overlay-pause">
@@ -29,7 +37,7 @@ export function PauseOverlay({ view, actions }: PauseOverlayProps) {
         <div className="overlay-title">Paused</div>
         <div className="overlay-text">
           {touchEnabled ? (
-            "Game paused. Open equipment, view controls, or resume."
+            "Game paused. Open map, equipment, controls, or resume."
           ) : (
             <>
               Press <span className="keycap">Esc</span> to resume.
@@ -43,6 +51,9 @@ export function PauseOverlay({ view, actions }: PauseOverlayProps) {
           <button className="overlay-button" onClick={onPauseOpenEquipment}>
             Equipment
           </button>
+          <button className="overlay-button" onClick={onOpenMap}>
+            Map
+          </button>
           <button className="overlay-button" onClick={() => onOpenControls(true)}>
             Controls
           </button>
@@ -55,11 +66,11 @@ export function PauseOverlay({ view, actions }: PauseOverlayProps) {
         </div>
         <div className="menu-hint">
           {touchEnabled ? (
-            "Use the buttons below to resume, open equipment, restart, or return to menu."
+            "Use the buttons below to resume, open map/equipment, restart, or return to menu."
           ) : (
             <>
-              <span className="keycap">Esc</span> resume <span className="keycap">I</span> equipment{" "}
-              <span className="keycap">R</span> restart
+              <span className="keycap">Esc</span> resume <span className="keycap">M</span> map{" "}
+              <span className="keycap">I</span> equipment <span className="keycap">R</span> restart
             </>
           )}
         </div>

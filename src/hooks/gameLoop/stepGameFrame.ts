@@ -2,7 +2,7 @@ import type { MutableRefObject } from "react";
 import type { GameState, GameStatus, UIScreen } from "../../game/model/types";
 
 type StepGameFrameParams = {
-  time: number;
+  now: number;
   dt: number;
   ctx: CanvasRenderingContext2D;
   stateRef: MutableRefObject<GameState>;
@@ -11,7 +11,7 @@ type StepGameFrameParams = {
   pausedRef: MutableRefObject<boolean>;
   statusRef: MutableRefObject<GameStatus>;
   updateStateRef: MutableRefObject<(state: GameState, dt: number, now: number) => void>;
-  drawRef: MutableRefObject<(ctx: CanvasRenderingContext2D, state: GameState) => void>;
+  drawRef: MutableRefObject<(ctx: CanvasRenderingContext2D, state: GameState, now: number) => void>;
   setStatus: (value: GameStatus) => void;
   setItemsLeft: (value: number) => void;
   setCoinsCollected: (value: number) => void;
@@ -19,7 +19,7 @@ type StepGameFrameParams = {
 };
 
 export function stepGameFrame({
-  time,
+  now,
   dt,
   ctx,
   stateRef,
@@ -33,7 +33,8 @@ export function stepGameFrame({
   setItemsLeft,
   setCoinsCollected,
   resizeCanvas,
-}: StepGameFrameParams) {
+}: StepGameFrameParams): number {
+  let nextNow = now;
   const state = stateRef.current;
   if (
     screenRef.current === "game" &&
@@ -41,7 +42,8 @@ export function stepGameFrame({
     !pausedRef.current &&
     state.status === "playing"
   ) {
-    updateStateRef.current(state, dt, time);
+    nextNow += dt * 1000;
+    updateStateRef.current(state, dt, nextNow);
     if (state.status !== statusRef.current) {
       setStatus(state.status);
     }
@@ -50,5 +52,6 @@ export function stepGameFrame({
   }
 
   resizeCanvas();
-  drawRef.current(ctx, state);
+  drawRef.current(ctx, state, nextNow);
+  return nextNow;
 }

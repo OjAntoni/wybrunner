@@ -20,6 +20,7 @@ type UseControllerInteractionsParams = {
     | "setPaused"
     | "setEquipmentOpen"
     | "setControlsReturnToGame"
+    | "setMapOpen"
   >;
   runtime: {
     placeSpike: () => void;
@@ -47,6 +48,7 @@ export function useControllerInteractions({
     setPaused,
     setEquipmentOpen,
     setControlsReturnToGame,
+    setMapOpen,
   } = state;
 
   const touch = useControllerTouchBindings({
@@ -58,11 +60,16 @@ export function useControllerInteractions({
 
   const uiActions = useGameUiActions({
     stateRef,
+    gameNowRef: refs.gameNowRef,
     keysRef,
     screenRef,
+    touchEnabledRef: refs.touchEnabledRef,
+    mapOpenRef: refs.mapOpenRef,
     confirmRestartRef,
     pausedRef,
+    equipmentOpenRef: refs.equipmentOpenRef,
     controlsReturnToGameRef,
+    mapReturnToPauseRef: refs.mapReturnToPauseRef,
     resetTouchInput,
     setScreen,
     setStatus,
@@ -75,6 +82,7 @@ export function useControllerInteractions({
     setPaused,
     setEquipmentOpen,
     setControlsReturnToGame,
+    setMapOpen,
   });
 
   useControllerKeyboardBindings({

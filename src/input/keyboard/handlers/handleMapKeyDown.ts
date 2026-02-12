@@ -1,10 +1,10 @@
 import type { KeyDownHandlerParams } from "./types";
 
-export function handleEquipmentKeyDown({ e, refs, callbacks, ctx }: KeyDownHandlerParams) {
-  if (!refs.equipmentOpenRef.current) return false;
+export function handleMapKeyDown({ e, refs, callbacks, ctx }: KeyDownHandlerParams) {
+  if (!refs.mapOpenRef.current) return false;
 
-  if (e.key === "Escape" || ctx.lowerKey === "i") {
-    callbacks.closeEquipment();
+  if (e.key === "Escape" || ctx.lowerKey === "m") {
+    callbacks.closeMap();
     e.preventDefault();
     return true;
   }
@@ -15,7 +15,8 @@ export function handleEquipmentKeyDown({ e, refs, callbacks, ctx }: KeyDownHandl
     ctx.lowerKey === "e" ||
     ctx.lowerKey === "b" ||
     ctx.lowerKey === "r" ||
-    ctx.lowerKey === "m"
+    ctx.lowerKey === "i" ||
+    ctx.lowerKey === "c"
   ) {
     e.preventDefault();
     return true;

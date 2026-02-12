@@ -14,6 +14,7 @@ export function GameScreenView({ view, refs, actions }: GameScreenViewProps) {
     view.touchEnabled &&
     view.status === "playing" &&
     !view.paused &&
+    !view.mapOpen &&
     !view.confirmRestartOpen &&
     !view.equipmentOpen;
 
@@ -55,17 +56,24 @@ export function GameScreenView({ view, refs, actions }: GameScreenViewProps) {
           loseReason: view.loseReason,
           touchEnabled: view.touchEnabled,
           paused: view.paused,
+          mapOpen: view.mapOpen,
           confirmRestartOpen: view.confirmRestartOpen,
           equipmentOpen: view.equipmentOpen,
           spikesLeft: view.spikesLeft,
           bombsLeft: view.bombsLeft,
           itemsLeft: view.itemsLeft,
           coinsCollected: view.coinsCollected,
+          stateRef: refs.stateRef,
+          gameNowRef: refs.gameNowRef,
+          fogSpritesRef: refs.fogSpritesRef,
+          exploreCloudSpritesRef: refs.exploreCloudSpritesRef,
         }}
         actions={{
           onGoToMainMenu: actions.onGoToMainMenu,
           onResumeFromPause: actions.onResumeFromPause,
           onPauseOpenEquipment: actions.onPauseOpenEquipment,
+          onOpenMap: actions.onOpenMap,
+          onCloseMap: actions.onCloseMap,
           onOpenControls: actions.onOpenControls,
           onOpenRestartConfirm: actions.onOpenRestartConfirm,
           onCloseEquipment: actions.onCloseEquipment,

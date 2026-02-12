@@ -8,6 +8,7 @@ import type {
 
 export type ControllerStateModel = {
   screen: UIScreen;
+  mapOpen: boolean;
   status: GameStatus;
   itemsLeft: number;
   coinsCollected: number;
@@ -22,6 +23,7 @@ export type ControllerStateModel = {
   controlsReturnToGame: boolean;
   helpText: string;
   setScreen: (value: UIScreen) => void;
+  setMapOpen: (value: boolean) => void;
   setStatus: (value: GameStatus) => void;
   setItemsLeft: (value: number) => void;
   setCoinsCollected: (value: number) => void;
@@ -38,6 +40,7 @@ export type ControllerStateModel = {
 
 export function useControllerState(): ControllerStateModel {
   const [screen, setScreen] = useState<UIScreen>("menu");
+  const [mapOpen, setMapOpen] = useState(false);
   const [status, setStatus] = useState<GameStatus>("playing");
   const [itemsLeft, setItemsLeft] = useState(ITEMS_TARGET);
   const [coinsCollected, setCoinsCollected] = useState(0);
@@ -55,12 +58,13 @@ export function useControllerState(): ControllerStateModel {
     () =>
       touchEnabled
         ? "Use the joystick to move. Tap Trap and Bomb buttons to place gear."
-        : "Move with WASD or arrow keys. Collect 10 artifacts. Avoid the chaser.",
+        : "Move with WASD or arrow keys. Press M for map. Collect 10 artifacts.",
     [touchEnabled]
   );
 
   return {
     screen,
+    mapOpen,
     status,
     itemsLeft,
     coinsCollected,
@@ -75,6 +79,7 @@ export function useControllerState(): ControllerStateModel {
     controlsReturnToGame,
     helpText,
     setScreen,
+    setMapOpen,
     setStatus,
     setItemsLeft,
     setCoinsCollected,

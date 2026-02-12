@@ -13,11 +13,13 @@
 - `src/game/systems/*`: state mutation/update logic.
 - `src/game/world/*`: pathing, exploration, fog, maze generation.
 - `src/game/render/*`: canvas render pipeline and scene layers.
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: simulation-time clock advancement (advances only while gameplay is actively running).
 
 ## Controller Layers
 
 - `src/hooks/controller/*`: app-level orchestration.
   - `useControllerState.ts`: React state + refs.
+    - Includes `mapOpen` UI state for the interactive world map window.
   - `useControllerRuntime.ts`: runtime loop bindings.
   - `useControllerInteractions.ts`: UI action handlers.
   - `useControllerLifecycle.ts`: sync lifecycle/effects.
@@ -29,6 +31,7 @@
 
 - `src/input/keymap.ts`: key-to-direction mapping.
 - `src/input/keyboard/*`: keyboard event decision logic.
+  - Includes dedicated map-open keyboard handler routing (`M` toggle/close behavior and map-state key blocking).
 - `src/input/touch/*`: touch joystick math/guard rules.
 - `src/input/touch/touchAction.ts`: shared touch-action helper.
 - `src/hooks/useKeyboardControls.ts`: browser listener wrapper for keyboard.
@@ -59,6 +62,7 @@
 - `src/game/render/cloudSpriteDefs.ts`: cloud sprite palettes and style presets.
 - `src/game/render/cloudSpriteFactory.ts`: sprite canvas construction/caching.
 - `src/game/render/fogOverlay.ts`, `src/game/render/guidance.ts`: overlays.
+- `src/game/render/mapWindowScene.ts`: full-world map rendering pipeline (terrain, objects, actors, fog areas, exploration clouds) with zoom/pan camera.
 
 ## Update Pipeline
 
@@ -84,6 +88,7 @@
 - `src/ui/gameView/overlays/*`: game overlay widgets.
 - `src/ui/gameView/GameScreenView.tsx`: in-game layer composition.
 - `src/ui/gameView/MenuScreenView.tsx`: menu/controls overlay composition.
+- `src/ui/gameView/overlays/MapOverlay.tsx`: interactive map window overlay, including desktop keyboard/mouse controls and touch drag/pinch support.
 - `src/ui/gameView/InventoryPanel.tsx`: desktop/equipment inventory visuals and conditional item cost badges (shown when item count reaches zero).
 - `src/ui/gameView/TouchLayer.tsx`: mobile controls including conditional trap/bomb cost badges (shown when item count reaches zero).
 

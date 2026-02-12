@@ -25,8 +25,7 @@ export function useRuntimeDraw({
   canvasRef,
 }: UseRuntimeDrawParams) {
   const draw = useCallback(
-    (ctx: CanvasRenderingContext2D, state: GameState) => {
-      const now = performance.now();
+    (ctx: CanvasRenderingContext2D, state: GameState, now: number) => {
       updateHudOcclusion({
         now,
         state,

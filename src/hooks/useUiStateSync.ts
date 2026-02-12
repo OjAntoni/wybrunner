@@ -3,6 +3,7 @@ import type { UIScreen, GameStatus } from "../game/model/types";
 
 type UseUiStateSyncParams = {
   screen: UIScreen;
+  mapOpen: boolean;
   confirmRestartOpen: boolean;
   paused: boolean;
   equipmentOpen: boolean;
@@ -10,6 +11,7 @@ type UseUiStateSyncParams = {
   touchEnabled: boolean;
   status: GameStatus;
   screenRef: MutableRefObject<UIScreen>;
+  mapOpenRef: MutableRefObject<boolean>;
   confirmRestartRef: MutableRefObject<boolean>;
   pausedRef: MutableRefObject<boolean>;
   equipmentOpenRef: MutableRefObject<boolean>;
@@ -20,6 +22,7 @@ type UseUiStateSyncParams = {
 
 export function useUiStateSync({
   screen,
+  mapOpen,
   confirmRestartOpen,
   paused,
   equipmentOpen,
@@ -27,6 +30,7 @@ export function useUiStateSync({
   touchEnabled,
   status,
   screenRef,
+  mapOpenRef,
   confirmRestartRef,
   pausedRef,
   equipmentOpenRef,
@@ -36,6 +40,7 @@ export function useUiStateSync({
 }: UseUiStateSyncParams) {
   useEffect(() => {
     screenRef.current = screen;
+    mapOpenRef.current = mapOpen;
     confirmRestartRef.current = confirmRestartOpen;
     pausedRef.current = paused;
     equipmentOpenRef.current = equipmentOpen;
@@ -48,6 +53,8 @@ export function useUiStateSync({
     controlsReturnToGameRef,
     equipmentOpen,
     equipmentOpenRef,
+    mapOpen,
+    mapOpenRef,
     paused,
     pausedRef,
     screen,
@@ -59,6 +66,7 @@ export function useUiStateSync({
   useEffect(() => {
     if (
       screen !== "game" ||
+      mapOpen ||
       paused ||
       confirmRestartOpen ||
       equipmentOpen ||
@@ -66,5 +74,5 @@ export function useUiStateSync({
     ) {
       resetTouchInput();
     }
-  }, [screen, paused, confirmRestartOpen, equipmentOpen, status, resetTouchInput]);
+  }, [screen, mapOpen, paused, confirmRestartOpen, equipmentOpen, status, resetTouchInput]);
 }

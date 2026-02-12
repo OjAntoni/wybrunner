@@ -16,6 +16,8 @@ export type KeyboardCallbacks = {
   placeSpike: () => void;
   placeBomb: () => void;
   openEquipment: () => void;
+  openMap: () => void;
+  closeMap: () => void;
 };
 
 export type KeyboardControlRefs = {
@@ -23,6 +25,8 @@ export type KeyboardControlRefs = {
   controlsReturnToGameRef: MutableRefObject<boolean>;
   confirmRestartRef: MutableRefObject<boolean>;
   pausedRef: MutableRefObject<boolean>;
+  touchEnabledRef: MutableRefObject<boolean>;
+  mapOpenRef: MutableRefObject<boolean>;
   equipmentOpenRef: MutableRefObject<boolean>;
   stateRef: MutableRefObject<GameState>;
   keysRef: MutableRefObject<Set<string>>;

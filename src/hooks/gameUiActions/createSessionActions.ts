@@ -20,6 +20,10 @@ export function createSessionActions(
 ): SessionActions {
   const openRestartConfirm = () => {
     params.keysRef.current.clear();
+    params.mapOpenRef.current = false;
+    params.mapReturnToPauseRef.current = false;
+    params.setMapOpen(false);
+    params.equipmentOpenRef.current = false;
     params.setEquipmentOpen(false);
     params.controlsReturnToGameRef.current = false;
     params.setControlsReturnToGame(false);
@@ -35,7 +39,7 @@ export function createSessionActions(
   };
 
   const restart = () => {
-    const next = initGame();
+    const next = initGame(params.gameNowRef.current);
     params.stateRef.current = next;
     params.setStatus("playing");
     params.setItemsLeft(ITEMS_TARGET);
@@ -46,8 +50,13 @@ export function createSessionActions(
     params.keysRef.current.clear();
     params.controlsReturnToGameRef.current = false;
     params.setControlsReturnToGame(false);
+    params.mapOpenRef.current = false;
+    params.mapReturnToPauseRef.current = false;
+    params.setMapOpen(false);
+    params.equipmentOpenRef.current = false;
     params.setEquipmentOpen(false);
     params.resetTouchInput();
+    params.pausedRef.current = false;
     params.setPaused(false);
   };
 
@@ -59,16 +68,23 @@ export function createSessionActions(
 
   const resumeFromPause = () => {
     params.keysRef.current.clear();
+    params.mapOpenRef.current = false;
+    params.mapReturnToPauseRef.current = false;
+    params.setMapOpen(false);
+    params.equipmentOpenRef.current = false;
     params.setEquipmentOpen(false);
+    params.pausedRef.current = false;
     params.setPaused(false);
   };
 
   const openEquipmentFromPause = () => {
+    params.equipmentOpenRef.current = true;
     params.setEquipmentOpen(true);
   };
 
   const resumeFromEquipment = () => {
     navigation.closeEquipment();
+    params.pausedRef.current = false;
     params.setPaused(false);
   };
 

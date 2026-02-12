@@ -4,7 +4,7 @@ import type { GameState, GameStatus } from "../../game/model/types";
 type UseGameLoopRefsParams = {
   status: GameStatus;
   updateState: (state: GameState, dt: number, now: number) => void;
-  draw: (ctx: CanvasRenderingContext2D, state: GameState) => void;
+  draw: (ctx: CanvasRenderingContext2D, state: GameState, now: number) => void;
 };
 
 export function useGameLoopRefs({ status, updateState, draw }: UseGameLoopRefsParams) {

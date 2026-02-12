@@ -13,6 +13,7 @@ type UseControllerRuntimeParams = {
 export function useControllerRuntime({ refs, state }: UseControllerRuntimeParams) {
   const {
     stateRef,
+    gameNowRef,
     keysRef,
     touchMoveRef,
     touchEnabledRef,
@@ -28,6 +29,7 @@ export function useControllerRuntime({ refs, state }: UseControllerRuntimeParams
 
   return useGameRuntime({
     stateRef,
+    gameNowRef,
     keysRef,
     touchMoveRef,
     touchEnabledRef,

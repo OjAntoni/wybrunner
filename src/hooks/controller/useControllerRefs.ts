@@ -6,6 +6,7 @@ export type ControllerRefs = {
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
   stateRef: MutableRefObject<GameState>;
   keysRef: MutableRefObject<Set<string>>;
+  gameNowRef: MutableRefObject<number>;
   dprRef: MutableRefObject<number>;
   canvasCssSizeRef: MutableRefObject<{ w: number; h: number }>;
   hudTopRef: MutableRefObject<HTMLDivElement | null>;
@@ -13,10 +14,12 @@ export type ControllerRefs = {
   fogSpritesRef: MutableRefObject<HTMLCanvasElement[] | null>;
   exploreCloudSpritesRef: MutableRefObject<HTMLCanvasElement[] | null>;
   screenRef: MutableRefObject<UIScreen>;
+  mapOpenRef: MutableRefObject<boolean>;
   confirmRestartRef: MutableRefObject<boolean>;
   pausedRef: MutableRefObject<boolean>;
   equipmentOpenRef: MutableRefObject<boolean>;
   controlsReturnToGameRef: MutableRefObject<boolean>;
+  mapReturnToPauseRef: MutableRefObject<boolean>;
   joystickRef: MutableRefObject<HTMLDivElement | null>;
   joystickKnobRef: MutableRefObject<HTMLDivElement | null>;
   touchEnabledRef: MutableRefObject<boolean>;
@@ -32,6 +35,7 @@ export function useControllerRefs(): ControllerRefs {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<GameState>(initGame());
   const keysRef = useRef<Set<string>>(new Set());
+  const gameNowRef = useRef(0);
   const dprRef = useRef(1);
   const canvasCssSizeRef = useRef({ w: 0, h: 0 });
   const hudTopRef = useRef<HTMLDivElement>(null);
@@ -39,10 +43,12 @@ export function useControllerRefs(): ControllerRefs {
   const fogSpritesRef = useRef<HTMLCanvasElement[] | null>(null);
   const exploreCloudSpritesRef = useRef<HTMLCanvasElement[] | null>(null);
   const screenRef = useRef<UIScreen>("menu");
+  const mapOpenRef = useRef(false);
   const confirmRestartRef = useRef(false);
   const pausedRef = useRef(false);
   const equipmentOpenRef = useRef(false);
   const controlsReturnToGameRef = useRef(false);
+  const mapReturnToPauseRef = useRef(false);
   const joystickRef = useRef<HTMLDivElement>(null);
   const joystickKnobRef = useRef<HTMLDivElement>(null);
   const touchEnabledRef = useRef(false);
@@ -57,6 +63,7 @@ export function useControllerRefs(): ControllerRefs {
     canvasRef,
     stateRef,
     keysRef,
+    gameNowRef,
     dprRef,
     canvasCssSizeRef,
     hudTopRef,
@@ -64,10 +71,12 @@ export function useControllerRefs(): ControllerRefs {
     fogSpritesRef,
     exploreCloudSpritesRef,
     screenRef,
+    mapOpenRef,
     confirmRestartRef,
     pausedRef,
     equipmentOpenRef,
     controlsReturnToGameRef,
+    mapReturnToPauseRef,
     joystickRef,
     joystickKnobRef,
     touchEnabledRef,

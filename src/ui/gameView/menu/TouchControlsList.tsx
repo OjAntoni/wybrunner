@@ -12,6 +12,9 @@ export function TouchControlsList() {
       <ControlsRow label="Equipment">
         Tap Gear in the top-right, or open it from the pause screen.
       </ControlsRow>
+      <ControlsRow label="Map">
+        Open Menu, then tap Map. Drag to pan, pinch or use +/- buttons to zoom.
+      </ControlsRow>
       <ControlsRow label="Restart">Open Menu, then tap Restart.</ControlsRow>
       <ControlsRow label="Arrows">Wall throwers fire every 3s down straight corridors.</ControlsRow>
     </>

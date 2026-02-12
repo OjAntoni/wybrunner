@@ -1,10 +1,11 @@
 import {
   EndOverlay,
   EquipmentOverlay,
+  MapOverlay,
   PauseOverlay,
   RestartConfirmOverlay,
 } from "./overlays";
-import type { GameViewActions, GameViewModel } from "./types";
+import type { GameViewActions, GameViewModel, GameViewRefs } from "./types";
 
 type GameOverlaysProps = {
   view: Pick<
@@ -13,18 +14,22 @@ type GameOverlaysProps = {
     | "loseReason"
     | "touchEnabled"
     | "paused"
+    | "mapOpen"
     | "confirmRestartOpen"
     | "equipmentOpen"
     | "spikesLeft"
     | "bombsLeft"
     | "itemsLeft"
     | "coinsCollected"
-  >;
+  > &
+    Pick<GameViewRefs, "stateRef" | "gameNowRef" | "fogSpritesRef" | "exploreCloudSpritesRef">;
   actions: Pick<
     GameViewActions,
     | "onGoToMainMenu"
     | "onResumeFromPause"
     | "onPauseOpenEquipment"
+    | "onOpenMap"
+    | "onCloseMap"
     | "onOpenControls"
     | "onOpenRestartConfirm"
     | "onCloseEquipment"
@@ -46,9 +51,16 @@ export function GameOverlays({ view, actions }: GameOverlaysProps) {
         actions={{
           onResumeFromPause: actions.onResumeFromPause,
           onPauseOpenEquipment: actions.onPauseOpenEquipment,
+          onOpenMap: actions.onOpenMap,
           onOpenControls: actions.onOpenControls,
           onOpenRestartConfirm: actions.onOpenRestartConfirm,
           onGoToMainMenu: actions.onGoToMainMenu,
+        }}
+      />
+      <MapOverlay
+        view={view}
+        actions={{
+          onCloseMap: actions.onCloseMap,
         }}
       />
       <EquipmentOverlay

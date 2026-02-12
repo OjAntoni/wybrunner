@@ -12,7 +12,7 @@ export function handleEndScreenKeyDown({ e, refs, callbacks, ctx }: KeyDownHandl
     return true;
   }
 
-  if (ctx.dirKey || ctx.lowerKey === "r") {
+  if (ctx.dirKey || ctx.lowerKey === "r" || ctx.lowerKey === "m") {
     e.preventDefault();
     return true;
   }

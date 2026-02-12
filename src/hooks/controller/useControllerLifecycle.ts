@@ -9,6 +9,7 @@ type UseControllerLifecycleParams = {
   state: Pick<
     ControllerStateModel,
     | "screen"
+    | "mapOpen"
     | "confirmRestartOpen"
     | "paused"
     | "equipmentOpen"
@@ -24,7 +25,11 @@ type UseControllerLifecycleParams = {
   resetTouchInput: () => void;
   runtime: {
     updateState: (state: ControllerRefs["stateRef"]["current"], dt: number, now: number) => void;
-    draw: (ctx: CanvasRenderingContext2D, state: ControllerRefs["stateRef"]["current"]) => void;
+    draw: (
+      ctx: CanvasRenderingContext2D,
+      state: ControllerRefs["stateRef"]["current"],
+      now: number
+    ) => void;
   };
 };
 
@@ -38,8 +43,10 @@ export function useControllerLifecycle({
     canvasRef,
     dprRef,
     canvasCssSizeRef,
+    gameNowRef,
     stateRef,
     screenRef,
+    mapOpenRef,
     confirmRestartRef,
     pausedRef,
     equipmentOpenRef,
@@ -48,6 +55,7 @@ export function useControllerLifecycle({
   } = refs;
   const {
     screen,
+    mapOpen,
     confirmRestartOpen,
     paused,
     equipmentOpen,
@@ -64,6 +72,7 @@ export function useControllerLifecycle({
 
   useUiStateSync({
     screen,
+    mapOpen,
     confirmRestartOpen,
     paused,
     equipmentOpen,
@@ -71,6 +80,7 @@ export function useControllerLifecycle({
     touchEnabled,
     status,
     screenRef,
+    mapOpenRef,
     confirmRestartRef,
     pausedRef,
     equipmentOpenRef,
@@ -85,6 +95,7 @@ export function useControllerLifecycle({
     canvasRef,
     dprRef,
     canvasCssSizeRef,
+    gameNowRef,
     stateRef,
     screenRef,
     confirmRestartRef,

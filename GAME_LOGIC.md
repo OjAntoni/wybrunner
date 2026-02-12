@@ -18,6 +18,7 @@ Code references:
 - App entry renders a controller-driven view model.
 - Controller composes runtime, interaction bindings, and lifecycle sync.
 - Frame loop updates state, then renders canvas every frame.
+- Runtime uses a simulation clock that only advances during active gameplay; pause/map/equipment/restart-confirm/menu states freeze game time.
 
 Code references:
 - `src/App.tsx`
@@ -184,6 +185,11 @@ Code references:
 
 - Keydown handling is split by UI/game state (menu, paused, equipment, restart confirm, playing).
 - Direction keys feed movement set; actions trigger spike/bomb/restart/equipment flows.
+- Desktop map controls:
+  - `M` opens/closes the map window while in-game.
+  - While map is open, gameplay actions are blocked and play stays paused.
+  - When zoomed in, map panning supports `W/A/S/D` (or arrow keys) and mouse dragging.
+  - Zoom supports mouse wheel and `+` / `-`.
 
 Code references:
 - `src/hooks/useKeyboardControls.ts`
@@ -196,6 +202,7 @@ Code references:
 - Joystick uses pointer capture + sampled vector with deadzone.
 - Touch action buttons invoke spike/bomb placement.
 - Touch-mode detector adjusts UI and gameplay tuning.
+- Map access is menu-driven (pause menu `Map` button), with drag/pinch zoom support and on-screen zoom buttons.
 
 Code references:
 - `src/hooks/useTouchJoystick.ts`
@@ -211,6 +218,13 @@ Code references:
 - HUD, overlays, touch layer, and menu content are split into dedicated UI modules.
 - Equipment costs are surfaced only when an item inventory is empty: desktop inventory shows spike/bomb coin cost on the first slot icon; mobile touch action buttons show the same costs.
 
+### Map Window
+
+- In-game map overlay renders the full world state: terrain, artifacts, hazards, enemies, fog areas, and exploration clouds.
+- Opening map pauses gameplay updates and freezes timed effects; closing map returns either to paused menu or directly to gameplay depending on entry path.
+- Desktop entry points: `M` key and pause menu `Map` button.
+- Touch entry point: pause menu `Map` button.
+
 Code references:
 - `src/ui/GameView.tsx`
 - `src/ui/gameView/GameScreenView.tsx`
@@ -218,8 +232,10 @@ Code references:
 - `src/ui/gameView/HudLayer.tsx`
 - `src/ui/gameView/TouchLayer.tsx`
 - `src/ui/gameView/GameOverlays.tsx`
+- `src/ui/gameView/overlays/MapOverlay.tsx`
 - `src/ui/gameView/menu/`
 - `src/ui/gameView/overlays/`
+- `src/game/render/mapWindowScene.ts`
 
 ## 14. Key Tunables
 

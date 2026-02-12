@@ -8,6 +8,7 @@ export function useGameLoop({
   canvasRef,
   dprRef,
   canvasCssSizeRef,
+  gameNowRef,
   stateRef,
   screenRef,
   confirmRestartRef,
@@ -40,14 +41,16 @@ export function useGameLoop({
     window.addEventListener("resize", applyResize);
 
     let lastTime = performance.now();
+    let gameNow = gameNowRef.current > 0 ? gameNowRef.current : lastTime;
+    gameNowRef.current = gameNow;
     let rafId = 0;
 
     const loop = (time: number) => {
       const dt = Math.min((time - lastTime) / 1000, 0.05);
       lastTime = time;
 
-      stepGameFrame({
-        time,
+      gameNow = stepGameFrame({
+        now: gameNow,
         dt,
         ctx,
         stateRef,
@@ -62,6 +65,7 @@ export function useGameLoop({
         setCoinsCollected,
         resizeCanvas: applyResize,
       });
+      gameNowRef.current = gameNow;
 
       rafId = requestAnimationFrame(loop);
     };
@@ -77,6 +81,7 @@ export function useGameLoop({
     confirmRestartRef,
     dprRef,
     drawRef,
+    gameNowRef,
     pausedRef,
     screenRef,
     setCoinsCollected,

@@ -8,6 +8,8 @@ export function useGameUiActions(params: UseGameUiActionsParams) {
 
   return {
     pauseGame: navigation.pauseGame,
+    openMap: navigation.openMap,
+    closeMap: navigation.closeMap,
     openEquipment: navigation.openEquipment,
     closeEquipment: navigation.closeEquipment,
     openControls: navigation.openControls,

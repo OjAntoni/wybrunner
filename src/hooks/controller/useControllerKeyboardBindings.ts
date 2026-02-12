@@ -12,6 +12,8 @@ type UiActionsForKeyboard = {
   pauseGame: () => void;
   openRestartConfirm: () => void;
   openEquipment: () => void;
+  openMap: () => void;
+  closeMap: () => void;
 };
 
 type UseControllerKeyboardBindingsParams = {
@@ -21,6 +23,8 @@ type UseControllerKeyboardBindingsParams = {
     | "controlsReturnToGameRef"
     | "confirmRestartRef"
     | "pausedRef"
+    | "touchEnabledRef"
+    | "mapOpenRef"
     | "equipmentOpenRef"
     | "stateRef"
     | "keysRef"
@@ -46,6 +50,8 @@ export function useControllerKeyboardBindings({
     controlsReturnToGameRef,
     confirmRestartRef,
     pausedRef,
+    touchEnabledRef,
+    mapOpenRef,
     equipmentOpenRef,
     stateRef,
     keysRef,
@@ -57,6 +63,8 @@ export function useControllerKeyboardBindings({
     controlsReturnToGameRef,
     confirmRestartRef,
     pausedRef,
+    touchEnabledRef,
+    mapOpenRef,
     equipmentOpenRef,
     stateRef,
     keysRef,
@@ -75,6 +83,8 @@ export function useControllerKeyboardBindings({
       placeSpike,
       placeBomb,
       openEquipment: uiActions.openEquipment,
+      openMap: uiActions.openMap,
+      closeMap: uiActions.closeMap,
     },
   });
 }
