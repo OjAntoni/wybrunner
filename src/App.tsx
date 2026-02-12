@@ -16,9 +16,15 @@ const PLAYER_SPEED = 4; // tiles per second
 const EXTRA_CONNECTION_RATIO = 0.2;
 const ENTITY_RADIUS = 0.3; // tiles
 const CAMERA_ZOOM = 2.2;
+const DESKTOP_CAMERA_ZOOM_MULT = 1.5;
 const TURN_ASSIST_TILES = 0.22; // how far we can "snap" into a corridor while turning
 const TOUCH_TURN_ASSIST_TILES = 0.46;
 const BOMB_RADIUS_TILES = 8;
+const EXPLORE_CLEAR_RADIUS_TILES = 2; // 5x5 around player tile
+const EXPLORE_CLOUD_FADE_MS = 420;
+const EXPLORE_CLOUD_BODY_RADIUS = 0.44; // sprite body radius factor for overlap/coverage checks
+const EXPLORE_CLOUD_OPACITY_MULT = 1.0;
+const EXPLORE_CLOUD_BUCKET_SIZE = TILE_SIZE * 10;
 const FOG_RADIUS_TILES = 4;
 const FOG_DURATION_MS = 8000;
 const FOG_AREA_MIN_DIST = 10; // tiles away from player
@@ -28,6 +34,7 @@ const FOG_AREA_DURATION_MAX_MS = 60000;
 const FOG_AREA_FADE_MS = 900;
 const CHASER_BOOST_MULT = 1.5;
 const CHASER_BOOST_MS = 3000;
+const CHASER_SPEED_MULT = 0.8; // 20% slower globally
 const HELPER_COUNT = 3;
 const HELPER_MIN_DIST = 10; // tiles from player at spawn
 const HELPER_MIN_PATH_LEN = 16; // tiles
@@ -69,6 +76,25 @@ type Helper = {
   target: Vec | null; // next tile center
   targetIndex: number | null;
   boostUntil: number;
+};
+
+type ExploreCloud = {
+  x: number; // world px center
+  y: number; // world px center
+  size: number; // px
+  half: number; // px
+  radius: number; // px (body radius for overlap checks)
+  alpha: number;
+  shade: 0 | 1 | 2;
+  fadeStart: number | null;
+  queryStamp: number;
+};
+
+type ExploreCloudBuckets = {
+  bucketSize: number;
+  cols: number;
+  rows: number;
+  buckets: number[][];
 };
 
 type FogCloud = {
@@ -119,6 +145,11 @@ type GameState = {
   traps: Set<string>;
   helpers: Helper[];
   helpersSpawned: boolean;
+  discoveredArtifacts: Set<string>;
+  exploreInitialized: boolean;
+  exploreClouds: ExploreCloud[];
+  exploreCloudBuckets: ExploreCloudBuckets;
+  exploreCloudQueryStamp: number;
   fogAreas: FogArea[];
   fogAreaInside: Map<number, number>;
   fogStart: number;
@@ -496,6 +527,135 @@ function countOpenNeighbors(grid: Cell[][], cell: Vec) {
   return count;
 }
 
+function buildExploreClouds(seed: number): ExploreCloud[] {
+  const rng = mulberry32(seed >>> 0);
+  const worldW = GRID_W * TILE_SIZE;
+  const worldH = GRID_H * TILE_SIZE;
+  const spacingX = TILE_SIZE * 2.35;
+  const spacingY = TILE_SIZE * 2.05;
+  const margin = TILE_SIZE * 3;
+  const clouds: ExploreCloud[] = [];
+  const covered = new Uint8Array(GRID_W * GRID_H);
+
+  const pickShade = (): 0 | 1 | 2 => {
+    const shadePick = rng();
+    return shadePick < 0.32 ? 0 : shadePick < 0.74 ? 1 : 2;
+  };
+
+  const markCovered = (cloud: ExploreCloud) => {
+    const radius = cloud.radius;
+    const rSq = radius * radius;
+    const minTileX = Math.max(
+      0,
+      Math.min(GRID_W - 1, Math.floor((cloud.x - radius) / TILE_SIZE))
+    );
+    const maxTileX = Math.max(
+      0,
+      Math.min(GRID_W - 1, Math.floor((cloud.x + radius) / TILE_SIZE))
+    );
+    const minTileY = Math.max(
+      0,
+      Math.min(GRID_H - 1, Math.floor((cloud.y - radius) / TILE_SIZE))
+    );
+    const maxTileY = Math.max(
+      0,
+      Math.min(GRID_H - 1, Math.floor((cloud.y + radius) / TILE_SIZE))
+    );
+
+    for (let ty = minTileY; ty <= maxTileY; ty += 1) {
+      const cy = ty * TILE_SIZE + TILE_SIZE * 0.5;
+      for (let tx = minTileX; tx <= maxTileX; tx += 1) {
+        const cx = tx * TILE_SIZE + TILE_SIZE * 0.5;
+        const dx = cx - cloud.x;
+        const dy = cy - cloud.y;
+        if (dx * dx + dy * dy <= rSq) covered[packCell(tx, ty)] = 1;
+      }
+    }
+  };
+
+  const addCloud = (x: number, y: number, size: number, alpha: number, shade: 0 | 1 | 2) => {
+    const half = size * 0.5;
+    const radius = size * EXPLORE_CLOUD_BODY_RADIUS;
+    const cloud: ExploreCloud = {
+      x,
+      y,
+      size,
+      half,
+      radius,
+      alpha,
+      shade,
+      fadeStart: null,
+      queryStamp: 0,
+    };
+    clouds.push(cloud);
+    markCovered(cloud);
+  };
+
+  let row = 0;
+  for (let y = -margin; y <= worldH + margin; y += spacingY) {
+    const rowOffset = row % 2 === 0 ? 0 : spacingX * 0.5;
+    row += 1;
+    for (let x = -margin; x <= worldW + margin; x += spacingX) {
+      // Keep layout fairly dense but still porous.
+      if (rng() < 0.01) continue;
+      const size = TILE_SIZE * (2.8 + rng() * 4.2);
+      const jitterX = (rng() * 2 - 1) * spacingX * 0.35;
+      const jitterY = (rng() * 2 - 1) * spacingY * 0.35;
+      addCloud(
+        x + rowOffset + jitterX,
+        y + jitterY,
+        size,
+        0.74 + rng() * 0.22,
+        pickShade()
+      );
+    }
+  }
+
+  // Guarantee full initial coverage: back-fill any uncovered tile centers.
+  for (let ty = 0; ty < GRID_H; ty += 1) {
+    for (let tx = 0; tx < GRID_W; tx += 1) {
+      if (covered[packCell(tx, ty)] === 1) continue;
+      const cx = tx * TILE_SIZE + TILE_SIZE * 0.5 + (rng() * 2 - 1) * TILE_SIZE * 0.28;
+      const cy = ty * TILE_SIZE + TILE_SIZE * 0.5 + (rng() * 2 - 1) * TILE_SIZE * 0.28;
+      const size = TILE_SIZE * (2.9 + rng() * 2.3);
+      addCloud(cx, cy, size, 0.78 + rng() * 0.18, pickShade());
+    }
+  }
+  return clouds;
+}
+
+function buildExploreCloudBuckets(clouds: ExploreCloud[]): ExploreCloudBuckets {
+  const bucketSize = EXPLORE_CLOUD_BUCKET_SIZE;
+  const worldW = GRID_W * TILE_SIZE;
+  const worldH = GRID_H * TILE_SIZE;
+  const cols = Math.max(1, Math.ceil(worldW / bucketSize));
+  const rows = Math.max(1, Math.ceil(worldH / bucketSize));
+  const buckets: number[][] = Array.from({ length: cols * rows }, () => []);
+
+  for (let i = 0; i < clouds.length; i += 1) {
+    const cloud = clouds[i];
+    const minWX = cloud.x - cloud.half;
+    const minWY = cloud.y - cloud.half;
+    const maxWX = cloud.x + cloud.half;
+    const maxWY = cloud.y + cloud.half;
+
+    if (maxWX < 0 || maxWY < 0 || minWX > worldW || minWY > worldH) continue;
+
+    const minBX = Math.max(0, Math.min(cols - 1, Math.floor(minWX / bucketSize)));
+    const maxBX = Math.max(0, Math.min(cols - 1, Math.floor(maxWX / bucketSize)));
+    const minBY = Math.max(0, Math.min(rows - 1, Math.floor(minWY / bucketSize)));
+    const maxBY = Math.max(0, Math.min(rows - 1, Math.floor(maxWY / bucketSize)));
+
+    for (let by = minBY; by <= maxBY; by += 1) {
+      for (let bx = minBX; bx <= maxBX; bx += 1) {
+        buckets[by * cols + bx].push(i);
+      }
+    }
+  }
+
+  return { bucketSize, cols, rows, buckets };
+}
+
 function initGame(): GameState {
   const grid = generateMaze();
   const taken = new Set<string>();
@@ -613,6 +773,11 @@ function initGame(): GameState {
     if (arrowThrowers.length >= throwerTarget) break;
   }
 
+  const exploreClouds = buildExploreClouds(
+    ((Date.now() & 0xffffffff) ^ Math.floor(Math.random() * 0xffffffff)) >>> 0
+  );
+  const exploreCloudBuckets = buildExploreCloudBuckets(exploreClouds);
+
   return {
     grid,
     player: cellCenter(playerCell),
@@ -632,6 +797,11 @@ function initGame(): GameState {
     traps: new Set<string>(),
     helpers: [],
     helpersSpawned: false,
+    discoveredArtifacts: new Set<string>(),
+    exploreInitialized: false,
+    exploreClouds,
+    exploreCloudBuckets,
+    exploreCloudQueryStamp: 0,
     fogAreas: [],
     fogAreaInside: new Map(),
     fogStart: 0,
@@ -658,6 +828,7 @@ export default function App() {
   const hudTopRef = useRef<HTMLDivElement | null>(null);
   const inventoryRef = useRef<HTMLElement | null>(null);
   const fogSpritesRef = useRef<HTMLCanvasElement[] | null>(null);
+  const exploreCloudSpritesRef = useRef<HTMLCanvasElement[] | null>(null);
   const screenRef = useRef<UIScreen>("menu");
   const confirmRestartRef = useRef(false);
   const pausedRef = useRef(false);
@@ -1698,12 +1869,19 @@ export default function App() {
     const prevKey = cellKey(prevPlayerCell.x, prevPlayerCell.y);
     const enteredNewCell = pKey !== prevKey;
     state.lastPlayerCell = { x: playerCell.x, y: playerCell.y };
+    if (!state.exploreInitialized) {
+      clearExploreClouds(state, playerCell, now, true);
+      state.exploreInitialized = true;
+      updateDiscoveredArtifacts(state);
+    }
     if (state.coins.has(pKey)) {
       state.coins.delete(pKey);
       state.coinsCollected += 1;
       setCoinsCollected(state.coinsCollected);
     }
     if (enteredNewCell) {
+      clearExploreClouds(state, playerCell, now);
+      updateDiscoveredArtifacts(state);
       // Underground traps are invisible until first stepped on; second entry kills.
       if (state.undergroundTrapsHidden.has(pKey)) {
         state.undergroundTrapsHidden.delete(pKey);
@@ -1820,6 +1998,7 @@ export default function App() {
       const chaserSpeed =
         PLAYER_SPEED *
         dt *
+        CHASER_SPEED_MULT *
         (touchEnabledRef.current ? TOUCH_CHASER_SPEED_MULT : 1) *
         (now < state.boostUntil ? CHASER_BOOST_MULT : 1);
       const atCenter = isAtCellCenter(state.monster);
@@ -1980,13 +2159,15 @@ export default function App() {
     const now = performance.now();
     maybeUpdateHudOpacity(now, state);
     const dpr = dprRef.current;
+    const cameraZoom =
+      CAMERA_ZOOM * (touchEnabledRef.current ? 1 : DESKTOP_CAMERA_ZOOM_MULT);
     const cssW = ctx.canvas.width / dpr;
     const cssH = ctx.canvas.height / dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
-    ctx.setTransform(dpr * CAMERA_ZOOM, 0, 0, dpr * CAMERA_ZOOM, 0, 0);
-    const viewW = cssW / CAMERA_ZOOM;
-    const viewH = cssH / CAMERA_ZOOM;
+    ctx.setTransform(dpr * cameraZoom, 0, 0, dpr * cameraZoom, 0, 0);
+    const viewW = cssW / cameraZoom;
+    const viewH = cssH / cameraZoom;
     ctx.fillStyle = "#0a0c12";
     ctx.fillRect(0, 0, viewW, viewH);
 
@@ -2119,41 +2300,8 @@ export default function App() {
         );
         ctx.fillStyle = `rgba(255,255,255,${0.08 + pulse * 0.14})`;
         ctx.fillRect(x * TILE_SIZE - camX + 4, y * TILE_SIZE - camY + 4, 2, 1);
-      } else {
-        drawArtifactIndicator(
-          ctx,
-          playerScreenX,
-          playerScreenY,
-          sx,
-          sy,
-          viewW,
-          viewH,
-          now
-        );
       }
     });
-
-    const monsterScreenX = state.monster.x * TILE_SIZE - camX;
-    const monsterScreenY = state.monster.y * TILE_SIZE - camY;
-    const monsterOnScreen =
-      monsterScreenX >= 0 &&
-      monsterScreenX <= viewW &&
-      monsterScreenY >= 0 &&
-      monsterScreenY <= viewH;
-    if (!monsterOnScreen) {
-      drawArtifactIndicator(
-        ctx,
-        playerScreenX,
-        playerScreenY,
-        monsterScreenX,
-        monsterScreenY,
-        viewW,
-        viewH,
-        now,
-        "rgba(255, 78, 78, 1)",
-        "rgba(255, 215, 215, 0.12)"
-      );
-    }
 
     state.boosters.forEach((key) => {
       const [x, y] = key.split(",").map(Number);
@@ -2249,10 +2397,7 @@ export default function App() {
       );
     });
 
-    // Fog areas: world-anchored clouds that occlude maze/items but keep actors visible.
-    drawFogAreas(ctx, now, state, camX, camY, viewW, viewH, playerCell);
-
-    // Flying arrows (draw after fog so they're readable).
+    // Flying arrows.
     if (state.arrows.length > 0) {
       ctx.save();
       ctx.fillStyle = "#a7adb8";
@@ -2279,6 +2424,10 @@ export default function App() {
       }
       ctx.restore();
     }
+
+    // Draw cloud layers after arrows so unexplored areas hide projectiles too.
+    drawFogAreas(ctx, now, state, camX, camY, viewW, viewH, playerCell);
+    drawExploreClouds(ctx, now, state, camX, camY, viewW, viewH);
 
     state.helpers.forEach((helper) => {
       const px = helper.pos.x * TILE_SIZE - camX - TILE_SIZE / 2;
@@ -2356,6 +2505,18 @@ export default function App() {
         viewH
       );
     }
+
+    drawGuidanceArrows(
+      ctx,
+      state,
+      now,
+      camX,
+      camY,
+      viewW,
+      viewH,
+      playerScreenX,
+      playerScreenY
+    );
   }
 
   function maybeUpdateHudOpacity(now: number, state: GameState) {
@@ -2372,18 +2533,20 @@ export default function App() {
     if (!cache.hudTop || !cache.inventory) return;
 
     const dpr = dprRef.current;
+    const cameraZoom =
+      CAMERA_ZOOM * (touchEnabledRef.current ? 1 : DESKTOP_CAMERA_ZOOM_MULT);
     const cssW = (canvasRef.current?.width ?? 0) / dpr;
     const cssH = (canvasRef.current?.height ?? 0) / dpr;
-    const viewW = cssW / CAMERA_ZOOM;
-    const viewH = cssH / CAMERA_ZOOM;
+    const viewW = cssW / cameraZoom;
+    const viewH = cssH / cameraZoom;
     const worldW = GRID_W * TILE_SIZE;
     const worldH = GRID_H * TILE_SIZE;
     const cam = getCamera(state.player, viewW, viewH, worldW, worldH);
 
     const playerViewX = state.player.x * TILE_SIZE - cam.x;
     const playerViewY = state.player.y * TILE_SIZE - cam.y;
-    const playerCssX = playerViewX * CAMERA_ZOOM;
-    const playerCssY = playerViewY * CAMERA_ZOOM;
+    const playerCssX = playerViewX * cameraZoom;
+    const playerCssY = playerViewY * cameraZoom;
 
     const pad = 10;
     const underHud =
@@ -2420,7 +2583,7 @@ export default function App() {
     const ux = dx / len;
     const uy = dy / len;
 
-    const margin = 18;
+    const margin = 8;
     const left = margin;
     const right = viewW - margin;
     const top = margin;
@@ -2438,7 +2601,7 @@ export default function App() {
     const py = fromY + uy * t;
 
     const pulse = 0.75 + 0.25 * Math.sin(now / 150 + (ux + uy) * 2);
-    const size = 7.5 + pulse * 3.5;
+    const size = 3.5 + pulse * 1.6;
     const angle = Math.atan2(uy, ux);
 
     ctx.save();
@@ -2463,6 +2626,226 @@ export default function App() {
     ctx.closePath();
     ctx.fill();
     ctx.restore();
+  }
+
+  function visitExploreCloudCandidates(
+    state: GameState,
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number,
+    visit: (cloud: ExploreCloud) => boolean | void
+  ) {
+    const index = state.exploreCloudBuckets;
+    if (index.cols <= 0 || index.rows <= 0) return false;
+
+    let nextStamp = state.exploreCloudQueryStamp + 1;
+    if (nextStamp >= 0x7fffffff) {
+      nextStamp = 1;
+      for (const cloud of state.exploreClouds) cloud.queryStamp = 0;
+    }
+    state.exploreCloudQueryStamp = nextStamp;
+
+    const minBX = Math.max(0, Math.min(index.cols - 1, Math.floor(minX / index.bucketSize)));
+    const maxBX = Math.max(0, Math.min(index.cols - 1, Math.floor(maxX / index.bucketSize)));
+    const minBY = Math.max(0, Math.min(index.rows - 1, Math.floor(minY / index.bucketSize)));
+    const maxBY = Math.max(0, Math.min(index.rows - 1, Math.floor(maxY / index.bucketSize)));
+
+    for (let by = minBY; by <= maxBY; by += 1) {
+      for (let bx = minBX; bx <= maxBX; bx += 1) {
+        const bucket = index.buckets[by * index.cols + bx];
+        for (let i = 0; i < bucket.length; i += 1) {
+          const cloud = state.exploreClouds[bucket[i]];
+          if (cloud.queryStamp === nextStamp) continue;
+          cloud.queryStamp = nextStamp;
+          if (visit(cloud)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function isCellCoveredByExploreClouds(state: GameState, x: number, y: number) {
+    const cx = x * TILE_SIZE + TILE_SIZE * 0.5;
+    const cy = y * TILE_SIZE + TILE_SIZE * 0.5;
+    return visitExploreCloudCandidates(state, cx, cy, cx, cy, (cloud) => {
+      // Discovery should start as soon as clouds begin clearing.
+      if (cloud.fadeStart !== null) return false;
+      const dx = cx - cloud.x;
+      const dy = cy - cloud.y;
+      return dx * dx + dy * dy <= cloud.radius * cloud.radius;
+    });
+  }
+
+  function updateDiscoveredArtifacts(state: GameState) {
+    if (state.items.size === 0) return;
+    state.items.forEach((key) => {
+      if (state.discoveredArtifacts.has(key)) return;
+      const [x, y] = key.split(",").map(Number);
+      if (!isCellCoveredByExploreClouds(state, x, y)) {
+        state.discoveredArtifacts.add(key);
+      }
+    });
+  }
+
+  function drawGuidanceArrows(
+    ctx: CanvasRenderingContext2D,
+    state: GameState,
+    now: number,
+    camX: number,
+    camY: number,
+    viewW: number,
+    viewH: number,
+    playerScreenX: number,
+    playerScreenY: number
+  ) {
+    state.items.forEach((key) => {
+      if (!state.discoveredArtifacts.has(key)) return;
+      const [x, y] = key.split(",").map(Number);
+      const sx = x * TILE_SIZE + TILE_SIZE / 2 - camX;
+      const sy = y * TILE_SIZE + TILE_SIZE / 2 - camY;
+      const onScreen = sx >= 0 && sx <= viewW && sy >= 0 && sy <= viewH;
+      if (onScreen) return;
+      drawArtifactIndicator(
+        ctx,
+        playerScreenX,
+        playerScreenY,
+        sx,
+        sy,
+        viewW,
+        viewH,
+        now
+      );
+    });
+
+    const monsterScreenX = state.monster.x * TILE_SIZE - camX;
+    const monsterScreenY = state.monster.y * TILE_SIZE - camY;
+    const monsterOnScreen =
+      monsterScreenX >= 0 &&
+      monsterScreenX <= viewW &&
+      monsterScreenY >= 0 &&
+      monsterScreenY <= viewH;
+    if (monsterOnScreen) return;
+    drawArtifactIndicator(
+      ctx,
+      playerScreenX,
+      playerScreenY,
+      monsterScreenX,
+      monsterScreenY,
+      viewW,
+      viewH,
+      now,
+      "rgba(255, 78, 78, 1)",
+      "rgba(255, 215, 215, 0.12)"
+    );
+  }
+
+  function clearExploreClouds(
+    state: GameState,
+    playerCell: Vec,
+    now: number,
+    instant: boolean = false
+  ) {
+    if (state.exploreClouds.length === 0) return;
+    const minX = (playerCell.x - EXPLORE_CLEAR_RADIUS_TILES) * TILE_SIZE;
+    const minY = (playerCell.y - EXPLORE_CLEAR_RADIUS_TILES) * TILE_SIZE;
+    const maxX = (playerCell.x + EXPLORE_CLEAR_RADIUS_TILES + 1) * TILE_SIZE;
+    const maxY = (playerCell.y + EXPLORE_CLEAR_RADIUS_TILES + 1) * TILE_SIZE;
+
+    visitExploreCloudCandidates(state, minX, minY, maxX, maxY, (cloud) => {
+      if (cloud.fadeStart !== null) return;
+      const closestX = clamp(cloud.x, minX, maxX);
+      const closestY = clamp(cloud.y, minY, maxY);
+      const dx = cloud.x - closestX;
+      const dy = cloud.y - closestY;
+      // "Any overlap clears": if the clear rect touches any part of this cloud body, fade it out.
+      if (dx * dx + dy * dy > cloud.radius * cloud.radius) return;
+      cloud.fadeStart = instant ? now - EXPLORE_CLOUD_FADE_MS : now;
+    });
+  }
+
+  function drawExploreClouds(
+    ctx: CanvasRenderingContext2D,
+    nowMs: number,
+    state: GameState,
+    camX: number,
+    camY: number,
+    viewW: number,
+    viewH: number
+  ) {
+    if (state.exploreClouds.length === 0) return;
+    ensureExploreCloudSprites();
+    const sprites = exploreCloudSpritesRef.current;
+    if (!sprites || sprites.length === 0) return;
+
+    ctx.save();
+    const viewMinX = camX;
+    const viewMinY = camY;
+    const viewMaxX = camX + viewW;
+    const viewMaxY = camY + viewH;
+    visitExploreCloudCandidates(state, viewMinX, viewMinY, viewMaxX, viewMaxY, (cloud) => {
+      const fadeT =
+        cloud.fadeStart === null
+          ? 0
+          : clamp01((nowMs - cloud.fadeStart) / EXPLORE_CLOUD_FADE_MS);
+      const fadeMul = 1 - fadeT;
+      if (fadeMul <= 0) return;
+
+      const half = cloud.half;
+      const x = cloud.x - camX;
+      const y = cloud.y - camY;
+      if (x + half < 0 || y + half < 0 || x - half > viewW || y - half > viewH) return;
+
+      ctx.globalAlpha = clamp01(cloud.alpha * fadeMul * EXPLORE_CLOUD_OPACITY_MULT);
+      const sprite = sprites[cloud.shade] ?? sprites[0];
+      ctx.drawImage(sprite, x - half, y - half, cloud.size, cloud.size);
+    });
+    ctx.restore();
+  }
+
+  function ensureExploreCloudSprites() {
+    if (exploreCloudSpritesRef.current) return;
+    const makeSprite = (seed: number, base: RGB, hi: RGB, lo: RGB) => {
+      const c = document.createElement("canvas");
+      const size = 112;
+      c.width = size;
+      c.height = size;
+      const g = c.getContext("2d");
+      if (!g) return c;
+      g.imageSmoothingEnabled = false;
+      const cx = size / 2;
+      const cy = size / 2;
+      const rng = mulberry32(seed);
+      const s = 66 + rng() * 10;
+
+      drawCloudBlob(g, cx, cy, s, 1, base);
+      drawCloudBlob(g, cx + 7, cy - 2, s * 0.8, 0.88, hi);
+      drawCloudBlob(g, cx - 7, cy + 5, s * 0.88, 0.74, lo);
+      return c;
+    };
+
+    const sprites = [
+      makeSprite(
+        5011,
+        { r: 244, g: 246, b: 250 },
+        { r: 255, g: 255, b: 255 },
+        { r: 215, g: 219, b: 226 }
+      ),
+      makeSprite(
+        7331,
+        { r: 224, g: 228, b: 236 },
+        { r: 244, g: 247, b: 252 },
+        { r: 192, g: 198, b: 208 }
+      ),
+      makeSprite(
+        9901,
+        { r: 202, g: 208, b: 218 },
+        { r: 227, g: 233, b: 241 },
+        { r: 170, g: 176, b: 186 }
+      ),
+    ];
+
+    exploreCloudSpritesRef.current = sprites;
   }
 
   function drawFogAreas(
