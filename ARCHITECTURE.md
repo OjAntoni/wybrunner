@@ -73,7 +73,7 @@
 - `src/game/systems/update/items.ts`
 - `src/game/systems/update/timers.ts`
 - `src/game/systems/update/monster.ts` (dynamic `monsters[]` chase update and spawn helper for hunter-placed chasers)
-- `src/game/systems/update/hunter.ts` (multi-hunter patrol/chase update + last-seen nervous scan + occasional 180-degree back-check behavior + timed chaser placement after failed chase)
+- `src/game/systems/update/hunter.ts` (multi-hunter patrol/chase update with patrol momentum/open-space steering + last-seen nervous scan + occasional 180-degree back-check behavior + timed chaser placement after failed chase)
 - `src/game/systems/outcome.ts`: lose-state transition.
 - `src/game/systems/artifactSpawns.ts`: booster/trap artifact effects.
 - `src/game/systems/fogAreaSpawns.ts`: fog-area artifact generation.

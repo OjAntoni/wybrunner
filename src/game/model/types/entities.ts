@@ -52,6 +52,7 @@ export type Hunter = {
   backCheckState: HunterBackCheckState;
   backCheckForwardDir: Vec | null;
   backCheckHoldUntilMs: number;
+  patrolStepsUntilTurn: number;
   stunUntil: number;
   turnFromAngle: number;
   turnToAngle: number;

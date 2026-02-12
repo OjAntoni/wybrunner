@@ -105,6 +105,7 @@ Code references:
 
 - Hunters are spawned during map generation as additional enemies (at least 10, up to 15).
 - Patrol mode: slow random roaming with no predefined path.
+- Patrol movement uses short straight-run momentum (`2-6` tiles before re-evaluating turns) and prefers directions with more open forward space, reducing tiny-area loops in wide open zones.
 - Movement model:
   - Hunters can move in 8 directions.
   - Diagonal movement is allowed only when there is enough corner space (no wall clipping through blocked corners).

@@ -2,12 +2,17 @@ import { generateMaze } from "../world/maze";
 import { buildExploreCloudBuckets, buildExploreClouds } from "../world/exploreClouds";
 import { cellCenter } from "../utils/grid";
 import type { GameState, Hunter } from "./types";
+import { HUNTER_PATROL_MAX_STRAIGHT_STEPS, HUNTER_PATROL_MIN_STRAIGHT_STEPS } from "../config/constants";
 import { buildInitialPlacements } from "./initGamePlacements";
 import { CARDINAL_DIRS } from "../world/pathingDirections";
 import { directionToAngle } from "../world/hunterFacing";
 
 function createRngSeed() {
   return ((Date.now() & 0xffffffff) ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
+}
+
+function randomIntInRange(min: number, max: number) {
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 export function initGame(now: number = performance.now()): GameState {
@@ -36,6 +41,10 @@ export function initGame(now: number = performance.now()): GameState {
       backCheckState: "none",
       backCheckForwardDir: null,
       backCheckHoldUntilMs: 0,
+      patrolStepsUntilTurn: randomIntInRange(
+        HUNTER_PATROL_MIN_STRAIGHT_STEPS,
+        HUNTER_PATROL_MAX_STRAIGHT_STEPS
+      ),
       stunUntil: 0,
       turnFromAngle: angle,
       turnToAngle: angle,

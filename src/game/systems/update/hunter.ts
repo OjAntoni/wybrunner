@@ -9,6 +9,8 @@ import {
   HUNTER_CHASE_SPEED_MULT,
   HUNTER_NERVOUS_SCAN_HOLD_MS,
   HUNTER_NERVOUS_SCAN_TURN_MS,
+  HUNTER_PATROL_MAX_STRAIGHT_STEPS,
+  HUNTER_PATROL_MIN_STRAIGHT_STEPS,
   HUNTER_ROTATE_ANIM_MS,
   HUNTER_VISION_ANGLE_DEG,
   HUNTER_VISION_RADIUS_TILES,
@@ -27,6 +29,10 @@ import { loseGame } from "../outcome";
 
 function randomInt(maxExclusive: number) {
   return Math.floor(Math.random() * maxExclusive);
+}
+
+function randomIntInRange(min: number, max: number) {
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 function isSameDirection(a: Vec, b: Vec) {
@@ -107,6 +113,31 @@ function countOpenTilesInDirection(grid: GameState["grid"], fromCell: Vec, direc
   return count;
 }
 
+function countOpenMovesInDirection(
+  grid: GameState["grid"],
+  fromCell: Vec,
+  direction: Vec,
+  maxSteps: number = 16
+) {
+  let count = 0;
+  let current = fromCell;
+  while (count < maxSteps && canMoveHunterDirection(grid, current, direction)) {
+    current = {
+      x: current.x + direction.x,
+      y: current.y + direction.y,
+    };
+    count += 1;
+  }
+  return count;
+}
+
+function resetPatrolStepsUntilTurn(hunter: Hunter) {
+  hunter.patrolStepsUntilTurn = randomIntInRange(
+    HUNTER_PATROL_MIN_STRAIGHT_STEPS,
+    HUNTER_PATROL_MAX_STRAIGHT_STEPS
+  );
+}
+
 function clearBackCheckState(hunter: Hunter) {
   hunter.backCheckState = "none";
   hunter.backCheckForwardDir = null;
@@ -132,6 +163,7 @@ function startNervousScan(hunter: Hunter, now: number) {
   hunter.nervousScanIndex = hunter.nervousScanStep === 1 ? 0 : NERVOUS_SCAN_DIRS.length - 1;
   hunter.nervousScanNextStepMs = now;
   hunter.target = null;
+  hunter.patrolStepsUntilTurn = 0;
 }
 
 function maybeStartChaserPlacement(state: GameState, hunter: Hunter, now: number) {
@@ -147,6 +179,7 @@ function maybeStartChaserPlacement(state: GameState, hunter: Hunter, now: number
   hunter.mode = "patrol";
   hunter.lastSeenPlayer = null;
   hunter.target = null;
+  hunter.patrolStepsUntilTurn = 0;
   hunter.chaserPlaceStartMs = now;
   hunter.chaserPlaceEndMs = now + HUNTER_CHASER_PLACE_DURATION_MS;
 }
@@ -165,12 +198,14 @@ function updateNervousScan(hunter: Hunter, now: number) {
     clearNervousScanState(hunter);
     hunter.mode = "patrol";
     hunter.lastSeenPlayer = null;
+    resetPatrolStepsUntilTurn(hunter);
     return false;
   }
   if (hunter.nervousScanIndex < 0) {
     clearNervousScanState(hunter);
     hunter.mode = "patrol";
     hunter.lastSeenPlayer = null;
+    resetPatrolStepsUntilTurn(hunter);
     return false;
   }
 
@@ -225,21 +260,55 @@ function updateBackCheckState(hunter: Hunter, now: number) {
   }
 }
 
-function choosePatrolDirection(grid: GameState["grid"], hunterCell: Vec, currentDir: Vec) {
+function choosePatrolDirection(hunter: Hunter, grid: GameState["grid"], hunterCell: Vec) {
   const openNeighbors = gatherOpenNeighborDirs(grid, hunterCell);
   if (openNeighbors.length === 0) return { x: 0, y: 0 };
-  if (openNeighbors.length === 1) return openNeighbors[0];
+  if (openNeighbors.length === 1) {
+    hunter.patrolStepsUntilTurn = 0;
+    return openNeighbors[0];
+  }
 
-  const nonReverse = openNeighbors.filter((direction) => !isOpposite(direction, currentDir));
+  const nonReverse = openNeighbors.filter((direction) => !isOpposite(direction, hunter.dir));
   const candidatePool = nonReverse.length > 0 ? nonReverse : openNeighbors;
-  return candidatePool[randomInt(candidatePool.length)];
+
+  const canContinue =
+    (hunter.dir.x !== 0 || hunter.dir.y !== 0) &&
+    candidatePool.some((direction) => isSameDirection(direction, hunter.dir));
+  if (canContinue && hunter.patrolStepsUntilTurn > 0) {
+    hunter.patrolStepsUntilTurn -= 1;
+    return hunter.dir;
+  }
+
+  let bestScore = Number.NEGATIVE_INFINITY;
+  const bestDirs: Vec[] = [];
+  for (const direction of candidatePool) {
+    const straightOpen = countOpenMovesInDirection(grid, hunterCell, direction);
+    const sameDirBonus = isSameDirection(direction, hunter.dir) ? 0.5 : 0;
+    const score = straightOpen + sameDirBonus;
+    if (score > bestScore) {
+      bestScore = score;
+      bestDirs.length = 0;
+      bestDirs.push(direction);
+      continue;
+    }
+    if (score === bestScore) {
+      bestDirs.push(direction);
+    }
+  }
+
+  const nextDir = bestDirs[randomInt(bestDirs.length)];
+  resetPatrolStepsUntilTurn(hunter);
+  if (isSameDirection(nextDir, hunter.dir) && hunter.patrolStepsUntilTurn > 0) {
+    hunter.patrolStepsUntilTurn -= 1;
+  }
+  return nextDir;
 }
 
 function chooseChaseDirection(
   grid: GameState["grid"],
   hunterCell: Vec,
   chaseTarget: Vec,
-  currentDir: Vec
+  _currentDir: Vec
 ) {
   let desired = bfsNextStepHunter(grid, hunterCell, chaseTarget);
   if (desired.x === 0 && desired.y === 0) {
@@ -253,12 +322,6 @@ function chooseChaseDirection(
   const reachesTargetInOneStep =
     desiredCell.x === chaseTarget.x && desiredCell.y === chaseTarget.y;
   if (reachesTargetInOneStep) return desired;
-
-  const neighborCount = gatherOpenNeighborDirs(grid, hunterCell).length;
-  const canReverse = neighborCount <= 1;
-  if (isOpposite(desired, currentDir) && !canReverse) {
-    return bestHunterNeighborStepAvoid(grid, hunterCell, chaseTarget, desired);
-  }
   return desired;
 }
 
@@ -266,28 +329,6 @@ function bestHunterNeighborStep(grid: GameState["grid"], start: Vec, target: Vec
   let best: Vec = { x: 0, y: 0 };
   let bestDist = Number.POSITIVE_INFINITY;
   for (const direction of HUNTER_MOVE_DIRS) {
-    if (!canMoveHunterDirection(grid, start, direction)) continue;
-    const nx = start.x + direction.x;
-    const ny = start.y + direction.y;
-    const dist = distance({ x: nx, y: ny }, target);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = direction;
-    }
-  }
-  return best;
-}
-
-function bestHunterNeighborStepAvoid(
-  grid: GameState["grid"],
-  start: Vec,
-  target: Vec,
-  avoid: Vec
-): Vec {
-  let best: Vec = avoid;
-  let bestDist = Number.POSITIVE_INFINITY;
-  for (const direction of HUNTER_MOVE_DIRS) {
-    if (direction.x === avoid.x && direction.y === avoid.y) continue;
     if (!canMoveHunterDirection(grid, start, direction)) continue;
     const nx = start.x + direction.x;
     const ny = start.y + direction.y;
@@ -362,6 +403,7 @@ function updateHunterPursuitState(hunter: Hunter, player: Vec, seesPlayer: boole
     hunter.mode = "chase";
     hunter.lastSeenPlayer = { ...player };
     clearNervousScanState(hunter);
+    hunter.patrolStepsUntilTurn = 0;
     return;
   }
 
@@ -369,6 +411,7 @@ function updateHunterPursuitState(hunter: Hunter, player: Vec, seesPlayer: boole
   if (!hunter.lastSeenPlayer) {
     hunter.mode = "patrol";
     clearNervousScanState(hunter);
+    resetPatrolStepsUntilTurn(hunter);
   }
 }
 
@@ -473,7 +516,7 @@ function updateSingleHunter(
     }
 
     if (hunter.mode === "patrol" && hunter.backCheckState === "none" && !hunter.target) {
-      const patrolDir = choosePatrolDirection(state.grid, hunterCell, hunter.dir);
+      const patrolDir = choosePatrolDirection(hunter, state.grid, hunterCell);
       setNextHunterTarget(hunter, state.grid, hunterCell, patrolDir, now);
     }
   }
