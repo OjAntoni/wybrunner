@@ -108,9 +108,15 @@ Code references:
   - each generated path has total loop length at least `60` tiles.
   - path centers are distributed by map sectors (with jitter), so ghost paths are spread more evenly across the map.
   - at least one ghost path per night is smoothly deformed to pass through the player's current position at spawn time (no hard corner snap).
+  - if ghost sees player, it remembers that position, switches to relay behavior, and flies at `2x` ghost speed to the closest hunter in default (`patrol`) state.
+  - when ghost meets that hunter, hunter is forced into chase toward remembered player position and ghost escorts the hunter (matching hunter movement speed/position).
+  - if hunter reaches that destination and still cannot see player, hunter returns to default (`patrol`) state and ghost returns to its cyclic path using normal ghost movement (no snap teleport).
   - ignores wall collision/pathing (air movement above the maze).
 - Ghost visibility:
   - rendered as a slightly transparent white flying mob.
+  - while ghost is actively relaying (`to_hunter`, `with_hunter`), it uses an angry face.
+  - active relay ghost body is slightly red-tinted.
+  - while ghost is returning to path (`return_to_path`), it uses a sad face with no red tint.
   - body visibility is animation-driven (smooth fade in/out).
   - each ghost predefined path is rendered as a tiny dotted white closed line.
   - ghost path lines are drawn above the night darkness layer, so they stay visible even outside revealed vision.
@@ -146,6 +152,10 @@ Code references:
   - If hunter reaches last seen position without reacquiring vision, it nervously scans all directions in place.
   - Nervous scan direction is randomized per scan (clockwise or counterclockwise).
   - If player is still not seen after that scan, hunter returns to patrol mode.
+- Ghost relay chase override:
+  - If a ghost recruits a patrol hunter, that hunter receives a ghost-command chase target (remembered player position from the ghost).
+  - While ghost command is active, ghost physically escorts the hunter and turret/chaser placement is suppressed.
+  - On reaching ghost-command destination without reacquiring vision, hunter immediately returns to patrol and releases ghost back to path mode.
 - After an unsuccessful nervous scan, hunter can start chaser placement at its current tile:
     - placement duration is `5s`.
     - chance is `50%` when no chaser exists, `25%` when at least one chaser already exists.
@@ -300,10 +310,11 @@ Code references:
 - During full night, the map is dark except for shared night vision:
   - directional cone vision with radius `10` tiles and hunter-like cone angle.
   - guaranteed near-circle visibility with radius `3` tiles around the player.
-  - every ghost contributes additional circular visibility (`5` tile radius) around its position.
+  - every ghost contributes additional circular visibility (`4` tile radius) around its position.
   - ghost visibility circles are intentionally dimmer than player vision (partial darkness erase).
+  - when ghost is escorting a hunter (`with_hunter` relay state), its vision circle becomes `3x` less dark (triple erase strength) relative to normal ghost vision.
   - ghost visibility circles follow ghost fade alpha during appear/disappear animation.
-  - each ghost visibility circle has a thin transparent white perimeter ring.
+  - each ghost visibility circle has a thin perimeter ring; actively relaying ghosts (`to_hunter`, `with_hunter`) use a slightly red ring.
   - player-visible area preserves original scene colors (no monochrome/dim tint grading).
   - darkness is erased on a dedicated darkness overlay (`destination-out`) with three vision shapes: player near circle, player cone, and ghost circles.
   - overlapping vision areas remain visible as a union (no overlap darkening).

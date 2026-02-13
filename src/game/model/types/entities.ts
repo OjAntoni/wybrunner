@@ -43,11 +43,16 @@ export type ChaserMonster = MonsterBase & {
 
 export type GhostMonster = MonsterBase & {
   kind: "ghost";
+  id: number;
   path: Vec[];
   pathIndex: number;
   pathProgress: number;
   spawnMs: number;
   despawnStartMs: number | null;
+  behavior: "path" | "to_hunter" | "with_hunter" | "return_to_path";
+  rememberedPlayerPos: Vec | null;
+  assignedHunterId: number | null;
+  returnPathIndex: number | null;
 };
 
 export type Monster = ChaserMonster | GhostMonster;
@@ -56,6 +61,7 @@ export type HunterMode = "patrol" | "chase";
 export type HunterBackCheckState = "none" | "looking_back" | "returning";
 
 export type Hunter = {
+  id: number;
   pos: Vec;
   dir: Vec;
   target: Vec | null;
@@ -79,6 +85,8 @@ export type Hunter = {
   turretPlaceStartMs: number;
   turretPlaceEndMs: number;
   patrolRecentCells: string[];
+  ghostCommandTarget: Vec | null;
+  ghostCommandGhostId: number | null;
 };
 
 export type TurretMode = "sweep" | "track" | "cooldown";

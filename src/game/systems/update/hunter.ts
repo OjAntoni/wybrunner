@@ -28,9 +28,11 @@ import { directionFromAngle, getHunterFacingAngle, startHunterTurnAnimation } fr
 import { CARDINAL_DIRS } from "../../world/pathingDirections";
 import { isTargetVisibleInVisionCone } from "../../world/hunterVision";
 import { isAtCellCenter, isOpposite } from "../movement";
-import { createMonsterAt } from "./monster";
+import { createMonsterAt, returnGhostToPath } from "./monster";
 import { createTurretAt } from "./turret";
 import { loseGame } from "../outcome";
+
+type GhostMonster = Extract<GameState["monsters"][number], { kind: "ghost" }>;
 
 function randomInt(maxExclusive: number) {
   return Math.floor(Math.random() * maxExclusive);
@@ -251,6 +253,49 @@ function clearTurretPlacementState(hunter: Hunter) {
   hunter.turretPlaceEndMs = 0;
 }
 
+function clearGhostCommandState(hunter: Hunter) {
+  hunter.ghostCommandTarget = null;
+  hunter.ghostCommandGhostId = null;
+}
+
+function findGhostById(state: GameState, ghostId: number | null): GhostMonster | null {
+  if (ghostId === null) return null;
+  for (const monster of state.monsters) {
+    if (monster.kind !== "ghost") continue;
+    if (monster.id === ghostId) return monster;
+  }
+  return null;
+}
+
+function releaseGhostPartnerToPath(state: GameState, hunter: Hunter) {
+  const ghost = findGhostById(state, hunter.ghostCommandGhostId);
+  if (ghost) {
+    returnGhostToPath(ghost);
+  }
+  clearGhostCommandState(hunter);
+}
+
+function syncGhostPartnerPosition(state: GameState, hunter: Hunter) {
+  const ghost = findGhostById(state, hunter.ghostCommandGhostId);
+  if (!ghost) {
+    clearGhostCommandState(hunter);
+    return;
+  }
+  if (ghost.behavior !== "with_hunter") return;
+  ghost.pos = { ...hunter.pos };
+  ghost.dir = { ...hunter.dir };
+  ghost.target = null;
+}
+
+function ensureHunterRecentersIfTargetMissing(hunter: Hunter) {
+  if (hunter.target) return;
+  if (isAtCellCenter(hunter.pos)) return;
+  hunter.target = {
+    x: Math.floor(hunter.pos.x) + 0.5,
+    y: Math.floor(hunter.pos.y) + 0.5,
+  };
+}
+
 function startNervousScan(hunter: Hunter, now: number) {
   if (hunter.nervousScanActive) return;
   hunter.nervousScanActive = true;
@@ -262,6 +307,7 @@ function startNervousScan(hunter: Hunter, now: number) {
 }
 
 function maybeStartChaserPlacement(state: GameState, hunter: Hunter, now: number) {
+  if (hunter.ghostCommandTarget !== null) return;
   if (hunter.chaserPlaceEndMs > now) return;
   if (hunter.turretPlaceEndMs > now) return;
   const hasChaser = state.monsters.some((monster) => monster.kind === "chaser");
@@ -282,6 +328,7 @@ function maybeStartChaserPlacement(state: GameState, hunter: Hunter, now: number
 }
 
 function maybeStartTurretPlacement(state: GameState, hunter: Hunter, now: number) {
+  if (hunter.ghostCommandTarget !== null) return;
   if (hunter.chaserPlaceEndMs > now || hunter.turretPlaceEndMs > now) return;
   if (state.turrets.length >= TURRET_MAX_COUNT) return;
   if (Math.random() >= HUNTER_TURRET_PLACE_CHANCE_PER_STEP) return;
@@ -568,6 +615,9 @@ function updateHunterPursuitState(hunter: Hunter, player: Vec, seesPlayer: boole
   if (seesPlayer) {
     hunter.mode = "chase";
     hunter.lastSeenPlayer = { ...player };
+    if (hunter.ghostCommandTarget) {
+      hunter.ghostCommandTarget = { ...player };
+    }
     clearNervousScanState(hunter);
     hunter.patrolStepsUntilTurn = 0;
     return;
@@ -576,6 +626,7 @@ function updateHunterPursuitState(hunter: Hunter, player: Vec, seesPlayer: boole
   if (hunter.mode !== "chase") return;
   if (!hunter.lastSeenPlayer) {
     hunter.mode = "patrol";
+    clearGhostCommandState(hunter);
     clearNervousScanState(hunter);
     resetPatrolStepsUntilTurn(hunter);
   }
@@ -599,7 +650,19 @@ function updateSingleHunter(
   }
   completeChaserPlacement(state, hunter, now);
   completeTurretPlacement(state, hunter, now);
+  if (hunter.ghostCommandGhostId !== null && !findGhostById(state, hunter.ghostCommandGhostId)) {
+    clearGhostCommandState(hunter);
+    if (hunter.mode === "chase") {
+      hunter.mode = "patrol";
+      hunter.lastSeenPlayer = null;
+      hunter.target = null;
+      clearBackCheckState(hunter);
+      clearNervousScanState(hunter);
+      resetPatrolStepsUntilTurn(hunter);
+    }
+  }
   if (hunter.chaserPlaceEndMs > now || hunter.turretPlaceEndMs > now) {
+    syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
       loseGame(state, "caught", onLoseReason);
       return false;
@@ -607,6 +670,7 @@ function updateSingleHunter(
     return true;
   }
   if (now < hunter.stunUntil) {
+    syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
       loseGame(state, "caught", onLoseReason);
       return false;
@@ -632,6 +696,7 @@ function updateSingleHunter(
   if (hunter.nervousScanActive) {
     updateNervousScan(hunter, now);
     if (hunter.nervousScanActive) {
+      syncGhostPartnerPosition(state, hunter);
       if (distance(state.player, hunter.pos) < 0.45) {
         loseGame(state, "caught", onLoseReason);
         return false;
@@ -640,6 +705,7 @@ function updateSingleHunter(
     }
     maybeStartChaserPlacement(state, hunter, now);
     if (hunter.chaserPlaceEndMs > now) {
+      syncGhostPartnerPosition(state, hunter);
       if (distance(state.player, hunter.pos) < 0.45) {
         loseGame(state, "caught", onLoseReason);
         return false;
@@ -651,6 +717,7 @@ function updateSingleHunter(
   const speedMult = hunter.mode === "chase" ? HUNTER_CHASE_SPEED_MULT : HUNTER_WALK_SPEED_MULT;
   const hunterSpeed = PLAYER_SPEED * dt * speedMult;
   if (hunter.backCheckState !== "none") {
+    syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
       loseGame(state, "caught", onLoseReason);
       return false;
@@ -659,6 +726,7 @@ function updateSingleHunter(
   }
 
   const atCenter = isAtCellCenter(hunter.pos);
+  if (!atCenter && !hunter.target) ensureHunterRecentersIfTargetMissing(hunter);
   if (atCenter && !hunter.target) {
     const hunterCell = {
       x: Math.floor(hunter.pos.x),
@@ -667,6 +735,7 @@ function updateSingleHunter(
 
     maybeStartTurretPlacement(state, hunter, now);
     if (hunter.turretPlaceEndMs > now) {
+      syncGhostPartnerPosition(state, hunter);
       if (distance(state.player, hunter.pos) < 0.45) {
         loseGame(state, "caught", onLoseReason);
         return false;
@@ -674,13 +743,28 @@ function updateSingleHunter(
       return true;
     }
 
-    if (hunter.mode === "chase" && hunter.lastSeenPlayer) {
+    if (hunter.mode === "chase" && (hunter.lastSeenPlayer || hunter.ghostCommandTarget)) {
+      const chaseSource = hunter.ghostCommandTarget ?? hunter.lastSeenPlayer!;
       const chaseCell = {
-        x: Math.floor(hunter.lastSeenPlayer.x),
-        y: Math.floor(hunter.lastSeenPlayer.y),
+        x: Math.floor(chaseSource.x),
+        y: Math.floor(chaseSource.y),
       };
       if (chaseCell.x === hunterCell.x && chaseCell.y === hunterCell.y) {
-        startNervousScan(hunter, now);
+        if (hunter.ghostCommandTarget !== null) {
+          if (!seesPlayer) {
+            releaseGhostPartnerToPath(state, hunter);
+            hunter.mode = "patrol";
+            hunter.lastSeenPlayer = null;
+            hunter.target = null;
+            clearBackCheckState(hunter);
+            clearNervousScanState(hunter);
+            resetPatrolStepsUntilTurn(hunter);
+          } else if (hunter.lastSeenPlayer) {
+            hunter.ghostCommandTarget = { ...hunter.lastSeenPlayer };
+          }
+        } else {
+          startNervousScan(hunter, now);
+        }
       } else {
         const chaseDir = chooseChaseDirection(state.grid, hunterCell, chaseCell, hunter.dir);
         setNextHunterTarget(hunter, state.grid, hunterCell, chaseDir, now);
@@ -697,6 +781,7 @@ function updateSingleHunter(
     }
   }
   if (hunter.backCheckState !== "none") {
+    syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
       loseGame(state, "caught", onLoseReason);
       return false;
@@ -724,6 +809,8 @@ function updateSingleHunter(
       };
     }
   }
+
+  syncGhostPartnerPosition(state, hunter);
 
   if (distance(state.player, hunter.pos) < 0.45) {
     loseGame(state, "caught", onLoseReason);

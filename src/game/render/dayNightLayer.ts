@@ -15,6 +15,8 @@ type VisionCircle = {
   y: number;
   radiusPx: number;
   alpha: number;
+  revealAlpha: number;
+  relayActive: boolean;
 };
 
 type DarknessOverlay = {
@@ -29,6 +31,7 @@ const PLAYER_NIGHT_VISION_RAY_COUNT = 192;
 const GHOST_VISION_BORDER_ALPHA = 0.28;
 const GHOST_VISION_BORDER_WIDTH_PX = 1.25;
 const GHOST_VISION_REVEAL_ALPHA = 0.2;
+const GHOST_VISION_REVEAL_ALPHA_WITH_HUNTER = Math.min(1, GHOST_VISION_REVEAL_ALPHA * 3);
 
 function ensureOverlayCanvas(
   canvas: HTMLCanvasElement | null,
@@ -91,6 +94,11 @@ function collectGhostVisionCircles(
       y: monster.pos.y * TILE_SIZE - camY,
       radiusPx,
       alpha,
+      revealAlpha:
+        monster.behavior === "with_hunter"
+          ? GHOST_VISION_REVEAL_ALPHA_WITH_HUNTER
+          : GHOST_VISION_REVEAL_ALPHA,
+      relayActive: monster.behavior === "to_hunter" || monster.behavior === "with_hunter",
     });
   }
   return circles;
@@ -122,7 +130,7 @@ function eraseDarknessInVisionAreas(
   }
 
   for (const circle of ghostVisionCircles) {
-    ctx.globalAlpha = circle.alpha * GHOST_VISION_REVEAL_ALPHA;
+    ctx.globalAlpha = circle.alpha * circle.revealAlpha;
     ctx.beginPath();
     ctx.arc(circle.x, circle.y, circle.radiusPx, 0, Math.PI * 2);
     ctx.fill();
@@ -146,7 +154,7 @@ function drawGhostVisionBorders(
 
   for (const circle of ghostVisionCircles) {
     ctx.globalAlpha = circle.alpha * GHOST_VISION_BORDER_ALPHA;
-    ctx.strokeStyle = "rgba(255, 255, 255, 1)";
+    ctx.strokeStyle = circle.relayActive ? "rgba(255, 128, 138, 1)" : "rgba(255, 255, 255, 1)";
     ctx.beginPath();
     ctx.arc(circle.x, circle.y, circle.radiusPx, 0, Math.PI * 2);
     ctx.stroke();

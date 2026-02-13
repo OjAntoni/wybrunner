@@ -111,6 +111,14 @@ export function drawMonster(
       const cx = monster.pos.x * TILE_SIZE - camX;
       const cy = monster.pos.y * TILE_SIZE - camY - 2 + Math.sin(now / 240 + cx * 0.015) * 1.5;
       const scale = 0.72 + visibilityAlpha * 0.28;
+      const isRelayActive = monster.behavior === "to_hunter" || monster.behavior === "with_hunter";
+      const isReturningToPath = monster.behavior === "return_to_path";
+      const outerBodyColor = isRelayActive
+        ? `rgba(255, 208, 218, ${(0.22 * visibilityAlpha).toFixed(3)})`
+        : `rgba(232, 246, 255, ${(0.2 * visibilityAlpha).toFixed(3)})`;
+      const innerBodyColor = isRelayActive
+        ? `rgba(255, 236, 240, ${(0.75 * visibilityAlpha).toFixed(3)})`
+        : `rgba(245, 252, 255, ${(0.72 * visibilityAlpha).toFixed(3)})`;
 
       ctx.save();
       ctx.translate(cx, cy);
@@ -118,16 +126,73 @@ export function drawMonster(
 
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
-      ctx.fillStyle = `rgba(232, 246, 255, ${(0.2 * visibilityAlpha).toFixed(3)})`;
+      ctx.fillStyle = outerBodyColor;
       ctx.beginPath();
       ctx.arc(0, 0, 8, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      ctx.fillStyle = `rgba(245, 252, 255, ${(0.72 * visibilityAlpha).toFixed(3)})`;
+      ctx.fillStyle = innerBodyColor;
       ctx.beginPath();
       ctx.arc(0, 0, 5.2, 0, Math.PI * 2);
       ctx.fill();
+
+      if (isRelayActive) {
+        // Slight red tint + angry face while ghost is in hunter-relay states.
+        ctx.fillStyle = `rgba(255, 132, 148, ${(0.13 * visibilityAlpha).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(82, 24, 38, ${(0.88 * visibilityAlpha).toFixed(3)})`;
+        ctx.lineCap = "round";
+        ctx.lineWidth = 0.46;
+        ctx.beginPath();
+        ctx.moveTo(-2.05, -1.45);
+        ctx.lineTo(-0.95, -0.85);
+        ctx.moveTo(0.95, -0.85);
+        ctx.lineTo(2.05, -1.45);
+        ctx.stroke();
+
+        ctx.fillStyle = `rgba(82, 24, 38, ${(0.92 * visibilityAlpha).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(-1.35, -0.7, 0.44, 0, Math.PI * 2);
+        ctx.arc(1.35, -0.7, 0.44, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(118, 40, 58, ${(0.86 * visibilityAlpha).toFixed(3)})`;
+        ctx.lineWidth = 0.48;
+        ctx.beginPath();
+        ctx.moveTo(-1.45, 1.9);
+        ctx.quadraticCurveTo(0, 1.2, 1.45, 1.9);
+        ctx.stroke();
+      } else if (isReturningToPath) {
+        // Returning-to-path state: sad face, no red tint.
+        ctx.fillStyle = `rgba(40, 58, 80, ${(0.8 * visibilityAlpha).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(-1.35, -1.0, 0.55, 0, Math.PI * 2);
+        ctx.arc(1.35, -1.0, 0.55, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(62, 84, 108, ${(0.76 * visibilityAlpha).toFixed(3)})`;
+        ctx.lineWidth = 0.44;
+        ctx.beginPath();
+        ctx.moveTo(-1.35, 2.0);
+        ctx.quadraticCurveTo(0, 2.65, 1.35, 2.0);
+        ctx.stroke();
+      } else {
+        // Default tiny ghost face.
+        ctx.fillStyle = `rgba(36, 54, 74, ${(0.78 * visibilityAlpha).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(-1.45, -1.0, 0.58, 0, Math.PI * 2);
+        ctx.arc(1.45, -1.0, 0.58, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = `rgba(52, 72, 94, ${(0.68 * visibilityAlpha).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.ellipse(0, 1.45, 1.15, 0.62, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
       continue;
     }

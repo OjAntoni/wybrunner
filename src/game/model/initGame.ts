@@ -25,10 +25,11 @@ export function initGame(now: number = performance.now()): GameState {
     undergroundTrapsHidden,
     arrowThrowers,
   } = buildInitialPlacements(grid, now);
-  const hunters: Hunter[] = hunterCells.map((cell) => {
+  const hunters: Hunter[] = hunterCells.map((cell, index) => {
     const dir = CARDINAL_DIRS[Math.floor(Math.random() * CARDINAL_DIRS.length)];
     const angle = directionToAngle(dir);
     return {
+      id: index + 1,
       pos: cellCenter(cell),
       dir,
       target: null,
@@ -55,6 +56,8 @@ export function initGame(now: number = performance.now()): GameState {
       turretPlaceStartMs: 0,
       turretPlaceEndMs: 0,
       patrolRecentCells: [cellKey(cell.x, cell.y)],
+      ghostCommandTarget: null,
+      ghostCommandGhostId: null,
     };
   });
 
