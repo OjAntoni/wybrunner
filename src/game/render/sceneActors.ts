@@ -212,6 +212,7 @@ function drawPlayerSwordSwing(
     cardinal,
     left,
     right,
+    { x: cardinal.x * 2, y: cardinal.y * 2 },
     { x: cardinal.x + left.x, y: cardinal.y + left.y },
     { x: cardinal.x + right.x, y: cardinal.y + right.y },
   ];
