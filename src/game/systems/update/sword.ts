@@ -72,7 +72,7 @@ export function updateSwordHits(state: GameState, now: number) {
     hunter.health = Math.max(0, hunter.health - 1);
     if (hunter.health > 0) {
       hunter.hurtUntilMs = Math.max(hunter.hurtUntilMs, now + 1200);
-      hunter.stunUntil = Math.max(hunter.stunUntil, now + 1200);
+      hunter.stunUntil = Math.max(hunter.stunUntil, now + 700);
       hunter.mode = "chase";
       hunter.lastSeenPlayer = { ...state.player };
       hunter.target = null;

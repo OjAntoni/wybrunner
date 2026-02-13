@@ -52,7 +52,7 @@ Code references:
 - Entering new cells updates exploration clearing and discovered artifacts.
 - Coin collection increments counter.
 - Sword swing animation triggers on attack input and sweeps from right shoulder to left; the visual hit zone covers front, two-steps front, left, right, and front diagonals (6 tiles total) with a 1s cooldown between swings.
-- Sword hits remove one heart from chasers and hunters in the hit tiles; chasers have 1 heart, hunters have 3, and turrets/ghosts are immune. Tiny heart pips render above each damageable mob. Hit mobs flicker briefly when damaged; hunters are stunned for the flicker duration and then become aggressive (chasing in the hit direction, then a 4s nervous scan that moves around the last-seen area while turning).
+- Sword hits remove one heart from chasers and hunters in the hit tiles; chasers have 1 heart, hunters have 3, and turrets/ghosts are immune. Tiny heart pips render above each damageable mob. Hit mobs flicker briefly when damaged; hunters are stunned for 0.7s and then become aggressive (chasing in the hit direction, then a 4s nervous scan that moves around the last-seen area while turning).
 - Underground traps stay hidden while first stepped on and only reveal after the player leaves; stepping onto a revealed underground trap is lethal.
 
 Code references:
