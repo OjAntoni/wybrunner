@@ -478,6 +478,12 @@ function isGhostSeeingPlayer(ghost: GhostMonster, state: GameState) {
   return distance(ghost.pos, state.player) <= GHOST_NIGHT_VISION_RADIUS_TILES;
 }
 
+function updateGhostMemoryIfSeeing(ghost: GhostMonster, state: GameState) {
+  if (!isGhostSeeingPlayer(ghost, state)) return false;
+  ghost.rememberedPlayerPos = { ...state.player };
+  return true;
+}
+
 function moveGhostTowardsTarget(ghost: GhostMonster, target: Vec, moveDistance: number) {
   if (moveDistance <= 0) return false;
   const dx = target.x - ghost.pos.x;
@@ -748,10 +754,9 @@ function updateGhostMonster(state: GameState, monster: GhostMonster, dt: number,
   if (baseGhostSpeed <= 0) return;
 
   if (monster.behavior === "path") {
-    if (isGhostSeeingPlayer(monster, state)) {
+    if (updateGhostMemoryIfSeeing(monster, state)) {
       const closestHunter = findClosestDefaultHunterForGhost(state, monster, now);
       if (closestHunter) {
-        monster.rememberedPlayerPos = { ...state.player };
         monster.assignedHunterId = closestHunter.id;
         monster.behavior = "to_hunter";
       }
@@ -762,9 +767,7 @@ function updateGhostMonster(state: GameState, monster: GhostMonster, dt: number,
   }
 
   if (monster.behavior === "to_hunter") {
-    if (isGhostSeeingPlayer(monster, state)) {
-      monster.rememberedPlayerPos = { ...state.player };
-    }
+    updateGhostMemoryIfSeeing(monster, state);
 
     const assignedHunter = findHunterById(state, monster.assignedHunterId);
     if (!assignedHunter || !isHunterDefaultStateForGhostRecruit(assignedHunter, now)) {
@@ -794,10 +797,30 @@ function updateGhostMonster(state: GameState, monster: GhostMonster, dt: number,
       monster.pos = { ...assignedHunter.pos };
       monster.dir = { ...assignedHunter.dir };
       monster.target = null;
+      if (updateGhostMemoryIfSeeing(monster, state)) {
+        const rememberedPos = monster.rememberedPlayerPos ?? state.player;
+        assignedHunter.lastSeenPlayer = { ...rememberedPos };
+        assignedHunter.ghostCommandTarget = { ...rememberedPos };
+      }
     }
   }
 
   if (monster.behavior === "return_to_path") {
+    if (updateGhostMemoryIfSeeing(monster, state)) {
+      const closestHunter = findClosestDefaultHunterForGhost(state, monster, now);
+      if (closestHunter) {
+        monster.assignedHunterId = closestHunter.id;
+        monster.behavior = "to_hunter";
+      }
+    }
+    if (monster.behavior !== "return_to_path") {
+      monster.lastPathTime = now;
+      monster.lastCell = {
+        x: Math.floor(monster.pos.x),
+        y: Math.floor(monster.pos.y),
+      };
+      return;
+    }
     const pathIndex = monster.returnPathIndex;
     if (pathIndex === null || pathIndex < 0 || pathIndex >= monster.path.length) {
       monster.behavior = "path";
@@ -888,7 +911,7 @@ export function updateMonster(
       updateChaserMonster(state, monster, playerCell, dt, now, touchEnabled);
     }
 
-    if (distance(state.player, monster.pos) < 0.45) {
+    if (monster.kind !== "ghost" && distance(state.player, monster.pos) < 0.45) {
       loseGame(state, "caught", onLoseReason);
       return false;
     }

@@ -32,6 +32,19 @@ export function updatePlayerProgress(
       y: move.y / moveLength,
     };
   }
+  const indicatorTarget = state.playerFacing;
+  const indicator = state.playerFacingIndicator;
+  const indicatorLerp = 1 - Math.exp(-dt * 10);
+  indicator.x += (indicatorTarget.x - indicator.x) * indicatorLerp;
+  indicator.y += (indicatorTarget.y - indicator.y) * indicatorLerp;
+  const indicatorLen = Math.hypot(indicator.x, indicator.y);
+  if (indicatorLen > 0.0001) {
+    indicator.x /= indicatorLen;
+    indicator.y /= indicatorLen;
+  } else {
+    indicator.x = indicatorTarget.x;
+    indicator.y = indicatorTarget.y;
+  }
   const playerSpeed = PLAYER_SPEED * dt;
   state.player = tryMove(state.grid, state.player, move, playerSpeed, deps.touchEnabled);
 
@@ -60,12 +73,13 @@ export function updatePlayerProgress(
     clearExploreClouds(state, playerCell, now);
     updateDiscoveredArtifacts(state);
 
-    // Underground traps are invisible until first stepped on; second entry kills.
-    if (state.undergroundTrapsHidden.has(playerKey)) {
-      state.undergroundTrapsHidden.delete(playerKey);
-      state.undergroundTrapsRevealed.add(playerKey);
-      state.undergroundTrapRevealMs.set(playerKey, now);
-    } else if (state.undergroundTrapsRevealed.has(playerKey)) {
+    // Underground traps reveal only after leaving the first step; re-entry is lethal.
+    if (state.undergroundTrapsHidden.has(prevKey)) {
+      state.undergroundTrapsHidden.delete(prevKey);
+      state.undergroundTrapsRevealed.add(prevKey);
+      state.undergroundTrapRevealMs.set(prevKey, now);
+    }
+    if (state.undergroundTrapsRevealed.has(playerKey)) {
       loseGame(state, "trap", deps.onLoseReason);
       return { playerCell, playerKey, alive: false };
     }

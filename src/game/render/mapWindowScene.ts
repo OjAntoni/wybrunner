@@ -8,9 +8,10 @@ import { drawNightLightingOverlay } from "./dayNightLayer";
 import { drawHunterVisions } from "./hunterVisionLayer";
 import {
   drawGhostPathsOverlay,
+  drawGhosts,
   drawHelpers,
   drawHunters,
-  drawMonster,
+  drawMonsters,
   drawPlayer,
   drawTurrets,
 } from "./sceneActors";
@@ -132,10 +133,11 @@ export function drawMapWindowScene({
   drawHelpers(ctx, state, now, camX, camY);
   drawHunters(ctx, state, now, camX, camY);
   drawTurrets(ctx, state, now, camX, camY);
-  drawMonster(ctx, state, now, camX, camY);
-  drawPlayer(ctx, state, camX, camY);
+  drawPlayer(ctx, state, now, camX, camY);
+  drawMonsters(ctx, state, now, camX, camY);
   drawNightLightingOverlay(ctx, state, now, camX, camY, viewW, viewH);
   drawGhostPathsOverlay(ctx, state, now, camX, camY);
+  drawGhosts(ctx, state, now, camX, camY);
 
   return { center: clampedCenter };
 }

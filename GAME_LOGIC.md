@@ -51,7 +51,7 @@ Code references:
 - Movement uses collision-aware movement/turn assist logic.
 - Entering new cells updates exploration clearing and discovered artifacts.
 - Coin collection increments counter.
-- Underground traps are hidden on first step and lethal on second step.
+- Underground traps stay hidden while first stepped on and only reveal after the player leaves; stepping onto a revealed underground trap is lethal.
 
 Code references:
 - `src/game/input/direction.ts`
@@ -81,6 +81,7 @@ Code references:
 - Also clears traps and underground traps in blast.
 - Can remove helpers/hunters and invalidate arrows/throwers affected by wall destruction.
 - Chasers placed by hunters are bomb-killable (removed if inside blast radius).
+- Bombs do not affect ghosts.
 
 Code references:
 - `src/game/actions/equipment.ts`
@@ -108,8 +109,9 @@ Code references:
   - each generated path has total loop length at least `60` tiles.
   - path centers are distributed by map sectors (with jitter), so ghost paths are spread more evenly across the map.
   - at least one ghost path per night is smoothly deformed to pass through the player's current position at spawn time (no hard corner snap).
-  - if ghost sees player, it remembers that position, switches to relay behavior, and flies at `2x` ghost speed to the closest hunter in default (`patrol`) state.
-  - when ghost meets that hunter, hunter is forced into chase toward remembered player position and ghost escorts the hunter (matching hunter movement speed/position).
+- if ghost sees player, it remembers that position, switches to relay behavior, and flies at `2x` ghost speed to the closest hunter in default (`patrol`) state.
+- when ghost meets that hunter, hunter is forced into chase toward remembered player position and ghost escorts the hunter (matching hunter movement speed/position).
+- while escorting or returning to its path, the ghost keeps watching for the player and refreshes the remembered chase target when it sees them again.
   - if hunter reaches that destination and still cannot see player, hunter returns to default (`patrol`) state and ghost returns to its cyclic path using normal ghost movement (no snap teleport).
   - ignores wall collision/pathing (air movement above the maze).
 - Ghost visibility:
@@ -121,7 +123,7 @@ Code references:
   - each ghost predefined path is rendered as a tiny dotted white closed line.
   - ghost path lines are drawn above the night darkness layer, so they stay visible even outside revealed vision.
   - not hidden by exploration-cloud coverage.
-- Collision with player triggers lose state for both monster kinds.
+- Collision with chaser triggers lose state; ghosts are non-lethal relays.
 
 Code references:
 - `src/game/systems/update/monster.ts`
@@ -277,8 +279,8 @@ Per frame, draw order is orchestrated in `drawScene`:
 2. Terrain + throwers.
 3. World objects and arrows.
 4. Fog areas and exploration clouds.
-5. Hunter + turret vision layers, helpers, hunters, turrets, player, monsters (chaser + ghost).
-6. Temporary fog overlay + guidance arrows.
+5. Hunter + turret vision layers, helpers, hunters, turrets, player (with smoothed facing indicator triangle), monsters (chaser).
+6. Temporary fog overlay + guidance arrows + night lighting overlay, then ghost path overlay and ghost bodies (drawn after darkening).
 7. Temporary popup text layers (player insufficient-money popup, hunter chaser/turret-placement popups).
 
 Code references:

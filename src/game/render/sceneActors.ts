@@ -84,6 +84,7 @@ export function drawHelpers(
 export function drawPlayer(
   ctx: CanvasRenderingContext2D,
   state: GameState,
+  now: number,
   camX: number,
   camY: number
 ) {
@@ -94,9 +95,153 @@ export function drawPlayer(
     TILE_SIZE - 2,
     TILE_SIZE - 2
   );
+  drawPlayerFacingIndicator(ctx, state, now, camX, camY);
 }
 
-export function drawMonster(
+function drawPlayerFacingIndicator(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  now: number,
+  camX: number,
+  camY: number
+) {
+  const facing = state.playerFacingIndicator;
+  const facingLen = Math.hypot(facing.x, facing.y);
+  if (facingLen <= 0.0001) return;
+
+  const dirX = facing.x / facingLen;
+  const dirY = facing.y / facingLen;
+  const perpX = -dirY;
+  const perpY = dirX;
+
+  const centerX = state.player.x * TILE_SIZE - camX;
+  const centerY = state.player.y * TILE_SIZE - camY;
+  const pulse = 0.92 + Math.sin(now / 380) * 0.08;
+  const alpha = 0.55 + (Math.sin(now / 520) + 1) * 0.06;
+  const baseHalf = TILE_SIZE * 0.195 * pulse;
+  const height = TILE_SIZE * 0.19125 * pulse;
+  const frontDistance = TILE_SIZE * 0.55;
+
+  const baseCenterX = centerX + dirX * frontDistance;
+  const baseCenterY = centerY + dirY * frontDistance;
+  const tipX = baseCenterX + dirX * height;
+  const tipY = baseCenterY + dirY * height;
+  const leftX = baseCenterX + perpX * baseHalf;
+  const leftY = baseCenterY + perpY * baseHalf;
+  const rightX = baseCenterX - perpX * baseHalf;
+  const rightY = baseCenterY - perpY * baseHalf;
+
+  ctx.save();
+  ctx.fillStyle = `rgba(230, 230, 230, ${alpha.toFixed(3)})`;
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(leftX, leftY);
+  ctx.lineTo(rightX, rightY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGhost(
+  ctx: CanvasRenderingContext2D,
+  monster: GameState["monsters"][number],
+  now: number,
+  camX: number,
+  camY: number
+) {
+  if (monster.kind !== "ghost") return;
+  const visibilityAlpha = getGhostVisibilityAlpha(monster, now);
+  if (visibilityAlpha <= 0.001) return;
+
+  const cx = monster.pos.x * TILE_SIZE - camX;
+  const cy = monster.pos.y * TILE_SIZE - camY - 2 + Math.sin(now / 240 + cx * 0.015) * 1.5;
+  const scale = 0.72 + visibilityAlpha * 0.28;
+  const isRelayActive = monster.behavior === "to_hunter" || monster.behavior === "with_hunter";
+  const isReturningToPath = monster.behavior === "return_to_path";
+  const outerBodyColor = isRelayActive
+    ? `rgba(255, 208, 218, ${(0.22 * visibilityAlpha).toFixed(3)})`
+    : `rgba(232, 246, 255, ${(0.2 * visibilityAlpha).toFixed(3)})`;
+  const innerBodyColor = isRelayActive
+    ? `rgba(255, 236, 240, ${(0.75 * visibilityAlpha).toFixed(3)})`
+    : `rgba(245, 252, 255, ${(0.72 * visibilityAlpha).toFixed(3)})`;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.fillStyle = outerBodyColor;
+  ctx.beginPath();
+  ctx.arc(0, 0, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = innerBodyColor;
+  ctx.beginPath();
+  ctx.arc(0, 0, 5.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (isRelayActive) {
+    // Slight red tint + angry face while ghost is in hunter-relay states.
+    ctx.fillStyle = `rgba(255, 132, 148, ${(0.13 * visibilityAlpha).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = `rgba(82, 24, 38, ${(0.88 * visibilityAlpha).toFixed(3)})`;
+    ctx.lineCap = "round";
+    ctx.lineWidth = 0.46;
+    ctx.beginPath();
+    ctx.moveTo(-2.05, -1.45);
+    ctx.lineTo(-0.95, -0.85);
+    ctx.moveTo(0.95, -0.85);
+    ctx.lineTo(2.05, -1.45);
+    ctx.stroke();
+
+    ctx.fillStyle = `rgba(82, 24, 38, ${(0.92 * visibilityAlpha).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.arc(-1.35, -0.7, 0.44, 0, Math.PI * 2);
+    ctx.arc(1.35, -0.7, 0.44, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = `rgba(118, 40, 58, ${(0.86 * visibilityAlpha).toFixed(3)})`;
+    ctx.lineWidth = 0.48;
+    ctx.beginPath();
+    ctx.moveTo(-1.45, 1.9);
+    ctx.quadraticCurveTo(0, 1.2, 1.45, 1.9);
+    ctx.stroke();
+  } else if (isReturningToPath) {
+    // Returning-to-path state: sad face, no red tint.
+    ctx.fillStyle = `rgba(40, 58, 80, ${(0.8 * visibilityAlpha).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.arc(-1.35, -1.0, 0.55, 0, Math.PI * 2);
+    ctx.arc(1.35, -1.0, 0.55, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = `rgba(62, 84, 108, ${(0.76 * visibilityAlpha).toFixed(3)})`;
+    ctx.lineWidth = 0.44;
+    ctx.beginPath();
+    ctx.moveTo(-1.35, 2.0);
+    ctx.quadraticCurveTo(0, 2.65, 1.35, 2.0);
+    ctx.stroke();
+  } else {
+    // Default tiny ghost face.
+    ctx.fillStyle = `rgba(36, 54, 74, ${(0.78 * visibilityAlpha).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.arc(-1.45, -1.0, 0.58, 0, Math.PI * 2);
+    ctx.arc(1.45, -1.0, 0.58, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = `rgba(52, 72, 94, ${(0.68 * visibilityAlpha).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.ellipse(0, 1.45, 1.15, 0.62, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+export function drawGhosts(
   ctx: CanvasRenderingContext2D,
   state: GameState,
   now: number,
@@ -104,98 +249,20 @@ export function drawMonster(
   camY: number
 ) {
   for (const monster of state.monsters) {
-    if (monster.kind === "ghost") {
-      const visibilityAlpha = getGhostVisibilityAlpha(monster, now);
-      if (visibilityAlpha <= 0.001) continue;
+    if (monster.kind !== "ghost") continue;
+    drawGhost(ctx, monster, now, camX, camY);
+  }
+}
 
-      const cx = monster.pos.x * TILE_SIZE - camX;
-      const cy = monster.pos.y * TILE_SIZE - camY - 2 + Math.sin(now / 240 + cx * 0.015) * 1.5;
-      const scale = 0.72 + visibilityAlpha * 0.28;
-      const isRelayActive = monster.behavior === "to_hunter" || monster.behavior === "with_hunter";
-      const isReturningToPath = monster.behavior === "return_to_path";
-      const outerBodyColor = isRelayActive
-        ? `rgba(255, 208, 218, ${(0.22 * visibilityAlpha).toFixed(3)})`
-        : `rgba(232, 246, 255, ${(0.2 * visibilityAlpha).toFixed(3)})`;
-      const innerBodyColor = isRelayActive
-        ? `rgba(255, 236, 240, ${(0.75 * visibilityAlpha).toFixed(3)})`
-        : `rgba(245, 252, 255, ${(0.72 * visibilityAlpha).toFixed(3)})`;
-
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.scale(scale, scale);
-
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.fillStyle = outerBodyColor;
-      ctx.beginPath();
-      ctx.arc(0, 0, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-
-      ctx.fillStyle = innerBodyColor;
-      ctx.beginPath();
-      ctx.arc(0, 0, 5.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (isRelayActive) {
-        // Slight red tint + angry face while ghost is in hunter-relay states.
-        ctx.fillStyle = `rgba(255, 132, 148, ${(0.13 * visibilityAlpha).toFixed(3)})`;
-        ctx.beginPath();
-        ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = `rgba(82, 24, 38, ${(0.88 * visibilityAlpha).toFixed(3)})`;
-        ctx.lineCap = "round";
-        ctx.lineWidth = 0.46;
-        ctx.beginPath();
-        ctx.moveTo(-2.05, -1.45);
-        ctx.lineTo(-0.95, -0.85);
-        ctx.moveTo(0.95, -0.85);
-        ctx.lineTo(2.05, -1.45);
-        ctx.stroke();
-
-        ctx.fillStyle = `rgba(82, 24, 38, ${(0.92 * visibilityAlpha).toFixed(3)})`;
-        ctx.beginPath();
-        ctx.arc(-1.35, -0.7, 0.44, 0, Math.PI * 2);
-        ctx.arc(1.35, -0.7, 0.44, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = `rgba(118, 40, 58, ${(0.86 * visibilityAlpha).toFixed(3)})`;
-        ctx.lineWidth = 0.48;
-        ctx.beginPath();
-        ctx.moveTo(-1.45, 1.9);
-        ctx.quadraticCurveTo(0, 1.2, 1.45, 1.9);
-        ctx.stroke();
-      } else if (isReturningToPath) {
-        // Returning-to-path state: sad face, no red tint.
-        ctx.fillStyle = `rgba(40, 58, 80, ${(0.8 * visibilityAlpha).toFixed(3)})`;
-        ctx.beginPath();
-        ctx.arc(-1.35, -1.0, 0.55, 0, Math.PI * 2);
-        ctx.arc(1.35, -1.0, 0.55, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = `rgba(62, 84, 108, ${(0.76 * visibilityAlpha).toFixed(3)})`;
-        ctx.lineWidth = 0.44;
-        ctx.beginPath();
-        ctx.moveTo(-1.35, 2.0);
-        ctx.quadraticCurveTo(0, 2.65, 1.35, 2.0);
-        ctx.stroke();
-      } else {
-        // Default tiny ghost face.
-        ctx.fillStyle = `rgba(36, 54, 74, ${(0.78 * visibilityAlpha).toFixed(3)})`;
-        ctx.beginPath();
-        ctx.arc(-1.45, -1.0, 0.58, 0, Math.PI * 2);
-        ctx.arc(1.45, -1.0, 0.58, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = `rgba(52, 72, 94, ${(0.68 * visibilityAlpha).toFixed(3)})`;
-        ctx.beginPath();
-        ctx.ellipse(0, 1.45, 1.15, 0.62, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-      continue;
-    }
+export function drawMonsters(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  now: number,
+  camX: number,
+  camY: number
+) {
+  for (const monster of state.monsters) {
+    if (monster.kind === "ghost") continue;
 
     const monsterCell = {
       x: Math.floor(monster.pos.x),

@@ -68,6 +68,7 @@ export function initGame(now: number = performance.now()): GameState {
     grid,
     player: cellCenter(playerCell),
     playerFacing: { x: 1, y: 0 },
+    playerFacingIndicator: { x: 1, y: 0 },
     monsters: [],
     hunters,
     turrets: [],

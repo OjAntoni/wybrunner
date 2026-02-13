@@ -8,9 +8,10 @@ import { drawGuidanceArrows } from "./guidance";
 import { drawHunterVisions } from "./hunterVisionLayer";
 import {
   drawGhostPathsOverlay,
+  drawGhosts,
   drawHelpers,
   drawHunters,
-  drawMonster,
+  drawMonsters,
   drawPlayer,
   drawPlayerPopup,
   drawTurrets,
@@ -80,8 +81,8 @@ export function drawScene({
   drawHelpers(ctx, state, now, camX, camY);
   drawHunters(ctx, state, now, camX, camY);
   drawTurrets(ctx, state, now, camX, camY);
-  drawPlayer(ctx, state, camX, camY);
-  drawMonster(ctx, state, now, camX, camY);
+  drawPlayer(ctx, state, now, camX, camY);
+  drawMonsters(ctx, state, now, camX, camY);
 
   if (now < state.fogUntil) {
     drawFog(
@@ -109,6 +110,7 @@ export function drawScene({
   );
   const overlaySnapshot = drawNightLightingOverlay(ctx, state, now, camX, camY, viewW, viewH);
   drawGhostPathsOverlay(ctx, state, now, camX, camY);
+  drawGhosts(ctx, state, now, camX, camY);
   drawPlayerPopup(ctx, state, now, camX, camY, touchEnabled);
   drawNightWarningText(ctx, overlaySnapshot, viewW, viewH);
 }

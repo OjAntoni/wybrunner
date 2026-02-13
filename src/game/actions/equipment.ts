@@ -112,6 +112,7 @@ export function placeBomb(
     start: now,
   });
   state.monsters = state.monsters.filter((monster) => {
+    if (monster.kind === "ghost") return true;
     const monsterCell = {
       x: Math.floor(monster.pos.x),
       y: Math.floor(monster.pos.y),

@@ -18,6 +18,7 @@ export type GameState = {
   grid: Cell[][];
   player: Vec;
   playerFacing: Vec;
+  playerFacingIndicator: Vec;
   monsters: Monster[];
   hunters: Hunter[];
   turrets: Turret[];
