@@ -1,6 +1,8 @@
 import { TILE_SIZE } from "../config/constants";
 import type { Vec } from "../model/types";
+import { getDayNightSnapshot } from "../systems/dayNight";
 import { drawExploreClouds, drawFogAreas } from "./cloudLayers";
+import { drawNightLightingOverlay, drawNightWarningText } from "./dayNightLayer";
 import { drawFog } from "./fogOverlay";
 import { drawGuidanceArrows } from "./guidance";
 import { drawHunterVisions } from "./hunterVisionLayer";
@@ -42,6 +44,8 @@ export function drawScene({
     x: Math.floor(state.player.x),
     y: Math.floor(state.player.y),
   };
+  const dayNightSnapshot = getDayNightSnapshot(state, now);
+  const cloudNightBlend = dayNightSnapshot.darknessAlpha;
 
   drawWorldObjects(ctx, state, now, camX, camY, viewW, viewH, bounds);
   drawArrows(ctx, state, camX, camY, viewW, viewH);
@@ -56,7 +60,8 @@ export function drawScene({
     viewW,
     viewH,
     playerCell,
-    fogSpritesRef
+    fogSpritesRef,
+    cloudNightBlend
   );
   drawExploreClouds(
     ctx,
@@ -66,7 +71,8 @@ export function drawScene({
     camY,
     viewW,
     viewH,
-    exploreCloudSpritesRef
+    exploreCloudSpritesRef,
+    cloudNightBlend
   );
 
   drawHunterVisions(ctx, state, now, camX, camY);
@@ -100,5 +106,7 @@ export function drawScene({
     playerScreenX,
     playerScreenY
   );
+  const overlaySnapshot = drawNightLightingOverlay(ctx, state, now, camX, camY, viewW, viewH);
   drawPlayerPopup(ctx, state, now, camX, camY, touchEnabled);
+  drawNightWarningText(ctx, overlaySnapshot, viewW, viewH);
 }

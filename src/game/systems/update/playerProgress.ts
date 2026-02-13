@@ -25,6 +25,13 @@ export function updatePlayerProgress(
 ): PlayerProgressResult {
   const prevPlayerCell = { x: state.lastPlayerCell.x, y: state.lastPlayerCell.y };
   const move = deps.getInputDir();
+  const moveLength = Math.hypot(move.x, move.y);
+  if (moveLength > 0.0001) {
+    state.playerFacing = {
+      x: move.x / moveLength,
+      y: move.y / moveLength,
+    };
+  }
   const playerSpeed = PLAYER_SPEED * dt;
   state.player = tryMove(state.grid, state.player, move, playerSpeed, deps.touchEnabled);
 

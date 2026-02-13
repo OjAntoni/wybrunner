@@ -70,6 +70,23 @@ export const HUNTER_CHASER_PLACE_DOT_STEP_MS = 350;
 export const HUNTER_TURRET_PLACE_CHANCE_PER_STEP = 0.1;
 export const HUNTER_TURRET_PLACE_DURATION_MS = 5000;
 
+// Day-night cycle tuning.
+export const DAY_NIGHT_INITIAL_DAY_DURATION_MS = 15000;
+export const DAY_DURATION_MS = 40000;
+export const NIGHT_DURATION_MS = 30000;
+export const DAY_TO_NIGHT_TRANSITION_MS = 8000;
+export const NIGHT_TO_DAY_TRANSITION_MS = 5000;
+export const NIGHT_TO_DAY_VISION_DISABLE_DARKNESS_ALPHA = 0.45;
+export const NIGHT_TO_DAY_VISION_FADE_RANGE_ALPHA = 0.2;
+export const NIGHT_WARNING_TEXT_MS = 5000;
+export const FLASHLIGHT_STARTUP_DELAY_MS = 3000;
+export const FLASHLIGHT_STARTUP_FLICKER_MS = 1550;
+
+// Night vision is hunter-like: a directional cone plus a tiny near circle.
+export const PLAYER_NIGHT_VISION_RADIUS_TILES = 10;
+export const PLAYER_NIGHT_NEAR_VISION_RADIUS_TILES = 3;
+export const PLAYER_NIGHT_VISION_ANGLE_DEG = HUNTER_VISION_ANGLE_DEG;
+
 export const TURRET_MAX_COUNT = 10;
 export const TURRET_VISION_RADIUS_TILES = 10;
 export const TURRET_VISION_ANGLE_DEG = 60;

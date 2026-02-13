@@ -17,6 +17,7 @@ export type PlayerPopup = {
 export type GameState = {
   grid: Cell[][];
   player: Vec;
+  playerFacing: Vec;
   monsters: Monster[];
   hunters: Hunter[];
   turrets: Turret[];
@@ -46,6 +47,7 @@ export type GameState = {
   fogUntil: number;
   explosions: Explosion[];
   playerPopup: PlayerPopup | null;
+  dayNightCycleStartMs: number;
   status: GameStatus;
   loseReason: LoseReason;
   lastPlayerCell: Vec;

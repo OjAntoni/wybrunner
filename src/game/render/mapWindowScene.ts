@@ -1,8 +1,10 @@
 import { GRID_H, GRID_W, TILE_SIZE } from "../config/constants";
 import type { GameState } from "../model/types";
+import { getDayNightSnapshot } from "../systems/dayNight";
 import { clamp } from "../utils/math";
 import { drawExploreClouds, drawFogAreas } from "./cloudLayers";
 import type { SpriteCacheRef } from "./cloudSprites";
+import { drawNightLightingOverlay } from "./dayNightLayer";
 import { drawHunterVisions } from "./hunterVisionLayer";
 import { drawHelpers, drawHunters, drawMonster, drawPlayer, drawTurrets } from "./sceneActors";
 import { drawWorldObjects } from "./sceneObjectLayer";
@@ -80,6 +82,8 @@ export function drawMapWindowScene({
   const camX = clampedCenter.x - viewW * 0.5;
   const camY = clampedCenter.y - viewH * 0.5;
   const bounds = getVisibleBounds(camX, camY, viewW, viewH);
+  const dayNightSnapshot = getDayNightSnapshot(state, now);
+  const cloudNightBlend = dayNightSnapshot.darknessAlpha;
 
   ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, 0, 0);
   ctx.fillStyle = "#08121a";
@@ -102,7 +106,8 @@ export function drawMapWindowScene({
       x: Math.floor(state.player.x),
       y: Math.floor(state.player.y),
     },
-    fogSpritesRef
+    fogSpritesRef,
+    cloudNightBlend
   );
   drawExploreClouds(
     ctx,
@@ -112,7 +117,8 @@ export function drawMapWindowScene({
     camY,
     viewW,
     viewH,
-    exploreCloudSpritesRef
+    exploreCloudSpritesRef,
+    cloudNightBlend
   );
 
   drawHunterVisions(ctx, state, now, camX, camY);
@@ -121,6 +127,7 @@ export function drawMapWindowScene({
   drawTurrets(ctx, state, now, camX, camY);
   drawMonster(ctx, state, now, camX, camY);
   drawPlayer(ctx, state, camX, camY);
+  drawNightLightingOverlay(ctx, state, now, camX, camY, viewW, viewH);
 
   return { center: clampedCenter };
 }

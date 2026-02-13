@@ -42,6 +42,27 @@ export const exploreSpecs: SpriteSpec[] = [
   },
 ];
 
+export const exploreNightSpecs: SpriteSpec[] = [
+  {
+    seed: 5011,
+    base: { r: 20, g: 20, b: 22 },
+    hi: { r: 34, g: 34, b: 36 },
+    lo: { r: 10, g: 10, b: 12 },
+  },
+  {
+    seed: 7331,
+    base: { r: 16, g: 16, b: 18 },
+    hi: { r: 28, g: 28, b: 30 },
+    lo: { r: 8, g: 8, b: 10 },
+  },
+  {
+    seed: 9901,
+    base: { r: 12, g: 12, b: 14 },
+    hi: { r: 24, g: 24, b: 26 },
+    lo: { r: 6, g: 6, b: 8 },
+  },
+];
+
 export const exploreStyle: SpriteStyle = {
   size: 112,
   baseSize: 66,
@@ -74,6 +95,27 @@ export const fogSpecs: SpriteSpec[] = [
     base: { r: 132, g: 138, b: 152 },
     hi: { r: 170, g: 176, b: 192 },
     lo: { r: 96, g: 102, b: 112 },
+  },
+];
+
+export const fogNightSpecs: SpriteSpec[] = [
+  {
+    seed: 911,
+    base: { r: 18, g: 18, b: 20 },
+    hi: { r: 30, g: 30, b: 34 },
+    lo: { r: 8, g: 8, b: 10 },
+  },
+  {
+    seed: 1337,
+    base: { r: 14, g: 14, b: 16 },
+    hi: { r: 26, g: 26, b: 30 },
+    lo: { r: 7, g: 7, b: 9 },
+  },
+  {
+    seed: 2027,
+    base: { r: 10, g: 10, b: 12 },
+    hi: { r: 22, g: 22, b: 26 },
+    lo: { r: 5, g: 5, b: 7 },
   },
 ];
 

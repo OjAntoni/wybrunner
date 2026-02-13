@@ -261,7 +261,40 @@ Code references:
 - `src/game/world/hunterVision.ts`
 - `src/game/render/guidance.ts`
 
-## 14. Input Model
+## 14. Day-Night Cycle and Player Night Vision
+
+- The day-night timeline starts with a short first day:
+  - initial day: `15s`
+  - day->night transition: `8s` (full-screen darkening)
+  - night: `30s`
+  - night->day transition: `5s` (full-screen brightening)
+- After the first cycle, the loop repeats with standard timings:
+  - day: `40s`
+  - day->night transition: `8s`
+  - night: `30s`
+  - night->day transition: `5s`
+- During day->night transition, a large center warning text appears: `Night is coming...` using the same retro pixel font as the rest of the game.
+- During day->night transition, player night vision starts after a `3s` delay, then performs a startup flicker sequence (on `0.25s` -> off `0.5s` -> on `0.4s` -> off `0.4s` -> steady on); during off windows, player vision mask is fully disabled.
+- During night->day transition, player night vision smoothly fades out and then turns off once ambient brightness is high enough.
+- During full night, the map is dark except for player vision:
+  - directional cone vision with radius `10` tiles and hunter-like cone angle.
+  - guaranteed near-circle visibility with radius `3` tiles around the player.
+  - player-visible area is darker than day and receives a subtle warm yellow flashlight tint across the full visible shape.
+  - exploration clouds and fog-area clouds smoothly crossfade between day sprites and black night sprites during transitions; full night uses the black variant.
+  - only the vision mask area remains visible; outside it is darkened.
+- Player vision cone direction uses the player's last non-zero movement input (`playerFacing`), so the cone remains stable while standing still.
+
+Code references:
+- `src/game/config/constants.ts`
+- `src/game/systems/dayNight.ts`
+- `src/game/render/dayNightLayer.ts`
+- `src/game/render/scene.ts`
+- `src/game/render/mapWindowScene.ts`
+- `src/game/systems/update/playerProgress.ts`
+- `src/game/model/types/state.ts`
+- `src/game/model/initGame.ts`
+
+## 15. Input Model
 
 ### Keyboard
 
@@ -294,7 +327,7 @@ Code references:
 - `src/input/touch/joystickGuard.ts`
 - `src/hooks/useTouchMode.ts`
 
-## 15. UI Components
+## 16. UI Components
 
 - `GameView` chooses between game screen and menu screen composition.
 - HUD, overlays, touch layer, and menu content are split into dedicated UI modules.
@@ -319,7 +352,7 @@ Code references:
 - `src/ui/gameView/overlays/`
 - `src/game/render/mapWindowScene.ts`
 
-## 16. Key Tunables
+## 17. Key Tunables
 
 Gameplay and balancing constants are centralized in:
 
@@ -327,7 +360,7 @@ Gameplay and balancing constants are centralized in:
 
 Examples: map size, speeds, bomb radius, fog durations, helper counts, touch multipliers.
 
-## 17. State Model
+## 18. State Model
 
 Game state and domain types are organized as:
 
@@ -337,7 +370,7 @@ Game state and domain types are organized as:
 - `src/game/model/types/state.ts`
 - `src/game/model/types.ts` (public facade)
 
-## 18. Additional Architecture Reference
+## 19. Additional Architecture Reference
 
 For module layering and current refactor boundaries:
 

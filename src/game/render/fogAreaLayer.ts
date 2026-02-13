@@ -2,7 +2,11 @@ import { FOG_AREA_FADE_MS } from "../config/constants";
 import type { GameState, Vec } from "../model/types";
 import { packCell } from "../utils/grid";
 import { clamp01 } from "../utils/math";
-import { ensureFogSprites, type SpriteCacheRef } from "./cloudSprites";
+import {
+  ensureFogNightSprites,
+  ensureFogSprites,
+  type SpriteCacheRef,
+} from "./cloudSprites";
 
 export function drawFogAreas(
   ctx: CanvasRenderingContext2D,
@@ -13,13 +17,26 @@ export function drawFogAreas(
   viewW: number,
   viewH: number,
   playerCell: Vec,
-  spriteRef: SpriteCacheRef
+  spriteRef: SpriteCacheRef,
+  nightBlend: number = 0
 ) {
   if (state.fogAreas.length === 0) return;
 
-  ensureFogSprites(spriteRef);
-  const sprites = spriteRef.current;
-  if (!sprites || sprites.length === 0) return;
+  const safeNightBlend = clamp01(nightBlend);
+  const dayMul = 1 - safeNightBlend;
+  const nightMul = safeNightBlend;
+
+  let daySprites: HTMLCanvasElement[] | null = null;
+  let nightSprites: HTMLCanvasElement[] | null = null;
+  if (dayMul > 0) {
+    ensureFogSprites(spriteRef);
+    daySprites = spriteRef.current;
+  }
+  if (nightMul > 0) {
+    nightSprites = ensureFogNightSprites();
+  }
+  if (dayMul > 0 && (!daySprites || daySprites.length === 0)) return;
+  if (nightMul > 0 && (!nightSprites || nightSprites.length === 0)) return;
 
   const viewLeft = camX;
   const viewTop = camY;
@@ -62,9 +79,17 @@ export function drawFogAreas(
 
       if (x + half < 0 || y + half < 0 || x - half > viewW || y - half > viewH) continue;
 
-      ctx.globalAlpha = clamp01(cloud.alpha * intensity);
-      const sprite = sprites[cloud.shade] ?? sprites[0];
-      ctx.drawImage(sprite, x - half, y - half, cloud.size, cloud.size);
+      const baseAlpha = clamp01(cloud.alpha * intensity);
+      if (dayMul > 0 && daySprites) {
+        ctx.globalAlpha = clamp01(baseAlpha * dayMul);
+        const daySprite = daySprites[cloud.shade] ?? daySprites[0];
+        ctx.drawImage(daySprite, x - half, y - half, cloud.size, cloud.size);
+      }
+      if (nightMul > 0 && nightSprites) {
+        ctx.globalAlpha = clamp01(baseAlpha * nightMul);
+        const nightSprite = nightSprites[cloud.shade] ?? nightSprites[0];
+        ctx.drawImage(nightSprite, x - half, y - half, cloud.size, cloud.size);
+      }
     }
 
     ctx.restore();

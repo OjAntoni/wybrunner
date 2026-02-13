@@ -9,6 +9,7 @@
 ## Runtime Layers
 
 - `src/game/model/*`: game state shape and initialization.
+  - Includes day-night state anchors (`dayNightCycleStartMs`) and player-facing direction (`playerFacing`) used by render-time visibility.
 - `src/game/actions/*`: immediate player-triggered actions (equipment placement, purchases).
 - `src/game/systems/*`: state mutation/update logic.
 - `src/game/world/*`: pathing, exploration, fog, maze generation.
@@ -43,7 +44,7 @@
 
 ## Render Layers
 
-- `src/game/render/scene.ts`: orchestrates scene render order.
+- `src/game/render/scene.ts`: orchestrates scene render order, including night-time cloud blackening via black sprite variants.
 - `src/game/render/sceneViewport.ts`: camera/viewport setup.
 - `src/game/render/sceneTerrainLayer.ts`: tiles + arrow throwers.
 - `src/game/render/sceneObjectLayer.ts`: world object composition.
@@ -56,14 +57,15 @@
 - `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions).
 - `src/game/render/sceneActors.ts`: player, dynamic chaser list, hunters, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text.
 - `src/game/render/hunterVisionLayer.ts`: hunter + turret vision rendering (wall-clipped sectors with turret cone-to-line targeting transition).
+- `src/game/render/dayNightLayer.ts`: day-night darkening overlay, player night-vision cutout mask with warm flashlight tint, flashlight startup flicker during day->night transition, and center warning text draw.
 - `src/game/render/cloudLayers.ts`: compatibility export for cloud layer entry points.
-- `src/game/render/exploreCloudLayer.ts`: explored-area cloud rendering.
-- `src/game/render/fogAreaLayer.ts`: fog-area cloud rendering.
-- `src/game/render/cloudSprites.ts`: sprite cache entry points.
-- `src/game/render/cloudSpriteDefs.ts`: cloud sprite palettes and style presets.
+- `src/game/render/exploreCloudLayer.ts`: explored-area cloud rendering (supports day/night sprite variants with transition crossfade blend).
+- `src/game/render/fogAreaLayer.ts`: fog-area cloud rendering (supports day/night sprite variants with transition crossfade blend).
+- `src/game/render/cloudSprites.ts`: sprite cache entry points (day and night-black variants).
+- `src/game/render/cloudSpriteDefs.ts`: cloud sprite palettes and style presets (day and night-black palettes).
 - `src/game/render/cloudSpriteFactory.ts`: sprite canvas construction/caching.
 - `src/game/render/fogOverlay.ts`, `src/game/render/guidance.ts`: overlays.
-- `src/game/render/mapWindowScene.ts`: full-world map rendering pipeline (terrain, objects, actors, fog areas, exploration clouds) with zoom/pan camera.
+- `src/game/render/mapWindowScene.ts`: full-world map rendering pipeline (terrain, objects, actors, fog areas, exploration clouds, day-night overlay) with zoom/pan camera; cloud layers use darkness-driven day/night sprite crossfade.
 
 ## Update Pipeline
 
@@ -83,6 +85,7 @@
 - `src/game/systems/fogAreaCells.ts`: fog-area cell growth and anchor generation.
 - `src/game/systems/helpers/spawnHelpers.ts`: helper spawn setup.
 - `src/game/systems/helpers/updateHelpers.ts`: helper movement/combat update.
+- `src/game/systems/dayNight.ts`: simulation-time day-night phase snapshot (initial short day, asymmetric transition durations, transition alphas, warning flags, flashlight startup delay + flicker alpha, and night->day vision smooth fade-out thresholding).
 - `src/game/world/hunterVision.ts`: hunter line-of-sight and cone ray sampling.
 - `src/game/world/hunterFacing.ts`: hunter facing-angle/turn-animation helpers (1s rotation interpolation).
 

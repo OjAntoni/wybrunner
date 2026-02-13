@@ -64,6 +64,7 @@ export function initGame(now: number = performance.now()): GameState {
   return {
     grid,
     player: cellCenter(playerCell),
+    playerFacing: { x: 1, y: 0 },
     monsters: [],
     hunters,
     turrets: [],
@@ -93,6 +94,7 @@ export function initGame(now: number = performance.now()): GameState {
     fogUntil: 0,
     explosions: [],
     playerPopup: null,
+    dayNightCycleStartMs: now,
     status: "playing",
     loseReason: "caught",
     lastPlayerCell: { x: playerCell.x, y: playerCell.y },
