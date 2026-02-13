@@ -13,9 +13,13 @@ export function KeyboardControlsList() {
       </ControlsRow>
       <ControlsRow label="Spike">
         <span className="keycap">Space</span>
-        <span className="controls-or">or</span>
-        <span className="keycap">E</span>
         <span className="controls-note">stuns chaser for 5s</span>
+      </ControlsRow>
+      <ControlsRow label="Sword">
+        <span className="keycap">E</span>
+        <span className="controls-or">or</span>
+        <span className="keycap">LMB</span>
+        <span className="controls-note">quick swing animation</span>
       </ControlsRow>
       <ControlsRow label="Bomb">
         <span className="keycap">B</span>

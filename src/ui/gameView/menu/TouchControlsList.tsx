@@ -4,6 +4,7 @@ export function TouchControlsList() {
   return (
     <>
       <ControlsRow label="Move">Use the joystick at the bottom-left.</ControlsRow>
+      <ControlsRow label="Sword">Tap the sword button to swing.</ControlsRow>
       <ControlsRow label="Trap">
         Tap the trap icon button to place a trap and stun the chaser for 5s.
       </ControlsRow>

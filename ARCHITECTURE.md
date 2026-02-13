@@ -9,12 +9,13 @@
 ## Runtime Layers
 
 - `src/game/model/*`: game state shape and initialization.
-  - Includes day-night state anchors (`dayNightCycleStartMs`), player-facing direction (`playerFacing`) for night-vision cones, and a smoothed facing vector (`playerFacingIndicator`) used by the player indicator render.
-- `src/game/actions/*`: immediate player-triggered actions (equipment placement, purchases).
+  - Includes day-night state anchors (`dayNightCycleStartMs`), player-facing direction (`playerFacing`) for night-vision cones, a smoothed facing vector (`playerFacingIndicator`) used by the player indicator render, and sword swing timing/cooldown (`swordSwingStartMs`, `swordCooldownUntilMs`) for attack animation.
+- `src/game/actions/*`: immediate player-triggered actions (equipment placement, purchases, sword swing animation triggers).
 - `src/game/systems/*`: state mutation/update logic.
 - `src/game/world/*`: pathing, exploration, fog, maze generation.
 - `src/game/render/*`: canvas render pipeline and scene layers.
 - `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: simulation-time clock advancement (advances only while gameplay is actively running).
+- `src/hooks/runtime/useRuntimeCombat.ts`: player-triggered sword swing animation action.
 
 ## Controller Layers
 
@@ -26,6 +27,7 @@
   - `useControllerLifecycle.ts`: sync lifecycle/effects.
   - `useControllerTouchBindings.ts`: touch input wiring.
   - `useControllerKeyboardBindings.ts`: keyboard input wiring.
+  - `useControllerMouseBindings.ts`: mouse input wiring for left-click sword swing.
   - `useControllerBehavior.ts`: combined behavioral logic.
 
 ## Input Layers
@@ -33,14 +35,16 @@
 - `src/input/keymap.ts`: key-to-direction mapping.
 - `src/input/keyboard/*`: keyboard event decision logic.
   - Includes dedicated map-open keyboard handler routing (`M` toggle/close behavior and map-state key blocking).
+- `src/input/mouse/*`: mouse button routing (left-click sword swing while in active gameplay).
 - `src/input/touch/*`: touch joystick math/guard rules.
 - `src/input/touch/touchAction.ts`: shared touch-action helper.
 - `src/hooks/useKeyboardControls.ts`: browser listener wrapper for keyboard.
+- `src/hooks/useMouseControls.ts`: pointer listener wrapper for mouse input on the game canvas.
 - `src/hooks/useTouchJoystick.ts`: touch-hook composition layer.
 - `src/hooks/touch/useJoystickVisualState.ts`: joystick visual scheduling/DOM updates.
 - `src/hooks/touch/useJoystickPointerHandlers.ts`: joystick pointer interaction flow.
 - `src/hooks/touch/useJoystickPointerState.ts`: joystick pointer state and vector sampling.
-- `src/hooks/touch/useTouchActionHandlers.ts`: trap/bomb touch button handlers.
+- `src/hooks/touch/useTouchActionHandlers.ts`: trap/bomb/sword touch button handlers.
 
 ## Render Layers
 
@@ -55,7 +59,7 @@
 - `src/game/render/collectibleShared.ts`: collectible cell/bounds helpers.
 - `src/game/render/sceneHazardsLayer.ts`: traps/spikes/underground traps.
 - `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions).
-- `src/game/render/sceneActors.ts`: player (including pulsing, smoothed facing indicator triangle), dynamic monster list (chasers + night ghost pack), hunters, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text; ghost render includes lifecycle-driven alpha/scale (3s fade in/out), default/angry/sad face variants (`to_hunter` + `with_hunter` are angry/slightly red, `return_to_path` is sad/non-red), and exposes a tiny dotted white path-loop overlay draw used after night darkening.
+- `src/game/render/sceneActors.ts`: player (including pulsing, smoothed facing indicator triangle and sword swing animation), dynamic monster list (chasers + night ghost pack), hunters, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text; ghost render includes lifecycle-driven alpha/scale (3s fade in/out), default/angry/sad face variants (`to_hunter` + `with_hunter` are angry/slightly red, `return_to_path` is sad/non-red), and exposes a tiny dotted white path-loop overlay draw used after night darkening.
 - `src/game/render/hunterVisionLayer.ts`: hunter + turret vision rendering (wall-clipped sectors with turret cone-to-line targeting transition).
 - `src/game/render/dayNightLayer.ts`: day-night darkening overlay that erases darkness on an offscreen darkness layer via `destination-out` using player near-circle + player cone + ghost circles (ghost circles respect ghost fade alpha and use partial erase for dimmer ghost-lit areas; escorting `with_hunter` ghosts use 3x ghost-erase strength), adds a thin perimeter ring for ghost circles (white by default, slightly red only for active relay states `to_hunter`/`with_hunter`), then composites that layer back to preserve underlying map colors, with flashlight startup flicker during day->night transition and center warning text draw.
 - `src/game/render/cloudLayers.ts`: compatibility export for cloud layer entry points.

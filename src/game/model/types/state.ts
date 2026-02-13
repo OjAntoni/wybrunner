@@ -48,6 +48,8 @@ export type GameState = {
   fogUntil: number;
   explosions: Explosion[];
   playerPopup: PlayerPopup | null;
+  swordSwingStartMs: number | null;
+  swordCooldownUntilMs: number;
   dayNightCycleStartMs: number;
   status: GameStatus;
   loseReason: LoseReason;

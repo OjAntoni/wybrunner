@@ -37,7 +37,11 @@ export function GameScreenView({ view, refs, actions }: GameScreenViewProps) {
       {showTouchLayer && (
         <TouchLayer
           view={{ spikesLeft: view.spikesLeft, bombsLeft: view.bombsLeft }}
-          refs={{ joystickRef: refs.joystickRef, joystickKnobRef: refs.joystickKnobRef }}
+          refs={{
+            joystickRef: refs.joystickRef,
+            joystickZoneRef: refs.joystickZoneRef,
+            joystickKnobRef: refs.joystickKnobRef,
+          }}
           actions={{
             onPauseGame: actions.onPauseGame,
             onOpenEquipment: actions.onOpenEquipment,
@@ -46,6 +50,7 @@ export function GameScreenView({ view, refs, actions }: GameScreenViewProps) {
             onJoystickPointerUp: actions.onJoystickPointerUp,
             onTrapPointerDown: actions.onTrapPointerDown,
             onBombPointerDown: actions.onBombPointerDown,
+            onSwordPointerDown: actions.onSwordPointerDown,
           }}
         />
       )}

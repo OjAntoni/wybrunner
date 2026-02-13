@@ -98,6 +98,8 @@ export function initGame(now: number = performance.now()): GameState {
     fogUntil: 0,
     explosions: [],
     playerPopup: null,
+    swordSwingStartMs: null,
+    swordCooldownUntilMs: 0,
     dayNightCycleStartMs: now,
     status: "playing",
     loseReason: "caught",

@@ -115,3 +115,6 @@ export const HELPER_SPEED_MULT = 0.6;
 export const TOUCH_CHASER_SPEED_MULT = 0.8;
 export const TOUCH_JOYSTICK_MAX = 58;
 export const TOUCH_JOYSTICK_DEADZONE = 0.18;
+
+export const SWORD_SWING_DURATION_MS = 180;
+export const SWORD_SWING_COOLDOWN_MS = 1000;

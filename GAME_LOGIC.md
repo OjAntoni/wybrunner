@@ -51,6 +51,7 @@ Code references:
 - Movement uses collision-aware movement/turn assist logic.
 - Entering new cells updates exploration clearing and discovered artifacts.
 - Coin collection increments counter.
+- Sword swing animation triggers on attack input and sweeps from right shoulder to left; the visual hit zone covers front, left, right, and front diagonals (5 tiles total, animation only) with a 1s cooldown between swings.
 - Underground traps stay hidden while first stepped on and only reveal after the player leaves; stepping onto a revealed underground trap is lethal.
 
 Code references:
@@ -342,6 +343,7 @@ Code references:
 
 - Keydown handling is split by UI/game state (menu, paused, equipment, restart confirm, playing).
 - Direction keys feed movement set; actions trigger spike/bomb/restart/equipment flows.
+- Sword swing input uses `E` or left mouse button.
 - Desktop map controls:
   - `M` opens/closes the map window while in-game.
   - While map is open, gameplay actions are blocked and play stays paused.
@@ -358,6 +360,7 @@ Code references:
 
 - Joystick uses pointer capture + sampled vector with deadzone.
 - Touch action buttons invoke spike/bomb placement.
+- Touch includes a sword action button for swing animation.
 - Touch-mode detector adjusts UI and gameplay tuning.
 - Map access is menu-driven (pause menu `Map` button), with drag/pinch zoom support and on-screen zoom buttons.
 

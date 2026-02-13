@@ -33,6 +33,7 @@ type UseControllerKeyboardBindingsParams = {
   runtime: {
     placeSpike: () => void;
     placeBomb: () => void;
+    swingSword: () => void;
   };
   setPaused: (value: boolean) => void;
   setEquipmentOpen: (value: boolean) => void;
@@ -56,7 +57,7 @@ export function useControllerKeyboardBindings({
     stateRef,
     keysRef,
   } = refs;
-  const { placeSpike, placeBomb } = runtime;
+  const { placeSpike, placeBomb, swingSword } = runtime;
 
   useKeyboardControls({
     screenRef,
@@ -82,6 +83,7 @@ export function useControllerKeyboardBindings({
       setEquipmentOpen,
       placeSpike,
       placeBomb,
+      swingSword,
       openEquipment: uiActions.openEquipment,
       openMap: uiActions.openMap,
       closeMap: uiActions.closeMap,

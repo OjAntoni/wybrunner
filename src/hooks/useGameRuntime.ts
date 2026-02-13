@@ -2,6 +2,7 @@ import { useRuntimeDraw } from "./runtime/useRuntimeDraw";
 import { useRuntimeEquipment } from "./runtime/useRuntimeEquipment";
 import { useRuntimeInput } from "./runtime/useRuntimeInput";
 import { useRuntimeStateUpdate } from "./runtime/useRuntimeStateUpdate";
+import { useRuntimeCombat } from "./runtime/useRuntimeCombat";
 import type { UseGameRuntimeParams } from "./runtime/types";
 
 export function useGameRuntime({
@@ -47,11 +48,13 @@ export function useGameRuntime({
     setBombsLeft,
     setCoinsCollected,
   });
+  const { swingSword } = useRuntimeCombat({ stateRef, gameNowRef });
 
   return {
     updateState,
     draw,
     placeSpike,
     placeBomb,
+    swingSword,
   };
 }

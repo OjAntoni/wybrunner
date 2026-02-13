@@ -34,7 +34,9 @@ export function updatePlayerProgress(
   }
   const indicatorTarget = state.playerFacing;
   const indicator = state.playerFacingIndicator;
-  const indicatorLerp = 1 - Math.exp(-dt * 10);
+  const dot = indicator.x * indicatorTarget.x + indicator.y * indicatorTarget.y;
+  const turnBoost = dot < -0.2 ? 2.2 : 1;
+  const indicatorLerp = 1 - Math.exp(-dt * 10 * turnBoost);
   indicator.x += (indicatorTarget.x - indicator.x) * indicatorLerp;
   indicator.y += (indicatorTarget.y - indicator.y) * indicatorLerp;
   const indicatorLen = Math.hypot(indicator.x, indicator.y);

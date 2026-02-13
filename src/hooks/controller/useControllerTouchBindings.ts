@@ -17,6 +17,7 @@ type UseControllerTouchBindingsParams = {
   runtime: {
     placeSpike: () => void;
     placeBomb: () => void;
+    swingSword: () => void;
   };
 };
 
@@ -35,13 +36,14 @@ export function useControllerTouchBindings({
     joystickKnobRef,
     touchMoveRef,
   } = refs;
-  const { placeSpike, placeBomb } = runtime;
+  const { placeSpike, placeBomb, swingSword } = runtime;
 
   const {
     resetTouchInput,
     onJoystickPointerDown,
     onTrapPointerDown,
     onBombPointerDown,
+    onSwordPointerDown,
     onJoystickPointerMove,
     onJoystickPointerUp,
   } = useTouchJoystick({
@@ -56,6 +58,7 @@ export function useControllerTouchBindings({
     touchMoveRef,
     onPlaceSpike: placeSpike,
     onPlaceBomb: placeBomb,
+    onSwingSword: swingSword,
   });
 
   return {
@@ -64,6 +67,7 @@ export function useControllerTouchBindings({
       onJoystickPointerDown,
       onTrapPointerDown,
       onBombPointerDown,
+      onSwordPointerDown,
       onJoystickPointerMove,
       onJoystickPointerUp,
     },

@@ -15,6 +15,7 @@ export type KeyboardCallbacks = {
   setEquipmentOpen: (value: boolean) => void;
   placeSpike: () => void;
   placeBomb: () => void;
+  swingSword: () => void;
   openEquipment: () => void;
   openMap: () => void;
   closeMap: () => void;

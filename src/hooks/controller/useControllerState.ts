@@ -57,8 +57,8 @@ export function useControllerState(): ControllerStateModel {
   const helpText = useMemo(
     () =>
       touchEnabled
-        ? "Use the joystick to move. Tap Trap and Bomb buttons to place gear."
-        : "Move with WASD or arrow keys. Press M for map. Collect 10 artifacts.",
+        ? "Use the joystick to move. Tap Sword, Trap, and Bomb buttons."
+        : "Move with WASD or arrow keys. Press E or LMB to swing. Press M for map.",
     [touchEnabled]
   );
 

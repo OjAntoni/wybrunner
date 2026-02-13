@@ -41,7 +41,7 @@ export function useControllerBehavior({
     bombsLeft,
     helpText,
   } = state;
-  const { canvasRef, hudTopRef, inventoryRef, joystickRef, joystickKnobRef } = refs;
+  const { canvasRef, hudTopRef, inventoryRef, joystickRef, joystickZoneRef, joystickKnobRef } = refs;
   const { uiActions, joystickActions } = interactions;
 
   return {
@@ -71,6 +71,7 @@ export function useControllerBehavior({
       hudTopRef,
       inventoryRef,
       joystickRef,
+      joystickZoneRef,
       joystickKnobRef,
     },
     actions: {
@@ -94,6 +95,7 @@ export function useControllerBehavior({
       onJoystickPointerUp: joystickActions.onJoystickPointerUp,
       onTrapPointerDown: joystickActions.onTrapPointerDown,
       onBombPointerDown: joystickActions.onBombPointerDown,
+      onSwordPointerDown: joystickActions.onSwordPointerDown,
     },
   };
 }

@@ -16,6 +16,7 @@ type UseTouchJoystickParams = {
   touchMoveRef: MutableRefObject<Vec>;
   onPlaceSpike: () => void;
   onPlaceBomb: () => void;
+  onSwingSword: () => void;
 };
 
 export function useTouchJoystick({
@@ -30,6 +31,7 @@ export function useTouchJoystick({
   touchMoveRef,
   onPlaceSpike,
   onPlaceBomb,
+  onSwingSword,
 }: UseTouchJoystickParams) {
   const { setJoystickVisual, setJoystickActive } = useJoystickVisualState({
     joystickRef,
@@ -53,6 +55,7 @@ export function useTouchJoystick({
     touchEnabled,
     onPlaceSpike,
     onPlaceBomb,
+    onSwingSword,
   });
 
   return {
@@ -62,5 +65,6 @@ export function useTouchJoystick({
     onJoystickPointerUp: joystickHandlers.onJoystickPointerUp,
     onTrapPointerDown: actionHandlers.onTrapPointerDown,
     onBombPointerDown: actionHandlers.onBombPointerDown,
+    onSwordPointerDown: actionHandlers.onSwordPointerDown,
   };
 }

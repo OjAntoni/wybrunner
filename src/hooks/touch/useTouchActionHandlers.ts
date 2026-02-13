@@ -6,12 +6,14 @@ type UseTouchActionHandlersParams = {
   touchEnabled: boolean;
   onPlaceSpike: () => void;
   onPlaceBomb: () => void;
+  onSwingSword: () => void;
 };
 
 export function useTouchActionHandlers({
   touchEnabled,
   onPlaceSpike,
   onPlaceBomb,
+  onSwingSword,
 }: UseTouchActionHandlersParams) {
   const onTrapPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLButtonElement>) => {
@@ -27,8 +29,16 @@ export function useTouchActionHandlers({
     [onPlaceBomb, touchEnabled]
   );
 
+  const onSwordPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLButtonElement>) => {
+      runTouchAction(e, touchEnabled, onSwingSword);
+    },
+    [onSwingSword, touchEnabled]
+  );
+
   return {
     onTrapPointerDown,
     onBombPointerDown,
+    onSwordPointerDown,
   };
 }

@@ -2,6 +2,7 @@ import { useGameUiActions } from "../useGameUiActions";
 import type { ControllerRefs } from "./useControllerRefs";
 import type { ControllerStateModel } from "./useControllerState";
 import { useControllerKeyboardBindings } from "./useControllerKeyboardBindings";
+import { useControllerMouseBindings } from "./useControllerMouseBindings";
 import { useControllerTouchBindings } from "./useControllerTouchBindings";
 
 type UseControllerInteractionsParams = {
@@ -25,6 +26,7 @@ type UseControllerInteractionsParams = {
   runtime: {
     placeSpike: () => void;
     placeBomb: () => void;
+    swingSword: () => void;
   };
 };
 
@@ -91,6 +93,11 @@ export function useControllerInteractions({
     runtime,
     setPaused,
     setEquipmentOpen,
+  });
+
+  useControllerMouseBindings({
+    refs,
+    runtime,
   });
 
   return {

@@ -29,12 +29,13 @@ export function useJoystickPointerHandlers({
   setJoystickActive,
   setJoystickVisual,
 }: UseJoystickPointerHandlersParams) {
-  const { movePointerIdRef, resetTouchInput, updateTouchVector } = useJoystickPointerState({
-    joystickRef,
-    touchMoveRef,
-    setJoystickActive,
-    setJoystickVisual,
-  });
+  const { movePointerIdRef, resetTouchInput, setJoystickOrigin, updateTouchVector } =
+    useJoystickPointerState({
+      joystickRef,
+      touchMoveRef,
+      setJoystickActive,
+      setJoystickVisual,
+    });
 
   const onJoystickPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -52,6 +53,7 @@ export function useJoystickPointerHandlers({
       if (movePointerIdRef.current !== null && movePointerIdRef.current !== e.pointerId) {
         return;
       }
+      setJoystickOrigin(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect());
       movePointerIdRef.current = e.pointerId;
       e.currentTarget.setPointerCapture(e.pointerId);
       setJoystickActive(true);
@@ -64,6 +66,7 @@ export function useJoystickPointerHandlers({
       pausedRef,
       screenRef,
       setJoystickActive,
+      setJoystickOrigin,
       stateRef,
       touchEnabled,
       updateTouchVector,

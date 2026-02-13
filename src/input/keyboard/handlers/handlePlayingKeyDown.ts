@@ -9,8 +9,14 @@ export function handlePlayingKeyDown({ e, refs, callbacks, ctx }: KeyDownHandler
     handled = true;
   }
 
-  if (e.key === " " || ctx.lowerKey === "e") {
+  if (e.key === " ") {
     callbacks.placeSpike();
+    e.preventDefault();
+    handled = true;
+  }
+
+  if (ctx.lowerKey === "e") {
+    callbacks.swingSword();
     e.preventDefault();
     handled = true;
   }

@@ -1,8 +1,9 @@
-import { HUNTER_CHASER_PLACE_DOT_STEP_MS, TILE_SIZE } from "../config/constants";
+import { HUNTER_CHASER_PLACE_DOT_STEP_MS, SWORD_SWING_DURATION_MS, TILE_SIZE } from "../config/constants";
 import type { GameState } from "../model/types";
 import { getHunterFacingAngle } from "../world/hunterFacing";
 import { getGhostVisibilityAlpha } from "../world/ghostVisibility";
 import { isCellCoveredByExploreClouds } from "../world/exploration";
+import { inBounds } from "../utils/grid";
 
 function drawGhostPath(
   ctx: CanvasRenderingContext2D,
@@ -96,6 +97,7 @@ export function drawPlayer(
     TILE_SIZE - 2
   );
   drawPlayerFacingIndicator(ctx, state, now, camX, camY);
+  drawPlayerSwordSwing(ctx, state, now, camX, camY);
 }
 
 function drawPlayerFacingIndicator(
@@ -139,6 +141,95 @@ function drawPlayerFacingIndicator(
   ctx.lineTo(rightX, rightY);
   ctx.closePath();
   ctx.fill();
+  ctx.restore();
+}
+
+function getCardinalFacing(facing: { x: number; y: number }) {
+  const absX = Math.abs(facing.x);
+  const absY = Math.abs(facing.y);
+  if (absX >= absY) {
+    const signX = facing.x >= 0 ? 1 : -1;
+    return { x: signX, y: 0 };
+  }
+  const signY = facing.y >= 0 ? 1 : -1;
+  return { x: 0, y: signY };
+}
+
+function drawPlayerSwordSwing(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  now: number,
+  camX: number,
+  camY: number
+) {
+  const startMs = state.swordSwingStartMs;
+  if (startMs === null) return;
+  const elapsed = now - startMs;
+  if (elapsed < 0 || elapsed > SWORD_SWING_DURATION_MS) return;
+
+  const facing = state.playerFacingIndicator;
+  const facingLen = Math.hypot(facing.x, facing.y);
+  if (facingLen <= 0.0001) return;
+
+  const dirX = facing.x / facingLen;
+  const dirY = facing.y / facingLen;
+  const centerX = state.player.x * TILE_SIZE - camX;
+  const centerY = state.player.y * TILE_SIZE - camY;
+  const bladeLen = TILE_SIZE * 1.05;
+  const handleLen = TILE_SIZE * 0.2;
+  const swingSpan = Math.PI * 0.9;
+
+  const t = clamp01(elapsed / SWORD_SWING_DURATION_MS);
+  const easeOut = 1 - (1 - t) * (1 - t);
+  const intensity = Math.sin(t * Math.PI);
+
+  const facingAngle = Math.atan2(dirY, dirX);
+  const startAngle = facingAngle + swingSpan * 0.5;
+  const endAngle = facingAngle - swingSpan * 0.5;
+  const angle = startAngle + (endAngle - startAngle) * easeOut;
+
+  const baseX = centerX + Math.cos(angle) * handleLen;
+  const baseY = centerY + Math.sin(angle) * handleLen;
+  const tipX = centerX + Math.cos(angle) * bladeLen;
+  const tipY = centerY + Math.sin(angle) * bladeLen;
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  ctx.strokeStyle = `rgba(232, 232, 232, ${(0.65 * intensity).toFixed(3)})`;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(baseX, baseY);
+  ctx.lineTo(tipX, tipY);
+  ctx.stroke();
+
+  const cardinal = getCardinalFacing({ x: dirX, y: dirY });
+  const right = { x: -cardinal.y, y: cardinal.x };
+  const left = { x: cardinal.y, y: -cardinal.x };
+  const offsets = [
+    cardinal,
+    left,
+    right,
+    { x: cardinal.x + left.x, y: cardinal.y + left.y },
+    { x: cardinal.x + right.x, y: cardinal.y + right.y },
+  ];
+  const glow = 0.1 * intensity;
+  for (const offset of offsets) {
+    const tileX = Math.floor(state.player.x) + offset.x;
+    const tileY = Math.floor(state.player.y) + offset.y;
+    if (!inBounds(tileX, tileY)) continue;
+    if (state.grid[tileY][tileX] !== 0) continue;
+    ctx.fillStyle = `rgba(220, 220, 220, ${glow.toFixed(3)})`;
+    ctx.fillRect(
+      tileX * TILE_SIZE - camX,
+      tileY * TILE_SIZE - camY,
+      TILE_SIZE,
+      TILE_SIZE
+    );
+  }
+
   ctx.restore();
 }
 

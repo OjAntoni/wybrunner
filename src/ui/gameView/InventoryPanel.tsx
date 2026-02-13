@@ -48,7 +48,7 @@ export function InventoryPanel({
           ))}
         </div>
         <div className="inventory-hint">
-          {touchEnabled ? "Tap Trap button" : "Place with Space or E"}
+          {touchEnabled ? "Tap Trap button" : "Place with Space"}
         </div>
       </div>
 

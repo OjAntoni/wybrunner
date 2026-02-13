@@ -21,6 +21,7 @@ export type ControllerRefs = {
   controlsReturnToGameRef: MutableRefObject<boolean>;
   mapReturnToPauseRef: MutableRefObject<boolean>;
   joystickRef: MutableRefObject<HTMLDivElement | null>;
+  joystickZoneRef: MutableRefObject<HTMLDivElement | null>;
   joystickKnobRef: MutableRefObject<HTMLDivElement | null>;
   touchEnabledRef: MutableRefObject<boolean>;
   touchMoveRef: MutableRefObject<Vec>;
@@ -50,6 +51,7 @@ export function useControllerRefs(): ControllerRefs {
   const controlsReturnToGameRef = useRef(false);
   const mapReturnToPauseRef = useRef(false);
   const joystickRef = useRef<HTMLDivElement>(null);
+  const joystickZoneRef = useRef<HTMLDivElement>(null);
   const joystickKnobRef = useRef<HTMLDivElement>(null);
   const touchEnabledRef = useRef(false);
   const touchMoveRef = useRef<Vec>({ x: 0, y: 0 });
@@ -78,6 +80,7 @@ export function useControllerRefs(): ControllerRefs {
     controlsReturnToGameRef,
     mapReturnToPauseRef,
     joystickRef,
+    joystickZoneRef,
     joystickKnobRef,
     touchEnabledRef,
     touchMoveRef,

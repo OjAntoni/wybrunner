@@ -32,6 +32,7 @@ export type GameViewRefs = {
   hudTopRef: RefObject<HTMLDivElement>;
   inventoryRef: RefObject<HTMLElement>;
   joystickRef: RefObject<HTMLDivElement>;
+  joystickZoneRef: RefObject<HTMLDivElement>;
   joystickKnobRef: RefObject<HTMLDivElement>;
 };
 
@@ -56,6 +57,7 @@ export type GameViewActions = {
   onJoystickPointerUp: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onTrapPointerDown: (e: ReactPointerEvent<HTMLButtonElement>) => void;
   onBombPointerDown: (e: ReactPointerEvent<HTMLButtonElement>) => void;
+  onSwordPointerDown: (e: ReactPointerEvent<HTMLButtonElement>) => void;
 };
 
 export type GameViewProps = {
