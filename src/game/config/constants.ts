@@ -43,6 +43,14 @@ export const CHASER_BOOST_MULT = 1.5;
 export const CHASER_BOOST_MS = 3000;
 // 20% slower globally
 export const CHASER_SPEED_MULT = 0.8;
+export const GHOST_SPEED_MULT = 0.72;
+export const GHOST_COUNT_MIN = 13;
+export const GHOST_COUNT_MAX = 21;
+export const GHOST_NIGHT_VISION_RADIUS_TILES = 5;
+export const GHOST_SPAWN_MIN_DIST = 15;
+export const GHOST_PATH_MIN_LENGTH_TILES = 60;
+export const GHOST_APPEAR_ANIM_MS = 3000;
+export const GHOST_DISAPPEAR_ANIM_MS = 3000;
 
 // tiles from player at spawn
 export const HUNTER_MIN_DIST = 12;

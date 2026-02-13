@@ -86,15 +86,36 @@ Code references:
 - `src/game/actions/equipment.ts`
 - `src/game/world/bombs.ts`
 
-## 6. Chaser (Monster) AI
+## 6. Monsters (Chaser + Ghost)
 
-- Chaser runtime uses a dynamic list of active chasers (`state.monsters`), which can be empty.
+- Monster runtime uses a dynamic mixed enemy list (`state.monsters`) with typed entries:
+  - `chaser`: hunter-placed ground monster.
+  - `ghost`: night-only flying monster.
 - No chaser exists initially; hunters may place chasers later.
 - Chaser pathing uses BFS next step; falls back to nearest-neighbor steering.
-- Avoids immediate reverse turns when possible.
-- Speed modifiers include base multiplier, touch-mode multiplier, and temporary boost multiplier.
+- Chaser avoids immediate reverse turns when possible.
+- Chaser speed modifiers include base multiplier, touch-mode multiplier, and temporary boost multiplier.
 - Chaser body is hidden while the chaser tile is still on undiscovered land.
-- Collision with player triggers lose state.
+- Ghost lifecycle:
+  - a ghost pack is auto-spawned when full `night` phase starts.
+  - pack size is randomized in range `13-21`.
+  - each ghost spawn point is at least `15` tiles away from player.
+  - each ghost fades in on spawn (`3s` appear animation).
+  - when full night ends, each ghost starts a `3s` fade-out animation and is removed when fade completes.
+- Ghost movement:
+  - does not chase player.
+  - each ghost follows its own predefined cyclic curved path in continuous motion.
+  - each generated path has total loop length at least `60` tiles.
+  - path centers are distributed by map sectors (with jitter), so ghost paths are spread more evenly across the map.
+  - at least one ghost path per night is smoothly deformed to pass through the player's current position at spawn time (no hard corner snap).
+  - ignores wall collision/pathing (air movement above the maze).
+- Ghost visibility:
+  - rendered as a slightly transparent white flying mob.
+  - body visibility is animation-driven (smooth fade in/out).
+  - each ghost predefined path is rendered as a tiny dotted white closed line.
+  - ghost path lines are drawn above the night darkness layer, so they stay visible even outside revealed vision.
+  - not hidden by exploration-cloud coverage.
+- Collision with player triggers lose state for both monster kinds.
 
 Code references:
 - `src/game/systems/update/monster.ts`
@@ -246,7 +267,7 @@ Per frame, draw order is orchestrated in `drawScene`:
 2. Terrain + throwers.
 3. World objects and arrows.
 4. Fog areas and exploration clouds.
-5. Hunter + turret vision layers, helpers, hunters, turrets, player, chaser.
+5. Hunter + turret vision layers, helpers, hunters, turrets, player, monsters (chaser + ghost).
 6. Temporary fog overlay + guidance arrows.
 7. Temporary popup text layers (player insufficient-money popup, hunter chaser/turret-placement popups).
 
@@ -276,10 +297,18 @@ Code references:
 - During day->night transition, a large center warning text appears: `Night is coming...` using the same retro pixel font as the rest of the game.
 - During day->night transition, player night vision starts after a `3s` delay, then performs a startup flicker sequence (on `0.25s` -> off `0.5s` -> on `0.4s` -> off `0.4s` -> steady on); during off windows, player vision mask is fully disabled.
 - During night->day transition, player night vision smoothly fades out and then turns off once ambient brightness is high enough.
-- During full night, the map is dark except for player vision:
+- During full night, the map is dark except for shared night vision:
   - directional cone vision with radius `10` tiles and hunter-like cone angle.
   - guaranteed near-circle visibility with radius `3` tiles around the player.
-  - player-visible area is darker than day and receives a subtle warm yellow flashlight tint across the full visible shape.
+  - every ghost contributes additional circular visibility (`5` tile radius) around its position.
+  - ghost visibility circles are intentionally dimmer than player vision (partial darkness erase).
+  - ghost visibility circles follow ghost fade alpha during appear/disappear animation.
+  - each ghost visibility circle has a thin transparent white perimeter ring.
+  - player-visible area preserves original scene colors (no monochrome/dim tint grading).
+  - darkness is erased on a dedicated darkness overlay (`destination-out`) with three vision shapes: player near circle, player cone, and ghost circles.
+  - overlapping vision areas remain visible as a union (no overlap darkening).
+  - cone/wall clipping uses exact grid-boundary ray casting (DDA) for sharper wall silhouettes without step-based scalloping.
+  - visible areas use hard borders only (no perimeter soft-transition/falloff).
   - exploration clouds and fog-area clouds smoothly crossfade between day sprites and black night sprites during transitions; full night uses the black variant.
   - only the vision mask area remains visible; outside it is darkened.
 - Player vision cone direction uses the player's last non-zero movement input (`playerFacing`), so the cone remains stable while standing still.

@@ -1,7 +1,51 @@
 import { HUNTER_CHASER_PLACE_DOT_STEP_MS, TILE_SIZE } from "../config/constants";
 import type { GameState } from "../model/types";
 import { getHunterFacingAngle } from "../world/hunterFacing";
+import { getGhostVisibilityAlpha } from "../world/ghostVisibility";
 import { isCellCoveredByExploreClouds } from "../world/exploration";
+
+function drawGhostPath(
+  ctx: CanvasRenderingContext2D,
+  path: { x: number; y: number }[],
+  visibilityAlpha: number,
+  now: number,
+  camX: number,
+  camY: number
+) {
+  if (path.length < 2 || visibilityAlpha <= 0.001) return;
+
+  ctx.save();
+  ctx.lineWidth = 0.7;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = `rgba(255, 255, 255, ${(0.34 * visibilityAlpha).toFixed(3)})`;
+  ctx.setLineDash([1, 2.3]);
+  ctx.lineDashOffset = -((now / 110) % 3.3);
+  const first = path[0];
+  ctx.beginPath();
+  ctx.moveTo(first.x * TILE_SIZE - camX, first.y * TILE_SIZE - camY);
+  for (let i = 1; i < path.length; i += 1) {
+    const point = path[i];
+    ctx.lineTo(point.x * TILE_SIZE - camX, point.y * TILE_SIZE - camY);
+  }
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+}
+
+export function drawGhostPathsOverlay(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  now: number,
+  camX: number,
+  camY: number
+) {
+  for (const monster of state.monsters) {
+    if (monster.kind !== "ghost") continue;
+    const visibilityAlpha = getGhostVisibilityAlpha(monster, now);
+    drawGhostPath(ctx, monster.path, visibilityAlpha, now, camX, camY);
+  }
+}
 
 export function drawHelpers(
   ctx: CanvasRenderingContext2D,
@@ -60,6 +104,34 @@ export function drawMonster(
   camY: number
 ) {
   for (const monster of state.monsters) {
+    if (monster.kind === "ghost") {
+      const visibilityAlpha = getGhostVisibilityAlpha(monster, now);
+      if (visibilityAlpha <= 0.001) continue;
+
+      const cx = monster.pos.x * TILE_SIZE - camX;
+      const cy = monster.pos.y * TILE_SIZE - camY - 2 + Math.sin(now / 240 + cx * 0.015) * 1.5;
+      const scale = 0.72 + visibilityAlpha * 0.28;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = `rgba(232, 246, 255, ${(0.2 * visibilityAlpha).toFixed(3)})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.fillStyle = `rgba(245, 252, 255, ${(0.72 * visibilityAlpha).toFixed(3)})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, 5.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      continue;
+    }
+
     const monsterCell = {
       x: Math.floor(monster.pos.x),
       y: Math.floor(monster.pos.y),

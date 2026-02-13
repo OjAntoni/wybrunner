@@ -7,6 +7,7 @@ import { drawFog } from "./fogOverlay";
 import { drawGuidanceArrows } from "./guidance";
 import { drawHunterVisions } from "./hunterVisionLayer";
 import {
+  drawGhostPathsOverlay,
   drawHelpers,
   drawHunters,
   drawMonster,
@@ -107,6 +108,7 @@ export function drawScene({
     playerScreenY
   );
   const overlaySnapshot = drawNightLightingOverlay(ctx, state, now, camX, camY, viewW, viewH);
+  drawGhostPathsOverlay(ctx, state, now, camX, camY);
   drawPlayerPopup(ctx, state, now, camX, camY, touchEnabled);
   drawNightWarningText(ctx, overlaySnapshot, viewW, viewH);
 }

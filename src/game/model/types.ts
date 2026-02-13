@@ -17,6 +17,8 @@ export type {
 export type {
   Arrow,
   ArrowThrower,
+  ChaserMonster,
+  GhostMonster,
   Helper,
   Hunter,
   HunterBackCheckState,

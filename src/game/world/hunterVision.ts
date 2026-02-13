@@ -1,8 +1,8 @@
 import type { Cell, Vec } from "../model/types";
 import { inBounds } from "../utils/grid";
 
-const VISION_RAY_STEP_TILES = 0.05;
 const LOS_EPSILON_TILES = 0.08;
+const MAX_DISTANCE_EPSILON_TILES = 1e-6;
 
 function directionToAngle(direction: Vec) {
   if (direction.x === 0 && direction.y === 0) return 0;
@@ -22,22 +22,96 @@ export function castVisionRayDistance(
   angle: number,
   maxDistanceTiles: number
 ) {
+  if (maxDistanceTiles <= 0) return 0;
+
   const dirX = Math.cos(angle);
   const dirY = Math.sin(angle);
-  let distance = 0;
+  const EPSILON = 1e-9;
 
-  while (distance < maxDistanceTiles) {
-    const nextDistance = Math.min(maxDistanceTiles, distance + VISION_RAY_STEP_TILES);
-    const sampleX = origin.x + dirX * nextDistance;
-    const sampleY = origin.y + dirY * nextDistance;
-    const cellX = Math.floor(sampleX);
-    const cellY = Math.floor(sampleY);
-    if (!inBounds(cellX, cellY)) return distance;
-    if (grid[cellY][cellX] === 1) return distance;
-    distance = nextDistance;
+  const originCellX = Math.floor(origin.x);
+  const originCellY = Math.floor(origin.y);
+  if (!inBounds(originCellX, originCellY)) return 0;
+  if (grid[originCellY][originCellX] === 1) return 0;
+
+  const invAbsDirX =
+    Math.abs(dirX) > EPSILON ? 1 / Math.abs(dirX) : Number.POSITIVE_INFINITY;
+  const invAbsDirY =
+    Math.abs(dirY) > EPSILON ? 1 / Math.abs(dirY) : Number.POSITIVE_INFINITY;
+  const stepX = dirX >= 0 ? 1 : -1;
+  const stepY = dirY >= 0 ? 1 : -1;
+
+  let cellX = originCellX;
+  let cellY = originCellY;
+  let tMaxX = Number.POSITIVE_INFINITY;
+  let tMaxY = Number.POSITIVE_INFINITY;
+
+  if (invAbsDirX < Number.POSITIVE_INFINITY) {
+    const nextBoundaryX = stepX > 0 ? cellX + 1 : cellX;
+    tMaxX = (nextBoundaryX - origin.x) / dirX;
+  }
+  if (invAbsDirY < Number.POSITIVE_INFINITY) {
+    const nextBoundaryY = stepY > 0 ? cellY + 1 : cellY;
+    tMaxY = (nextBoundaryY - origin.y) / dirY;
   }
 
-  return maxDistanceTiles;
+  while (true) {
+    const advanceX = tMaxX <= tMaxY;
+    const nextDistance = advanceX ? tMaxX : tMaxY;
+    if (nextDistance > maxDistanceTiles) return maxDistanceTiles;
+
+    if (advanceX) {
+      cellX += stepX;
+      tMaxX += invAbsDirX;
+    } else {
+      cellY += stepY;
+      tMaxY += invAbsDirY;
+    }
+
+    if (!inBounds(cellX, cellY)) {
+      return nextDistance;
+    }
+    if (grid[cellY][cellX] === 1) {
+      return nextDistance;
+    }
+  }
+}
+
+export type VisionRaySample = {
+  angle: number;
+  distance: number;
+  point: Vec;
+  reachedMaxDistance: boolean;
+};
+
+export function sampleVisionConeRays(
+  grid: Cell[][],
+  hunter: Vec,
+  hunterDirection: Vec,
+  radiusTiles: number,
+  coneAngleDeg: number,
+  rayCount: number
+) {
+  const facingAngle = directionToAngle(hunterDirection);
+  const halfConeAngle = (coneAngleDeg * Math.PI) / 360;
+  const safeRayCount = Math.max(2, rayCount);
+  const rays: VisionRaySample[] = [];
+
+  for (let i = 0; i <= safeRayCount; i += 1) {
+    const t = i / safeRayCount;
+    const angle = facingAngle - halfConeAngle + t * (halfConeAngle * 2);
+    const distance = castVisionRayDistance(grid, hunter, angle, radiusTiles);
+    rays.push({
+      angle,
+      distance,
+      point: {
+        x: hunter.x + Math.cos(angle) * distance,
+        y: hunter.y + Math.sin(angle) * distance,
+      },
+      reachedMaxDistance: distance >= radiusTiles - MAX_DISTANCE_EPSILON_TILES,
+    });
+  }
+
+  return rays;
 }
 
 export function isTargetVisibleInVisionCone(
@@ -71,20 +145,12 @@ export function sampleVisionConeBoundary(
   coneAngleDeg: number,
   rayCount: number
 ) {
-  const facingAngle = directionToAngle(hunterDirection);
-  const halfConeAngle = (coneAngleDeg * Math.PI) / 360;
-  const safeRayCount = Math.max(2, rayCount);
-  const points: Vec[] = [];
-
-  for (let i = 0; i <= safeRayCount; i += 1) {
-    const t = i / safeRayCount;
-    const angle = facingAngle - halfConeAngle + t * (halfConeAngle * 2);
-    const rayDistance = castVisionRayDistance(grid, hunter, angle, radiusTiles);
-    points.push({
-      x: hunter.x + Math.cos(angle) * rayDistance,
-      y: hunter.y + Math.sin(angle) * rayDistance,
-    });
-  }
-
-  return points;
+  return sampleVisionConeRays(
+    grid,
+    hunter,
+    hunterDirection,
+    radiusTiles,
+    coneAngleDeg,
+    rayCount
+  ).map((sample) => sample.point);
 }

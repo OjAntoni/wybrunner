@@ -1,6 +1,7 @@
 import { TILE_SIZE } from "../config/constants";
 import type { GameState } from "../model/types";
 import { isCellCoveredByExploreClouds } from "../world/exploration";
+import { getGhostVisibilityAlpha } from "../world/ghostVisibility";
 import { drawArtifactIndicator } from "./primitives";
 
 export function drawGuidanceArrows(
@@ -40,11 +41,16 @@ export function drawGuidanceArrows(
   let bestDistSq = Number.POSITIVE_INFINITY;
 
   for (const monster of state.monsters) {
+    if (monster.kind === "ghost" && getGhostVisibilityAlpha(monster, now) <= 0.001) {
+      continue;
+    }
     const monsterCell = {
       x: Math.floor(monster.pos.x),
       y: Math.floor(monster.pos.y),
     };
-    if (isCellCoveredByExploreClouds(state, monsterCell.x, monsterCell.y)) continue;
+    if (monster.kind !== "ghost" && isCellCoveredByExploreClouds(state, monsterCell.x, monsterCell.y)) {
+      continue;
+    }
 
     const monsterScreenX = monster.pos.x * TILE_SIZE - camX;
     const monsterScreenY = monster.pos.y * TILE_SIZE - camY;

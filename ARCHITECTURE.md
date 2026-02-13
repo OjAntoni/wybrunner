@@ -44,7 +44,7 @@
 
 ## Render Layers
 
-- `src/game/render/scene.ts`: orchestrates scene render order, including night-time cloud blackening via black sprite variants.
+- `src/game/render/scene.ts`: orchestrates scene render order, including night-time cloud blackening via black sprite variants and a post-night-overlay ghost-path pass.
 - `src/game/render/sceneViewport.ts`: camera/viewport setup.
 - `src/game/render/sceneTerrainLayer.ts`: tiles + arrow throwers.
 - `src/game/render/sceneObjectLayer.ts`: world object composition.
@@ -55,9 +55,9 @@
 - `src/game/render/collectibleShared.ts`: collectible cell/bounds helpers.
 - `src/game/render/sceneHazardsLayer.ts`: traps/spikes/underground traps.
 - `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions).
-- `src/game/render/sceneActors.ts`: player, dynamic chaser list, hunters, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text.
+- `src/game/render/sceneActors.ts`: player, dynamic monster list (chasers + night ghost pack), hunters, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text; ghost render includes lifecycle-driven alpha/scale (3s fade in/out) and exposes a tiny dotted white path-loop overlay draw used after night darkening.
 - `src/game/render/hunterVisionLayer.ts`: hunter + turret vision rendering (wall-clipped sectors with turret cone-to-line targeting transition).
-- `src/game/render/dayNightLayer.ts`: day-night darkening overlay, player night-vision cutout mask with warm flashlight tint, flashlight startup flicker during day->night transition, and center warning text draw.
+- `src/game/render/dayNightLayer.ts`: day-night darkening overlay that erases darkness on an offscreen darkness layer via `destination-out` using player near-circle + player cone + ghost circles (ghost circles respect ghost fade alpha and use partial erase for dimmer ghost-lit areas), adds a thin transparent white perimeter ring for ghost circles, then composites that layer back to preserve underlying map colors, with flashlight startup flicker during day->night transition and center warning text draw.
 - `src/game/render/cloudLayers.ts`: compatibility export for cloud layer entry points.
 - `src/game/render/exploreCloudLayer.ts`: explored-area cloud rendering (supports day/night sprite variants with transition crossfade blend).
 - `src/game/render/fogAreaLayer.ts`: fog-area cloud rendering (supports day/night sprite variants with transition crossfade blend).
@@ -65,7 +65,7 @@
 - `src/game/render/cloudSpriteDefs.ts`: cloud sprite palettes and style presets (day and night-black palettes).
 - `src/game/render/cloudSpriteFactory.ts`: sprite canvas construction/caching.
 - `src/game/render/fogOverlay.ts`, `src/game/render/guidance.ts`: overlays.
-- `src/game/render/mapWindowScene.ts`: full-world map rendering pipeline (terrain, objects, actors, fog areas, exploration clouds, day-night overlay) with zoom/pan camera; cloud layers use darkness-driven day/night sprite crossfade.
+- `src/game/render/mapWindowScene.ts`: full-world map rendering pipeline (terrain, objects, actors, fog areas, exploration clouds, day-night overlay, then ghost-path overlay) with zoom/pan camera; cloud layers use darkness-driven day/night sprite crossfade.
 
 ## Update Pipeline
 
@@ -75,7 +75,7 @@
 - `src/game/systems/update/turret.ts` (static turret sweep/track/cooldown state machine + turret projectile firing)
 - `src/game/systems/update/items.ts`
 - `src/game/systems/update/timers.ts`
-- `src/game/systems/update/monster.ts` (dynamic `monsters[]` chase update and spawn helper for hunter-placed chasers)
+- `src/game/systems/update/monster.ts` (typed `monsters[]` update: ground chaser pathing + full-night ghost pack spawn/despawn, sector-distributed ghost path generation for map-wide coverage, guaranteed smoothly player-anchored path for at least one ghost per night spawn, per-ghost cyclic curved air-path movement that ignores walls, and 3s lifecycle fade timing for appear/disappear)
 - `src/game/systems/update/hunter.ts` (multi-hunter patrol/chase update with patrol momentum/open-space steering + short-corridor escape bias + recent-cell anti-loop penalty + tight-loop 3x3 escape + last-seen nervous scan + occasional 180-degree back-check behavior + timed chaser placement after failed chase + per-step probabilistic turret placement)
 - `src/game/systems/outcome.ts`: lose-state transition.
 - `src/game/systems/artifactSpawns.ts`: booster/trap artifact effects.
@@ -86,8 +86,9 @@
 - `src/game/systems/helpers/spawnHelpers.ts`: helper spawn setup.
 - `src/game/systems/helpers/updateHelpers.ts`: helper movement/combat update.
 - `src/game/systems/dayNight.ts`: simulation-time day-night phase snapshot (initial short day, asymmetric transition durations, transition alphas, warning flags, flashlight startup delay + flicker alpha, and night->day vision smooth fade-out thresholding).
-- `src/game/world/hunterVision.ts`: hunter line-of-sight and cone ray sampling.
+- `src/game/world/hunterVision.ts`: hunter/player/turret line-of-sight and cone ray sampling with exact grid-boundary ray casting (DDA) for wall clipping.
 - `src/game/world/hunterFacing.ts`: hunter facing-angle/turn-animation helpers (1s rotation interpolation).
+- `src/game/world/ghostVisibility.ts`: ghost lifecycle alpha helpers (3s fade-in/fade-out) shared by monster update and render layers.
 
 ## UI Layers
 

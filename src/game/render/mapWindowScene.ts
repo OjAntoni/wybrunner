@@ -6,7 +6,14 @@ import { drawExploreClouds, drawFogAreas } from "./cloudLayers";
 import type { SpriteCacheRef } from "./cloudSprites";
 import { drawNightLightingOverlay } from "./dayNightLayer";
 import { drawHunterVisions } from "./hunterVisionLayer";
-import { drawHelpers, drawHunters, drawMonster, drawPlayer, drawTurrets } from "./sceneActors";
+import {
+  drawGhostPathsOverlay,
+  drawHelpers,
+  drawHunters,
+  drawMonster,
+  drawPlayer,
+  drawTurrets,
+} from "./sceneActors";
 import { drawWorldObjects } from "./sceneObjectLayer";
 import { drawArrows } from "./sceneProjectileLayer";
 import { drawArrowThrowers, drawTerrainTiles } from "./sceneTerrainLayer";
@@ -128,6 +135,7 @@ export function drawMapWindowScene({
   drawMonster(ctx, state, now, camX, camY);
   drawPlayer(ctx, state, camX, camY);
   drawNightLightingOverlay(ctx, state, now, camX, camY, viewW, viewH);
+  drawGhostPathsOverlay(ctx, state, now, camX, camY);
 
   return { center: clampedCenter };
 }

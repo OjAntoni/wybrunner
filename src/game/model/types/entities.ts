@@ -26,7 +26,7 @@ export type Helper = {
   boostUntil: number;
 };
 
-export type Monster = {
+type MonsterBase = {
   pos: Vec;
   dir: Vec;
   target: Vec | null;
@@ -36,6 +36,21 @@ export type Monster = {
   lastCell: Vec;
   bombKillable: boolean;
 };
+
+export type ChaserMonster = MonsterBase & {
+  kind: "chaser";
+};
+
+export type GhostMonster = MonsterBase & {
+  kind: "ghost";
+  path: Vec[];
+  pathIndex: number;
+  pathProgress: number;
+  spawnMs: number;
+  despawnStartMs: number | null;
+};
+
+export type Monster = ChaserMonster | GhostMonster;
 
 export type HunterMode = "patrol" | "chase";
 export type HunterBackCheckState = "none" | "looking_back" | "returning";

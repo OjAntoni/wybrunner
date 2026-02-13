@@ -264,8 +264,9 @@ function startNervousScan(hunter: Hunter, now: number) {
 function maybeStartChaserPlacement(state: GameState, hunter: Hunter, now: number) {
   if (hunter.chaserPlaceEndMs > now) return;
   if (hunter.turretPlaceEndMs > now) return;
+  const hasChaser = state.monsters.some((monster) => monster.kind === "chaser");
   const chance =
-    state.monsters.length === 0
+    !hasChaser
       ? HUNTER_CHASER_PLACE_CHANCE_NO_CHASER
       : HUNTER_CHASER_PLACE_CHANCE_WITH_CHASER;
   if (Math.random() >= chance) return;
