@@ -6,6 +6,7 @@ export type ArrowThrower = {
   dir: Vec; // cardinal
   periodMs: number;
   nextFireMs: number;
+  lastFireMs: number;
 };
 
 export type Arrow = {

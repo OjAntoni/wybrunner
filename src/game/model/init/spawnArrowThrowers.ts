@@ -48,6 +48,7 @@ export function placeArrowThrowers(grid: Cell[][], rng: () => number, baseNow: n
       periodMs: 3000,
       // Randomize phase so they don't all fire on the same beat.
       nextFireMs: baseNow + (0.25 + rng() * 0.75) * 3000,
+      lastFireMs: baseNow - 3000,
     });
     if (arrowThrowers.length >= throwerTarget) break;
   }

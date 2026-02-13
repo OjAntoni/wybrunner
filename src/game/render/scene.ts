@@ -38,7 +38,7 @@ export function drawScene({
     touchEnabled,
   });
   drawTerrainTiles(ctx, state, camX, camY, bounds);
-  drawArrowThrowers(ctx, state, camX, camY, bounds);
+  drawArrowThrowers(ctx, state, now, camX, camY, bounds);
 
   const playerScreenX = state.player.x * TILE_SIZE - camX;
   const playerScreenY = state.player.y * TILE_SIZE - camY;

@@ -98,7 +98,7 @@ export function drawMapWindowScene({
   ctx.fillRect(0, 0, viewW, viewH);
 
   drawTerrainTiles(ctx, state, camX, camY, bounds);
-  drawArrowThrowers(ctx, state, camX, camY, bounds);
+  drawArrowThrowers(ctx, state, now, camX, camY, bounds);
   drawWorldObjects(ctx, state, now, camX, camY, viewW, viewH, bounds);
   drawArrows(ctx, state, camX, camY, viewW, viewH);
 

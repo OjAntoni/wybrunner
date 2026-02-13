@@ -210,7 +210,7 @@ Code references:
 
 ## 9. Projectile System (Arrow Throwers + Turret Shots)
 
-- Throwers are embedded in wall cells and fire on intervals.
+- Throwers are embedded in wall cells and fire on intervals, with a 0.5s windup animation before each shot.
 - Arrows move continuously and collide with walls/player.
 - Bombed thrower walls disable corresponding throwers.
 - Turrets also fire projectiles that share the projectile update/collision pipeline.

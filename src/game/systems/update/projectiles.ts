@@ -17,6 +17,7 @@ export function updateProjectiles(
       if (now < thrower.nextFireMs) continue;
 
       thrower.nextFireMs = now + thrower.periodMs;
+      thrower.lastFireMs = now;
       const spawnX = thrower.x + thrower.dir.x;
       const spawnY = thrower.y + thrower.dir.y;
       if (!inBounds(spawnX, spawnY)) continue;
