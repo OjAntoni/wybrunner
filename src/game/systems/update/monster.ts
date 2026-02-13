@@ -16,6 +16,7 @@ import {
 import type { GameState, Hunter, LoseReason, Monster, Vec } from "../../model/types";
 import { cellKey, countOpenNeighbors, inBounds } from "../../utils/grid";
 import { distance } from "../../utils/math";
+import { CHASER_HEALTH } from "../../config/constants";
 import { isGhostDisappearAnimationFinished } from "../../world/ghostVisibility";
 import { bfsNextStep, bestNeighborStep, bestNeighborStepAvoid } from "../../world/pathing";
 import { getDayNightSnapshot } from "../dayNight";
@@ -858,6 +859,8 @@ export function createMonsterAt(position: Vec, now: number, bombKillable: boolea
       y: Math.floor(position.y),
     },
     bombKillable,
+    health: CHASER_HEALTH,
+    hurtUntilMs: 0,
   };
 }
 

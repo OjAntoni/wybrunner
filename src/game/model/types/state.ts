@@ -50,6 +50,7 @@ export type GameState = {
   playerPopup: PlayerPopup | null;
   swordSwingStartMs: number | null;
   swordCooldownUntilMs: number;
+  swordSwingHitMs: number | null;
   dayNightCycleStartMs: number;
   status: GameStatus;
   loseReason: LoseReason;

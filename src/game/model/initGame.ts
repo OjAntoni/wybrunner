@@ -2,7 +2,12 @@ import { generateMaze } from "../world/maze";
 import { buildExploreCloudBuckets, buildExploreClouds } from "../world/exploreClouds";
 import { cellCenter, cellKey } from "../utils/grid";
 import type { GameState, Hunter } from "./types";
-import { HUNTER_PATROL_MAX_STRAIGHT_STEPS, HUNTER_PATROL_MIN_STRAIGHT_STEPS } from "../config/constants";
+import {
+  HUNTER_HEALTH,
+  HUNTER_PATROL_MAX_STRAIGHT_STEPS,
+  HUNTER_PATROL_MIN_STRAIGHT_STEPS,
+  HUNTER_VISION_ANGLE_DEG,
+} from "../config/constants";
 import { buildInitialPlacements } from "./initGamePlacements";
 import { CARDINAL_DIRS } from "../world/pathingDirections";
 import { directionToAngle } from "../world/hunterFacing";
@@ -34,11 +39,19 @@ export function initGame(now: number = performance.now()): GameState {
       dir,
       target: null,
       mode: "patrol",
+      health: HUNTER_HEALTH,
+      hurtUntilMs: 0,
+      visionAngleDeg: HUNTER_VISION_ANGLE_DEG,
       lastSeenPlayer: null,
       nervousScanActive: false,
       nervousScanIndex: 0,
       nervousScanStep: 1,
       nervousScanNextStepMs: 0,
+      nervousScanUntilMs: 0,
+      chaseOnHit: false,
+      nervousSearchTargetKey: null,
+      nervousSearchTargetCell: null,
+      nervousSearchRecentKeys: [],
       backCheckState: "none",
       backCheckForwardDir: null,
       backCheckHoldUntilMs: 0,
@@ -100,6 +113,7 @@ export function initGame(now: number = performance.now()): GameState {
     playerPopup: null,
     swordSwingStartMs: null,
     swordCooldownUntilMs: 0,
+    swordSwingHitMs: null,
     dayNightCycleStartMs: now,
     status: "playing",
     loseReason: "caught",

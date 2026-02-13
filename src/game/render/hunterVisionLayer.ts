@@ -46,20 +46,20 @@ export function drawHunterVisions(
     }
 
     const facingDirection = directionFromAngle(getHunterFacingAngle(hunter, now));
+    const isChasing = hunter.mode === "chase";
+    const visionAngle = hunter.visionAngleDeg || HUNTER_VISION_ANGLE_DEG;
     const points = sampleVisionConeBoundary(
       state.grid,
       hunter.pos,
       facingDirection,
       HUNTER_VISION_RADIUS_TILES,
-      HUNTER_VISION_ANGLE_DEG,
+      visionAngle,
       HUNTER_VISION_RAY_COUNT
     );
     if (points.length === 0) continue;
 
     const hunterX = hunter.pos.x * TILE_SIZE - camX;
     const hunterY = hunter.pos.y * TILE_SIZE - camY;
-    const isChasing = hunter.mode === "chase";
-
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(hunterX, hunterY);

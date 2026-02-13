@@ -54,8 +54,8 @@ export const GHOST_DISAPPEAR_ANIM_MS = 3000;
 
 // tiles from player at spawn
 export const HUNTER_MIN_DIST = 12;
-export const HUNTER_COUNT_MIN = 10;
-export const HUNTER_COUNT_MAX = 15;
+export const HUNTER_COUNT_MIN = 20;
+export const HUNTER_COUNT_MAX = 30;
 export const HUNTER_WALK_SPEED_MULT = 0.45;
 export const HUNTER_CHASE_SPEED_MULT = 1.3;
 export const HUNTER_VISION_RADIUS_TILES = 9;
@@ -68,6 +68,7 @@ export const HUNTER_BACK_CHECK_LOOK_MS = 900;
 export const HUNTER_BACK_CHECK_MIN_CLEAR_TILES = 2;
 export const HUNTER_NERVOUS_SCAN_TURN_MS = 220;
 export const HUNTER_NERVOUS_SCAN_HOLD_MS = 80;
+export const HUNTER_NERVOUS_SCAN_DURATION_MS = 4000;
 export const HUNTER_PATROL_MIN_STRAIGHT_STEPS = 2;
 export const HUNTER_PATROL_MAX_STRAIGHT_STEPS = 6;
 export const HUNTER_SHORT_CORRIDOR_TILES = 4;
@@ -118,3 +119,5 @@ export const TOUCH_JOYSTICK_DEADZONE = 0.18;
 
 export const SWORD_SWING_DURATION_MS = 180;
 export const SWORD_SWING_COOLDOWN_MS = 1000;
+export const HUNTER_HEALTH = 3;
+export const CHASER_HEALTH = 1;

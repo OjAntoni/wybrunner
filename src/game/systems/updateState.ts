@@ -5,6 +5,7 @@ import { updateItems } from "./update/items";
 import { updateMonster } from "./update/monster";
 import { updatePlayerProgress } from "./update/playerProgress";
 import { updateProjectiles } from "./update/projectiles";
+import { updateSwordHits } from "./update/sword";
 import { updateTimedSystems } from "./update/timers";
 import { updateTurrets } from "./update/turret";
 import type { UpdateGameStateDeps } from "./update/types";
@@ -19,6 +20,8 @@ export function updateGameState(
 ) {
   const playerProgress = updatePlayerProgress(state, dt, now, deps);
   if (!playerProgress.alive) return;
+
+  updateSwordHits(state, now);
 
   updateTurrets(state, dt, now);
 

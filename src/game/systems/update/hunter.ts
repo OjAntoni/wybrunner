@@ -9,6 +9,7 @@ import {
   HUNTER_CHASE_SPEED_MULT,
   HUNTER_NERVOUS_SCAN_HOLD_MS,
   HUNTER_NERVOUS_SCAN_TURN_MS,
+  HUNTER_NERVOUS_SCAN_DURATION_MS,
   HUNTER_PATROL_MAX_STRAIGHT_STEPS,
   HUNTER_PATROL_MIN_STRAIGHT_STEPS,
   HUNTER_ROTATE_ANIM_MS,
@@ -140,6 +141,83 @@ function countOpenMovesInDirection(
   return count;
 }
 
+function chooseNervousSearchTargetCell(
+  grid: GameState["grid"],
+  hunter: Hunter,
+  anchorCell: Vec,
+  radius: number = 5
+) {
+  const candidates: Vec[] = [];
+  const recent = hunter.nervousSearchRecentKeys;
+  const recentSet = new Set(recent);
+  const currentCell = {
+    x: Math.floor(hunter.pos.x),
+    y: Math.floor(hunter.pos.y),
+  };
+
+  const backtrackCell = {
+    x: currentCell.x - hunter.dir.x,
+    y: currentCell.y - hunter.dir.y,
+  };
+
+  const tryAddCandidate = (x: number, y: number, allowRecent: boolean) => {
+    if (!inBounds(x, y)) return;
+    if (grid[y][x] === 1) return;
+    const key = cellKey(x, y);
+    if (!allowRecent && recentSet.has(key)) return;
+    if (hunter.nervousSearchTargetKey && hunter.nervousSearchTargetKey === key) return;
+    if (x === backtrackCell.x && y === backtrackCell.y) return;
+    candidates.push({ x, y });
+  };
+
+  for (let dx = -radius; dx <= radius; dx += 1) {
+    for (let dy = -radius; dy <= radius; dy += 1) {
+      const distSq = dx * dx + dy * dy;
+      if (distSq === 0 || distSq > radius * radius) continue;
+      tryAddCandidate(anchorCell.x + dx, anchorCell.y + dy, false);
+    }
+  }
+
+  if (candidates.length === 0) {
+    for (let dx = -radius; dx <= radius; dx += 1) {
+      for (let dy = -radius; dy <= radius; dy += 1) {
+        const distSq = dx * dx + dy * dy;
+        if (distSq === 0 || distSq > radius * radius) continue;
+        tryAddCandidate(anchorCell.x + dx, anchorCell.y + dy, true);
+      }
+    }
+  }
+
+  if (candidates.length === 0) return null;
+  const farCandidates = candidates.filter((cell) => distance(cell, currentCell) >= 3);
+  const midCandidates =
+    farCandidates.length > 0
+      ? farCandidates
+      : candidates.filter((cell) => distance(cell, currentCell) >= 2);
+  const poolBase = midCandidates.length > 0 ? midCandidates : candidates;
+  const finalPool = poolBase;
+
+  let bestScore = Number.NEGATIVE_INFINITY;
+  const bestCells: Vec[] = [];
+  for (const cell of finalPool) {
+    const dist = distance(cell, anchorCell);
+    const distFromHunter = distance(cell, currentCell);
+    const jitter = Math.random() * 0.6;
+    const score = dist * 0.35 + distFromHunter * 0.6 + jitter;
+    if (score > bestScore) {
+      bestScore = score;
+      bestCells.length = 0;
+      bestCells.push(cell);
+      continue;
+    }
+    if (score === bestScore) {
+      bestCells.push(cell);
+    }
+  }
+
+  return bestCells[randomInt(bestCells.length)];
+}
+
 function resetPatrolStepsUntilTurn(hunter: Hunter) {
   hunter.patrolStepsUntilTurn = randomIntInRange(
     HUNTER_PATROL_MIN_STRAIGHT_STEPS,
@@ -158,6 +236,10 @@ function clearNervousScanState(hunter: Hunter) {
   hunter.nervousScanIndex = 0;
   hunter.nervousScanStep = 1;
   hunter.nervousScanNextStepMs = 0;
+  hunter.nervousScanUntilMs = 0;
+  hunter.nervousSearchTargetKey = null;
+  hunter.nervousSearchTargetCell = null;
+  hunter.nervousSearchRecentKeys = [];
 }
 
 function clearChaserPlacementState(hunter: Hunter) {
@@ -296,14 +378,32 @@ function ensureHunterRecentersIfTargetMissing(hunter: Hunter) {
   };
 }
 
-function startNervousScan(hunter: Hunter, now: number) {
+function startNervousScan(
+  hunter: Hunter,
+  now: number,
+  durationMs: number = HUNTER_NERVOUS_SCAN_DURATION_MS
+) {
   if (hunter.nervousScanActive) return;
   hunter.nervousScanActive = true;
+  hunter.chaseOnHit = false;
   hunter.nervousScanStep = Math.random() < 0.5 ? 1 : -1;
   hunter.nervousScanIndex = hunter.nervousScanStep === 1 ? 0 : NERVOUS_SCAN_DIRS.length - 1;
   hunter.nervousScanNextStepMs = now;
+  hunter.nervousScanUntilMs = durationMs > 0 ? now + durationMs : 0;
+  hunter.nervousSearchTargetKey = null;
+  hunter.nervousSearchTargetCell = null;
+  hunter.nervousSearchRecentKeys = [];
   hunter.target = null;
   hunter.patrolStepsUntilTurn = 0;
+}
+
+function rememberNervousSearchTarget(hunter: Hunter, key: string) {
+  const recent = hunter.nervousSearchRecentKeys;
+  if (recent.length > 0 && recent[recent.length - 1] === key) return;
+  recent.push(key);
+  if (recent.length > 6) {
+    recent.splice(0, recent.length - 6);
+  }
 }
 
 function maybeStartChaserPlacement(state: GameState, hunter: Hunter, now: number) {
@@ -357,21 +457,38 @@ function completeTurretPlacement(state: GameState, hunter: Hunter, now: number) 
 
 function updateNervousScan(hunter: Hunter, now: number) {
   if (!hunter.nervousScanActive) return false;
-  if (now < hunter.nervousScanNextStepMs) return true;
-
-  if (hunter.nervousScanIndex >= NERVOUS_SCAN_DIRS.length) {
+  if (hunter.nervousScanUntilMs > 0 && now >= hunter.nervousScanUntilMs) {
     clearNervousScanState(hunter);
     hunter.mode = "patrol";
     hunter.lastSeenPlayer = null;
     resetPatrolStepsUntilTurn(hunter);
     return false;
   }
+  if (now < hunter.nervousScanNextStepMs) return true;
+
+  if (hunter.nervousScanIndex >= NERVOUS_SCAN_DIRS.length) {
+    if (hunter.nervousScanUntilMs > 0) {
+      hunter.nervousScanIndex = NERVOUS_SCAN_DIRS.length - 1;
+      hunter.nervousScanStep = -1;
+    } else {
+      clearNervousScanState(hunter);
+      hunter.mode = "patrol";
+      hunter.lastSeenPlayer = null;
+      resetPatrolStepsUntilTurn(hunter);
+      return false;
+    }
+  }
   if (hunter.nervousScanIndex < 0) {
-    clearNervousScanState(hunter);
-    hunter.mode = "patrol";
-    hunter.lastSeenPlayer = null;
-    resetPatrolStepsUntilTurn(hunter);
-    return false;
+    if (hunter.nervousScanUntilMs > 0) {
+      hunter.nervousScanIndex = 0;
+      hunter.nervousScanStep = 1;
+    } else {
+      clearNervousScanState(hunter);
+      hunter.mode = "patrol";
+      hunter.lastSeenPlayer = null;
+      resetPatrolStepsUntilTurn(hunter);
+      return false;
+    }
   }
 
   const nextDir = NERVOUS_SCAN_DIRS[hunter.nervousScanIndex];
@@ -611,10 +728,12 @@ function setNextHunterTarget(
   };
 }
 
+
 function updateHunterPursuitState(hunter: Hunter, player: Vec, seesPlayer: boolean) {
   if (seesPlayer) {
     hunter.mode = "chase";
     hunter.lastSeenPlayer = { ...player };
+    hunter.chaseOnHit = false;
     if (hunter.ghostCommandTarget) {
       hunter.ghostCommandTarget = { ...player };
     }
@@ -624,12 +743,7 @@ function updateHunterPursuitState(hunter: Hunter, player: Vec, seesPlayer: boole
   }
 
   if (hunter.mode !== "chase") return;
-  if (!hunter.lastSeenPlayer) {
-    hunter.mode = "patrol";
-    clearGhostCommandState(hunter);
-    clearNervousScanState(hunter);
-    resetPatrolStepsUntilTurn(hunter);
-  }
+  if (hunter.chaseOnHit) return;
 }
 
 function updateSingleHunter(
@@ -639,6 +753,11 @@ function updateSingleHunter(
   now: number,
   onLoseReason: (value: LoseReason) => void
 ) {
+  const visionTarget =
+    hunter.mode === "chase" || hunter.nervousScanActive ? 120 : HUNTER_VISION_ANGLE_DEG;
+  const visionLerp = 1 - Math.exp(-dt * 8);
+  hunter.visionAngleDeg += (visionTarget - hunter.visionAngleDeg) * visionLerp;
+
   const hunterCellNow = {
     x: Math.floor(hunter.pos.x),
     y: Math.floor(hunter.pos.y),
@@ -679,13 +798,17 @@ function updateSingleHunter(
   }
 
   const facingDirection = directionFromAngle(getHunterFacingAngle(hunter, now));
+  const visionAngle =
+    hunter.mode === "chase" || hunter.nervousScanActive
+      ? 120
+      : HUNTER_VISION_ANGLE_DEG;
   const seesPlayer = isTargetVisibleInVisionCone(
     state.grid,
     hunter.pos,
     facingDirection,
     state.player,
     HUNTER_VISION_RADIUS_TILES,
-    HUNTER_VISION_ANGLE_DEG
+    visionAngle
   );
   updateHunterPursuitState(hunter, state.player, seesPlayer);
   if (hunter.mode === "chase") {
@@ -695,22 +818,16 @@ function updateSingleHunter(
   }
   if (hunter.nervousScanActive) {
     updateNervousScan(hunter, now);
-    if (hunter.nervousScanActive) {
-      syncGhostPartnerPosition(state, hunter);
-      if (distance(state.player, hunter.pos) < 0.45) {
-        loseGame(state, "caught", onLoseReason);
-        return false;
+    if (!hunter.nervousScanActive) {
+      maybeStartChaserPlacement(state, hunter, now);
+      if (hunter.chaserPlaceEndMs > now) {
+        syncGhostPartnerPosition(state, hunter);
+        if (distance(state.player, hunter.pos) < 0.45) {
+          loseGame(state, "caught", onLoseReason);
+          return false;
+        }
+        return true;
       }
-      return true;
-    }
-    maybeStartChaserPlacement(state, hunter, now);
-    if (hunter.chaserPlaceEndMs > now) {
-      syncGhostPartnerPosition(state, hunter);
-      if (distance(state.player, hunter.pos) < 0.45) {
-        loseGame(state, "caught", onLoseReason);
-        return false;
-      }
-      return true;
     }
   }
 
@@ -733,17 +850,44 @@ function updateSingleHunter(
       y: Math.floor(hunter.pos.y),
     };
 
-    maybeStartTurretPlacement(state, hunter, now);
-    if (hunter.turretPlaceEndMs > now) {
-      syncGhostPartnerPosition(state, hunter);
-      if (distance(state.player, hunter.pos) < 0.45) {
-        loseGame(state, "caught", onLoseReason);
-        return false;
+    if (!hunter.nervousScanActive) {
+      maybeStartTurretPlacement(state, hunter, now);
+      if (hunter.turretPlaceEndMs > now) {
+        syncGhostPartnerPosition(state, hunter);
+        if (distance(state.player, hunter.pos) < 0.45) {
+          loseGame(state, "caught", onLoseReason);
+          return false;
+        }
+        return true;
       }
-      return true;
     }
 
-    if (hunter.mode === "chase" && (hunter.lastSeenPlayer || hunter.ghostCommandTarget)) {
+    if (hunter.nervousScanActive) {
+      const anchor = hunter.lastSeenPlayer ?? hunter.pos;
+      const anchorCell = {
+        x: Math.floor(anchor.x),
+        y: Math.floor(anchor.y),
+      };
+      if (
+        hunter.nervousSearchTargetCell &&
+        hunterCell.x === hunter.nervousSearchTargetCell.x &&
+        hunterCell.y === hunter.nervousSearchTargetCell.y
+      ) {
+        hunter.nervousSearchTargetCell = null;
+      }
+
+      const targetCell =
+        hunter.nervousSearchTargetCell ??
+        chooseNervousSearchTargetCell(state.grid, hunter, anchorCell) ??
+        anchorCell;
+      hunter.nervousSearchTargetCell = targetCell;
+      hunter.nervousSearchTargetKey = cellKey(targetCell.x, targetCell.y);
+      rememberNervousSearchTarget(hunter, hunter.nervousSearchTargetKey);
+      const searchDir = chooseChaseDirection(state.grid, hunterCell, targetCell, hunter.dir);
+      if (searchDir.x !== 0 || searchDir.y !== 0) {
+        setNextHunterTarget(hunter, state.grid, hunterCell, searchDir, now);
+      }
+    } else if (hunter.mode === "chase" && (hunter.lastSeenPlayer || hunter.ghostCommandTarget)) {
       const chaseSource = hunter.ghostCommandTarget ?? hunter.lastSeenPlayer!;
       const chaseCell = {
         x: Math.floor(chaseSource.x),
@@ -771,11 +915,16 @@ function updateSingleHunter(
       }
     }
 
-    if (hunter.mode === "patrol" && !hunter.target) {
+    if (hunter.mode === "patrol" && !hunter.target && !hunter.nervousScanActive) {
       maybeStartBackCheck(hunter, state.grid, hunterCell, now);
     }
 
-    if (hunter.mode === "patrol" && hunter.backCheckState === "none" && !hunter.target) {
+    if (
+      hunter.mode === "patrol" &&
+      hunter.backCheckState === "none" &&
+      !hunter.target &&
+      !hunter.nervousScanActive
+    ) {
       const patrolDir = choosePatrolDirection(hunter, state.grid, hunterCell);
       setNextHunterTarget(hunter, state.grid, hunterCell, patrolDir, now);
     }

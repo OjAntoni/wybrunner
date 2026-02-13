@@ -40,6 +40,8 @@ type MonsterBase = {
 
 export type ChaserMonster = MonsterBase & {
   kind: "chaser";
+  health: number;
+  hurtUntilMs: number;
 };
 
 export type GhostMonster = MonsterBase & {
@@ -67,11 +69,19 @@ export type Hunter = {
   dir: Vec;
   target: Vec | null;
   mode: HunterMode;
+  health: number;
+  hurtUntilMs: number;
+  visionAngleDeg: number;
   lastSeenPlayer: Vec | null;
   nervousScanActive: boolean;
   nervousScanIndex: number;
   nervousScanStep: 1 | -1;
   nervousScanNextStepMs: number;
+  nervousScanUntilMs: number;
+  chaseOnHit: boolean;
+  nervousSearchTargetKey: string | null;
+  nervousSearchTargetCell: Vec | null;
+  nervousSearchRecentKeys: string[];
   backCheckState: HunterBackCheckState;
   backCheckForwardDir: Vec | null;
   backCheckHoldUntilMs: number;

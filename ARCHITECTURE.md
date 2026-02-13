@@ -9,7 +9,9 @@
 ## Runtime Layers
 
 - `src/game/model/*`: game state shape and initialization.
-  - Includes day-night state anchors (`dayNightCycleStartMs`), player-facing direction (`playerFacing`) for night-vision cones, a smoothed facing vector (`playerFacingIndicator`) used by the player indicator render, and sword swing timing/cooldown (`swordSwingStartMs`, `swordCooldownUntilMs`) for attack animation.
+  - Includes day-night state anchors (`dayNightCycleStartMs`), player-facing direction (`playerFacing`) for night-vision cones, a smoothed facing vector (`playerFacingIndicator`) used by the player indicator render, and sword swing timing/cooldown (`swordSwingStartMs`, `swordCooldownUntilMs`, `swordSwingHitMs`) for attack animation.
+- Hunter state also tracks smoothed vision angle (`visionAngleDeg`) for cone transitions.
+- `src/game/model/init/spawnActors.ts`: chooses player/hunter spawn cells with even spatial distribution (farthest-point sampling) and min-distance preference.
 - `src/game/actions/*`: immediate player-triggered actions (equipment placement, purchases, sword swing animation triggers).
 - `src/game/systems/*`: state mutation/update logic.
 - `src/game/world/*`: pathing, exploration, fog, maze generation.
@@ -59,7 +61,7 @@
 - `src/game/render/collectibleShared.ts`: collectible cell/bounds helpers.
 - `src/game/render/sceneHazardsLayer.ts`: traps/spikes/underground traps.
 - `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions).
-- `src/game/render/sceneActors.ts`: player (including pulsing, smoothed facing indicator triangle and sword swing animation), dynamic monster list (chasers + night ghost pack), hunters, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text; ghost render includes lifecycle-driven alpha/scale (3s fade in/out), default/angry/sad face variants (`to_hunter` + `with_hunter` are angry/slightly red, `return_to_path` is sad/non-red), and exposes a tiny dotted white path-loop overlay draw used after night darkening.
+- `src/game/render/sceneActors.ts`: player (including pulsing, smoothed facing indicator triangle and sword swing animation), dynamic monster list (chasers + night ghost pack) with tiny health hearts, hunters with tiny health hearts, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text; ghost render includes lifecycle-driven alpha/scale (3s fade in/out), default/angry/sad face variants (`to_hunter` + `with_hunter` are angry/slightly red, `return_to_path` is sad/non-red), and exposes a tiny dotted white path-loop overlay draw used after night darkening.
 - `src/game/render/hunterVisionLayer.ts`: hunter + turret vision rendering (wall-clipped sectors with turret cone-to-line targeting transition).
 - `src/game/render/dayNightLayer.ts`: day-night darkening overlay that erases darkness on an offscreen darkness layer via `destination-out` using player near-circle + player cone + ghost circles (ghost circles respect ghost fade alpha and use partial erase for dimmer ghost-lit areas; escorting `with_hunter` ghosts use 3x ghost-erase strength), adds a thin perimeter ring for ghost circles (white by default, slightly red only for active relay states `to_hunter`/`with_hunter`), then composites that layer back to preserve underlying map colors, with flashlight startup flicker during day->night transition and center warning text draw.
 - `src/game/render/cloudLayers.ts`: compatibility export for cloud layer entry points.
@@ -79,8 +81,9 @@
 - `src/game/systems/update/turret.ts` (static turret sweep/track/cooldown state machine + turret projectile firing)
 - `src/game/systems/update/items.ts`
 - `src/game/systems/update/timers.ts`
-- `src/game/systems/update/monster.ts` (typed `monsters[]` update: ground chaser pathing + full-night ghost pack spawn/despawn, sector-distributed ghost path generation for map-wide coverage, guaranteed smoothly player-anchored path for at least one ghost per night spawn, ghost-to-hunter relay logic [ghost detects player, remembers position, flies `2x` speed to closest patrol hunter, then escorts during commanded chase], smooth return-to-path movement (no snap teleport), per-ghost cyclic curved air-path movement that ignores walls, non-lethal ghost behavior, and 3s lifecycle fade timing for appear/disappear)
-- `src/game/systems/update/hunter.ts` (multi-hunter patrol/chase update with patrol momentum/open-space steering + short-corridor escape bias + recent-cell anti-loop penalty + tight-loop 3x3 escape + last-seen nervous scan + occasional 180-degree back-check behavior + timed chaser placement after failed chase + per-step probabilistic turret placement + ghost-command chase handling/release)
+- `src/game/systems/update/sword.ts`: sword hit resolution on eligible mobs with health tracking.
+- `src/game/systems/update/monster.ts` (typed `monsters[]` update: ground chaser pathing + full-night ghost pack spawn/despawn, sector-distributed ghost path generation for map-wide coverage, guaranteed smoothly player-anchored path for at least one ghost per night spawn, ghost-to-hunter relay logic [ghost detects player, remembers position, flies `2x` speed to closest patrol hunter, then escorts during commanded chase], smooth return-to-path movement (no snap teleport), per-ghost cyclic curved air-path movement that ignores walls, non-lethal ghost behavior, and 3s lifecycle fade timing for appear/disappear; chaser health is decremented by sword hits)
+- `src/game/systems/update/hunter.ts` (multi-hunter patrol/chase update with patrol momentum/open-space steering + short-corridor escape bias + recent-cell anti-loop penalty + tight-loop 3x3 escape + last-seen nervous scan for a fixed duration + occasional 180-degree back-check behavior + timed chaser placement after failed chase + per-step probabilistic turret placement + ghost-command chase handling/release + hit-triggered aggressive chase)
 - `src/game/systems/outcome.ts`: lose-state transition.
 - `src/game/systems/artifactSpawns.ts`: booster/trap artifact effects.
 - `src/game/systems/fogAreaSpawns.ts`: fog-area artifact generation.

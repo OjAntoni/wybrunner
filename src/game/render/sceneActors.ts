@@ -1,4 +1,10 @@
-import { HUNTER_CHASER_PLACE_DOT_STEP_MS, SWORD_SWING_DURATION_MS, TILE_SIZE } from "../config/constants";
+import {
+  CHASER_HEALTH,
+  HUNTER_CHASER_PLACE_DOT_STEP_MS,
+  HUNTER_HEALTH,
+  SWORD_SWING_DURATION_MS,
+  TILE_SIZE,
+} from "../config/constants";
 import type { GameState } from "../model/types";
 import { getHunterFacingAngle } from "../world/hunterFacing";
 import { getGhostVisibilityAlpha } from "../world/ghostVisibility";
@@ -363,9 +369,13 @@ export function drawMonsters(
     if (isCellCoveredByExploreClouds(state, monsterCell.x, monsterCell.y)) continue;
 
     const stunned = now < monster.stunUntil;
+    const hurtFlicker = now < monster.hurtUntilMs;
+    const flickerOn = !hurtFlicker || Math.sin(now / 45) > 0;
+    ctx.save();
+    ctx.globalAlpha = flickerOn ? 1 : 0.35;
     if (stunned) {
-      const flicker = Math.sin(now / 60) > 0;
-      ctx.fillStyle = flicker ? "#ff4e4e" : "#ffd166";
+      const stunFlicker = Math.sin(now / 60) > 0;
+      ctx.fillStyle = stunFlicker ? "#ff4e4e" : "#ffd166";
     } else {
       ctx.fillStyle = "#ff4e4e";
     }
@@ -387,6 +397,14 @@ export function drawMonsters(
       TILE_SIZE - 2,
       TILE_SIZE - 2
     );
+    drawMobHearts(
+      ctx,
+      monster.pos.x * TILE_SIZE - camX - TILE_SIZE / 2 + 1,
+      monster.pos.y * TILE_SIZE - camY - TILE_SIZE / 2 + 1,
+      monster.health,
+      CHASER_HEALTH
+    );
+    ctx.restore();
   }
 }
 
@@ -410,6 +428,45 @@ function drawHunterPlacingPopup(
   ctx.restore();
 }
 
+function drawMobHearts(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  health: number,
+  maxHealth: number
+) {
+  if (maxHealth <= 0) return;
+  const heartSize = 1.7;
+  const heartSpacing = 0.8;
+  const heartWidth = heartSize * 2;
+  const totalWidth = maxHealth * heartWidth + (maxHealth - 1) * heartSpacing;
+  const startX = px + (TILE_SIZE - 2) / 2 - totalWidth / 2;
+  const startY = py - 4.0;
+
+  for (let i = 0; i < maxHealth; i += 1) {
+    const filled = i < health;
+    ctx.fillStyle = filled ? "rgba(255, 64, 64, 0.95)" : "rgba(84, 16, 16, 0.6)";
+    drawTinyHeart(ctx, startX + i * (heartWidth + heartSpacing) + heartSize, startY, heartSize);
+  }
+}
+
+function drawTinyHeart(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number
+) {
+  const top = size * 0.45;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + top);
+  ctx.bezierCurveTo(cx, cy, cx - size, cy, cx - size, cy + top);
+  ctx.bezierCurveTo(cx - size, cy + size * 1.25, cx, cy + size * 1.5, cx, cy + size * 1.8);
+  ctx.bezierCurveTo(cx, cy + size * 1.5, cx + size, cy + size * 1.25, cx + size, cy + top);
+  ctx.bezierCurveTo(cx + size, cy, cx, cy, cx, cy + top);
+  ctx.closePath();
+  ctx.fill();
+}
+
 export function drawHunters(
   ctx: CanvasRenderingContext2D,
   state: GameState,
@@ -430,6 +487,10 @@ export function drawHunters(
     const patrolPulse = 0.75 + (Math.sin(now / 220 + i * 0.7) + 1) * 0.125;
     const isChasing = hunter.mode === "chase";
     const facingAngle = getHunterFacingAngle(hunter, now);
+    const hurtFlicker = now < hunter.hurtUntilMs;
+    const flickerOn = !hurtFlicker || Math.sin(now / 45) > 0;
+    ctx.save();
+    ctx.globalAlpha = flickerOn ? 1 : 0.35;
     ctx.fillStyle = isChasing
       ? "rgba(255, 130, 80, 1)"
       : `rgba(255, 192, 110, ${patrolPulse.toFixed(3)})`;
@@ -437,6 +498,7 @@ export function drawHunters(
     const px = hunter.pos.x * TILE_SIZE - camX - TILE_SIZE / 2 + 1;
     const py = hunter.pos.y * TILE_SIZE - camY - TILE_SIZE / 2 + 1;
     ctx.fillRect(px, py, TILE_SIZE - 2, TILE_SIZE - 2);
+    drawMobHearts(ctx, px, py, hunter.health, HUNTER_HEALTH);
 
     const eyeOffsetX = Math.cos(facingAngle) * 2;
     const eyeOffsetY = Math.sin(facingAngle) * 2;
@@ -465,6 +527,7 @@ export function drawHunters(
         "turret"
       );
     }
+    ctx.restore();
   }
 }
 

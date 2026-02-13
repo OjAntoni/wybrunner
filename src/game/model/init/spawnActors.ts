@@ -41,25 +41,58 @@ export function pickActorSpawnCells(grid: Cell[][], taken: Set<string>) {
     randomIntInRange(HUNTER_COUNT_MIN, HUNTER_COUNT_MAX)
   );
 
-  const farCells = shuffledCopy(
-    availableOpenCells.filter((cell) => distance(playerCell, cell) >= HUNTER_MIN_DIST)
+  const farCells = availableOpenCells.filter(
+    (cell) => distance(playerCell, cell) >= HUNTER_MIN_DIST
   );
-  const nearCells = shuffledCopy(
-    availableOpenCells.filter((cell) => distance(playerCell, cell) < HUNTER_MIN_DIST)
+  const nearCells = availableOpenCells.filter(
+    (cell) => distance(playerCell, cell) < HUNTER_MIN_DIST
   );
+  const candidateCells = farCells.length >= desiredCount ? farCells : [...farCells, ...nearCells];
 
   const hunterCells: Vec[] = [];
-  for (const cell of farCells) {
-    if (hunterCells.length >= desiredCount) break;
-    hunterCells.push(cell);
+  const chosen = new Set<string>();
+
+  if (candidateCells.length > 0) {
+    let bestIndex = 0;
+    let bestDist = Number.NEGATIVE_INFINITY;
+    for (let i = 0; i < candidateCells.length; i += 1) {
+      const dist = distance(playerCell, candidateCells[i]);
+      if (dist > bestDist) {
+        bestDist = dist;
+        bestIndex = i;
+      }
+    }
+    const first = candidateCells[bestIndex];
+    hunterCells.push(first);
+    chosen.add(cellKey(first.x, first.y));
   }
-  for (const cell of nearCells) {
-    if (hunterCells.length >= desiredCount) break;
-    hunterCells.push(cell);
+
+  while (hunterCells.length < desiredCount) {
+    let bestIndex = -1;
+    let bestScore = Number.NEGATIVE_INFINITY;
+    for (let i = 0; i < candidateCells.length; i += 1) {
+      const cell = candidateCells[i];
+      const key = cellKey(cell.x, cell.y);
+      if (chosen.has(key)) continue;
+      let minDist = Number.POSITIVE_INFINITY;
+      for (const placed of hunterCells) {
+        const dist = distance(placed, cell);
+        if (dist < minDist) minDist = dist;
+      }
+      const score = minDist + (Math.random() - 0.5) * 0.25;
+      if (score > bestScore) {
+        bestScore = score;
+        bestIndex = i;
+      }
+    }
+    if (bestIndex < 0) break;
+    const next = candidateCells[bestIndex];
+    hunterCells.push(next);
+    chosen.add(cellKey(next.x, next.y));
   }
   for (const cell of hunterCells) {
     taken.add(cellKey(cell.x, cell.y));
   }
 
-  return { playerCell, hunterCells };
+  return { playerCell, hunterCells: shuffledCopy(hunterCells) };
 }

@@ -51,7 +51,8 @@ Code references:
 - Movement uses collision-aware movement/turn assist logic.
 - Entering new cells updates exploration clearing and discovered artifacts.
 - Coin collection increments counter.
-- Sword swing animation triggers on attack input and sweeps from right shoulder to left; the visual hit zone covers front, two-steps front, left, right, and front diagonals (6 tiles total, animation only) with a 1s cooldown between swings.
+- Sword swing animation triggers on attack input and sweeps from right shoulder to left; the visual hit zone covers front, two-steps front, left, right, and front diagonals (6 tiles total) with a 1s cooldown between swings.
+- Sword hits remove one heart from chasers and hunters in the hit tiles; chasers have 1 heart, hunters have 3, and turrets/ghosts are immune. Tiny heart pips render above each damageable mob. Hit mobs flicker briefly when damaged; hunters are stunned for the flicker duration and then become aggressive (chasing in the hit direction, then a 4s nervous scan that moves around the last-seen area while turning).
 - Underground traps stay hidden while first stepped on and only reveal after the player leaves; stepping onto a revealed underground trap is lethal.
 
 Code references:
@@ -134,7 +135,7 @@ Code references:
 
 ## 7. Hunters AI
 
-- Hunters are spawned during map generation as additional enemies (at least 10, up to 15).
+- Hunters are spawned during map generation as additional enemies (at least 20, up to 30), distributed evenly across open cells.
 - Patrol mode: slow random roaming with no predefined path.
 - Patrol movement uses short straight-run momentum (`2-6` tiles before re-evaluating turns) and prefers directions with more open forward space, reducing tiny-area loops in wide open zones.
 - Short-corridor escape bias: at junctions connected to a short corridor axis (<= `4` tiles each side), patrol hunters prefer side exits over bouncing forward/backward, which prevents corridor ping-pong loops.
@@ -144,7 +145,7 @@ Code references:
   - Hunters can move in 8 directions.
   - Diagonal movement is allowed only when there is enough corner space (no wall clipping through blocked corners).
 - Vision model:
-  - Circular sector with radius `R` and central angle `60°` per hunter.
+  - Circular sector with radius `R` and central angle `60°` per hunter (`120°` while aggressive chase or nervous scan), with smooth transitions between angles.
   - Orientation follows each hunter heading (cardinal direction).
   - Walls block line-of-sight; vision rays stop at wall boundaries.
   - Hunter body and vision cone are hidden while hunter is on undiscovered land, except chase mode where hunter and cone remain visible.
