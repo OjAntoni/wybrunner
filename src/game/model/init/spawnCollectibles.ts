@@ -2,6 +2,7 @@ import {
   COINS_TARGET,
   GRID_H,
   GRID_W,
+  LIFE_HEARTS_TARGET,
   ITEMS_TARGET,
   UNDERGROUND_TRAPS_TARGET,
 } from "../../config/constants";
@@ -68,6 +69,75 @@ export function placeCoins(
     }
   }
   return coins;
+}
+
+function parseCellKey(key: string): [number, number] {
+  const [x, y] = key.split(",");
+  return [Number(x), Number(y)];
+}
+
+function shuffledOffsets(rng: () => number) {
+  const offsets = [
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 },
+    { x: 1, y: 1 },
+    { x: -1, y: 1 },
+    { x: 1, y: -1 },
+    { x: -1, y: -1 },
+  ];
+  for (let i = offsets.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = offsets[i];
+    offsets[i] = offsets[j];
+    offsets[j] = tmp;
+  }
+  return offsets;
+}
+
+export function placeLifeHeartsNearArtifacts(
+  grid: Cell[][],
+  taken: Set<string>,
+  items: Set<string>,
+  rng: () => number
+) {
+  const lifeHearts = new Set<string>();
+  const artifacts = [...items];
+  for (let i = artifacts.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = artifacts[i];
+    artifacts[i] = artifacts[j];
+    artifacts[j] = tmp;
+  }
+
+  for (const artifactKey of artifacts) {
+    if (lifeHearts.size >= LIFE_HEARTS_TARGET) break;
+    const [ax, ay] = parseCellKey(artifactKey);
+    const offsets = shuffledOffsets(rng);
+    for (const offset of offsets) {
+      const x = ax + offset.x;
+      const y = ay + offset.y;
+      if (x <= 0 || y <= 0 || x >= GRID_W - 1 || y >= GRID_H - 1) continue;
+      if (grid[y][x] !== 0) continue;
+      const key = cellKey(x, y);
+      if (taken.has(key)) continue;
+      if (items.has(key)) continue;
+      lifeHearts.add(key);
+      taken.add(key);
+      break;
+    }
+  }
+
+  while (lifeHearts.size < LIFE_HEARTS_TARGET) {
+    const cell = randomOpenCellIndex(grid, taken);
+    const key = cellKey(cell.x, cell.y);
+    if (items.has(key)) continue;
+    lifeHearts.add(key);
+    taken.add(key);
+  }
+
+  return lifeHearts;
 }
 
 export function placeUndergroundTraps(

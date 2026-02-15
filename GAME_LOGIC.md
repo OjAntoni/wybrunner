@@ -23,6 +23,7 @@ Code references:
 - Canvas back-buffer resizing is event-driven (resize observer / window resize / DPR change) rather than forced every frame.
 - Canvas render DPR is capped by default to `1.5` to reduce compositor/GPU spikes on high-DPR displays; optional override is available via `window.__GAME_MAX_DPR__`.
 - HUD counters (items/coins/hearts) sync to React state only when values change.
+- Lose reason is also synced from game state inside the frame loop (no direct update callback from simulation systems).
 - Optional runtime perf logging can be enabled from browser console via `window.__GAME_PERF__ = true`, printing periodic RAF-gap and game-work timing summaries with spike counts; detailed per-spike lines are printed only when `window.__GAME_PERF_VERBOSE__ = true`.
 
 Code references:
@@ -37,6 +38,7 @@ Code references:
 
 - Maze uses DFS carving + extra connection pass for less linear paths.
 - Initial placement pipeline spawns player plus a hunter pack (randomly 10-15 hunters, minimum 10), artifacts/coins, underground traps, wall arrow throwers, and the exploration cloud field + bucket index.
+- Initial placement also spawns 3 life-heart pickups, each placed near a different artifact when possible.
 - No red chaser is spawned at game start; chasers are introduced later by hunter behavior.
 - No turrets are spawned at game start; turrets are introduced later by hunter behavior.
 
@@ -56,9 +58,11 @@ Code references:
 - Movement uses collision-aware movement/turn assist logic.
 - Entering new cells updates exploration clearing and discovered artifacts.
 - Coin collection increments counter.
+- Life-heart pickup grants +1 player life.
 - Sword swing animation triggers on attack input and sweeps from right shoulder to left; the visual hit zone covers front, two-steps front, left, right, and front diagonals (6 tiles total) with a 1s cooldown between swings.
 - Sword hits remove one heart from chasers and hunters in the hit tiles; chasers have 1 heart, hunters have 3, and turrets/ghosts are immune. Hits require clear line-of-sight (no wall between player and hit tile). Tiny heart pips render above each damageable mob. Hit mobs flicker briefly when damaged; hunters are stunned for 0.7s and then become aggressive (chasing in the hit direction, then a 4s nervous scan that moves around the last-seen area while turning).
-- Player has 3 hearts. Enemy hits (caught/arrow/helper) remove one heart; if at least 2 remain, the player flickers and is invisible to enemies for 4s. If only 1 heart remains, the next enemy hit ends the game.
+- When a hunter is killed, it drops loot: 30% chance to drop 1 life-heart pickup, 50% chance to drop 5 coins, 20% chance to drop nothing.
+- Player starts with 3 hearts. Enemy hits (caught/arrow/helper) remove one heart; if at least 2 remain, the player flickers and is invisible to enemies for 4s. If only 1 heart remains, the next enemy hit ends the game.
 - Underground traps stay hidden while first stepped on and only reveal after the player leaves; stepping onto a revealed underground trap removes one heart.
 - Hidden-enemy sense: if a chaser/hunter/turret is under undiscovered clouds within 7 tiles, a red, softly blurred arc appears on an invisible 2-tile radius ring around the player pointing toward that enemy; arcs fade in/out smoothly.
 

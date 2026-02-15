@@ -17,6 +17,7 @@
 - `src/game/world/*`: pathing, exploration, fog, maze generation.
 - `src/game/render/*`: canvas render pipeline and scene layers.
 - `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: simulation-time clock advancement (advances only while gameplay is actively running), event-driven canvas resize (resize observer/window resize + DPR-change guard), and change-only UI counter sync to reduce per-frame React work.
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: lose reason UI state is synchronized from game state on frame sync, avoiding direct simulation-to-React callbacks during hit processing.
 - `src/hooks/useGameLoop.ts`: simulation frame delta is capped (`24ms`) so rare long RAF gaps do not produce large one-frame world jumps after a stall.
 - `src/hooks/gameLoop/resizeCanvas.ts`: canvas back-buffer DPR is clamped (default max `1.5`, overridable with `window.__GAME_MAX_DPR__`) to reduce raster/compositor stalls that do not show up as JS update/draw time.
 - `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: perf telemetry timings are collected only when `window.__GAME_PERF__ = true`; default mode reports periodic summaries, and `window.__GAME_PERF_VERBOSE__ = true` enables per-spike logs for deep diagnostics.
@@ -57,10 +58,11 @@
 - `src/game/render/sceneViewport.ts`: camera/viewport setup.
 - `src/game/render/sceneTerrainLayer.ts`: tiles + arrow throwers.
 - `src/game/render/sceneObjectLayer.ts`: world object composition.
-- `src/game/render/sceneCollectiblesLayer.ts`: coins/items/boosters.
+- `src/game/render/sceneCollectiblesLayer.ts`: coins/items/life-hearts/boosters.
 - `src/game/render/coinLayer.ts`: coin rendering.
 - `src/game/render/itemLayer.ts`: artifact rendering.
 - `src/game/render/boosterLayer.ts`: booster rendering.
+- `src/game/render/lifeHeartLayer.ts`: life-heart pickup rendering.
 - `src/game/render/collectibleShared.ts`: collectible cell/bounds helpers.
 - `src/game/render/sceneHazardsLayer.ts`: traps/spikes/underground traps.
 - `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions).
@@ -83,12 +85,13 @@
 ## Update Pipeline
 
 - `src/game/systems/updateState.ts`: orchestrator.
-- `src/game/systems/update/playerProgress.ts`
+- `src/game/systems/update/playerProgress.ts` (movement/progression including coin and life-heart pickup resolution)
 - `src/game/systems/update/projectiles.ts`
 - `src/game/systems/update/turret.ts` (static turret sweep/track/cooldown state machine + turret projectile firing)
 - `src/game/systems/update/items.ts`
 - `src/game/systems/update/timers.ts`
 - `src/game/systems/update/sword.ts`: sword hit resolution on eligible mobs with health tracking and wall-blocked hit tiles.
+- `src/game/systems/update/hunterDrops.ts`: hunter death loot drop resolver (heart/coins/nothing chances) with nearby-cell placement validation.
 - `src/game/systems/update/playerDamage.ts`: enemy-hit heart reduction + invulnerability timing.
 - `src/game/systems/update/monster.ts` (typed `monsters[]` update: ground chaser pathing + full-night ghost pack spawn/despawn, sector-distributed ghost path generation for map-wide coverage, guaranteed smoothly player-anchored path for at least one ghost per night spawn, ghost-to-hunter relay logic [ghost detects player, remembers position, flies `2x` speed to closest patrol hunter, then escorts during commanded chase], smooth return-to-path movement (no snap teleport), per-ghost cyclic curved air-path movement that ignores walls, non-lethal ghost behavior, and 3s lifecycle fade timing for appear/disappear; chaser health is decremented by sword hits)
 - `src/game/systems/update/hunter.ts` (multi-hunter patrol/chase update with patrol momentum/open-space steering + short-corridor escape bias + recent-cell anti-loop penalty + tight-loop 3x3 escape + last-seen nervous scan for a fixed duration + occasional 180-degree back-check behavior + timed chaser placement after failed chase + per-step probabilistic turret placement + ghost-command chase handling/release + hit-triggered aggressive chase with slowdown multiplier; chase BFS now uses index-based queue/parent arrays to avoid `shift()` and string-map churn)

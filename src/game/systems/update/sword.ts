@@ -2,6 +2,7 @@ import { SWORD_SWING_DURATION_MS } from "../../config/constants";
 import type { GameState, Vec } from "../../model/types";
 import { cellKey, inBounds } from "../../utils/grid";
 import { castVisionRayDistance } from "../../world/hunterVision";
+import { applyHunterDeathDrop } from "./hunterDrops";
 
 function getCardinalFacing(facing: Vec) {
   const absX = Math.abs(facing.x);
@@ -109,6 +110,9 @@ export function updateSwordHits(state: GameState, now: number) {
       hunter.chaserPlaceEndMs = 0;
       hunter.turretPlaceStartMs = 0;
       hunter.turretPlaceEndMs = 0;
+    }
+    if (hunter.health <= 0) {
+      applyHunterDeathDrop(state, { x: hx, y: hy });
     }
     return hunter.health > 0;
   });

@@ -1,5 +1,5 @@
 import type { MutableRefObject } from "react";
-import type { GameState, LoseReason, Vec } from "../../game/model/types";
+import type { GameState, Vec } from "../../game/model/types";
 import type { HudRectsCache } from "../../game/render/hudOcclusion";
 
 export type UseGameRuntimeParams = {
@@ -18,5 +18,4 @@ export type UseGameRuntimeParams = {
   setSpikesLeft: (value: number) => void;
   setBombsLeft: (value: number) => void;
   setCoinsCollected: (value: number) => void;
-  setLoseReason: (value: LoseReason) => void;
 };

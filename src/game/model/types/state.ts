@@ -33,6 +33,7 @@ export type GameState = {
   hunters: Hunter[];
   turrets: Turret[];
   items: Set<string>;
+  lifeHearts: Set<string>;
   coins: Set<string>;
   coinsCollected: number;
   undergroundTrapsHidden: Set<string>;

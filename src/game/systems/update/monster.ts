@@ -13,7 +13,7 @@ import {
   PLAYER_SPEED,
   TOUCH_CHASER_SPEED_MULT,
 } from "../../config/constants";
-import type { GameState, Hunter, LoseReason, Monster, Vec } from "../../model/types";
+import type { GameState, Hunter, Monster, Vec } from "../../model/types";
 import { cellKey, countOpenNeighbors, inBounds } from "../../utils/grid";
 import { distance } from "../../utils/math";
 import { CHASER_HEALTH } from "../../config/constants";
@@ -905,8 +905,7 @@ export function updateMonster(
   state: GameState,
   dt: number,
   now: number,
-  touchEnabled: boolean,
-  onLoseReason: (value: LoseReason) => void
+  touchEnabled: boolean
 ) {
   syncNightGhost(state, now);
   if (state.monsters.length === 0) return true;
@@ -924,7 +923,7 @@ export function updateMonster(
     }
 
     if (monster.kind !== "ghost" && distance(state.player, monster.pos) < 0.45) {
-      if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
+      if (applyPlayerEnemyHit(state, now, "caught")) return false;
     }
   }
 

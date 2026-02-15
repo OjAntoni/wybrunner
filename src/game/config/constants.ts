@@ -5,6 +5,7 @@ export const TILE_SIZE = 12;
 export const ITEMS_TARGET = 10;
 export const COINS_TARGET = 100;
 export const UNDERGROUND_TRAPS_TARGET = 30;
+export const LIFE_HEARTS_TARGET = 3;
 
 export const PLAYER_SPEED = 4; // tiles per second
 export const PLAYER_HEARTS_MAX = 3;

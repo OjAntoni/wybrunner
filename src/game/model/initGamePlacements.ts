@@ -2,6 +2,7 @@ import { mulberry32 } from "../utils/random";
 import type { Cell } from "./types";
 import { pickActorSpawnCells } from "./init/spawnActors";
 import {
+  placeLifeHeartsNearArtifacts,
   placeCoins,
   placeItems,
   placeUndergroundTraps,
@@ -19,6 +20,7 @@ export function buildInitialPlacements(grid: Cell[][], baseNow: number): Initial
 
   const items = placeItems(grid, taken);
   const rng = mulberry32(createRngSeed());
+  const lifeHearts = placeLifeHeartsNearArtifacts(grid, taken, items, rng);
   const coins = placeCoins(grid, taken, items, rng);
   const undergroundTrapsHidden = placeUndergroundTraps(grid, taken, items, coins);
   const arrowThrowers = placeArrowThrowers(grid, rng, baseNow);
@@ -27,6 +29,7 @@ export function buildInitialPlacements(grid: Cell[][], baseNow: number): Initial
     playerCell,
     hunterCells,
     items,
+    lifeHearts,
     coins,
     undergroundTrapsHidden,
     arrowThrowers,

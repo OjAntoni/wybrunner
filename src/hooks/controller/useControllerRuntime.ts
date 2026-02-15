@@ -6,7 +6,7 @@ type UseControllerRuntimeParams = {
   refs: ControllerRefs;
   state: Pick<
     ControllerStateModel,
-    "setSpikesLeft" | "setBombsLeft" | "setCoinsCollected" | "setLoseReason"
+    "setSpikesLeft" | "setBombsLeft" | "setCoinsCollected"
   >;
 };
 
@@ -25,7 +25,7 @@ export function useControllerRuntime({ refs, state }: UseControllerRuntimeParams
     dprRef,
     canvasRef,
   } = refs;
-  const { setSpikesLeft, setBombsLeft, setCoinsCollected, setLoseReason } = state;
+  const { setSpikesLeft, setBombsLeft, setCoinsCollected } = state;
 
   return useGameRuntime({
     stateRef,
@@ -43,6 +43,5 @@ export function useControllerRuntime({ refs, state }: UseControllerRuntimeParams
     setSpikesLeft,
     setBombsLeft,
     setCoinsCollected,
-    setLoseReason,
   });
 }

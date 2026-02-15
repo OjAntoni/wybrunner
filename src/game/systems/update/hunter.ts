@@ -23,7 +23,7 @@ import {
   PLAYER_SPEED,
   TURRET_MAX_COUNT,
 } from "../../config/constants";
-import type { GameState, Hunter, LoseReason, Vec } from "../../model/types";
+import type { GameState, Hunter, Vec } from "../../model/types";
 import { cellKey, inBounds } from "../../utils/grid";
 import { distance } from "../../utils/math";
 import { directionFromAngle, getHunterFacingAngle, startHunterTurnAnimation } from "../../world/hunterFacing";
@@ -782,8 +782,7 @@ function updateSingleHunter(
   state: GameState,
   hunter: Hunter,
   dt: number,
-  now: number,
-  onLoseReason: (value: LoseReason) => void
+  now: number
 ) {
   const visionTarget =
     hunter.mode === "chase" || hunter.nervousScanActive ? 120 : HUNTER_VISION_ANGLE_DEG;
@@ -815,14 +814,14 @@ function updateSingleHunter(
   if (hunter.chaserPlaceEndMs > now || hunter.turretPlaceEndMs > now) {
     syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
-      if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
+      if (applyPlayerEnemyHit(state, now, "caught")) return false;
     }
     return true;
   }
   if (now < hunter.stunUntil) {
     syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
-      if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
+      if (applyPlayerEnemyHit(state, now, "caught")) return false;
     }
     return true;
   }
@@ -856,7 +855,7 @@ function updateSingleHunter(
       if (hunter.chaserPlaceEndMs > now) {
         syncGhostPartnerPosition(state, hunter);
         if (distance(state.player, hunter.pos) < 0.45) {
-          if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
+          if (applyPlayerEnemyHit(state, now, "caught")) return false;
         }
         return true;
       }
@@ -871,7 +870,7 @@ function updateSingleHunter(
   if (hunter.backCheckState !== "none") {
     syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
-      if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
+      if (applyPlayerEnemyHit(state, now, "caught")) return false;
     }
     return true;
   }
@@ -889,7 +888,7 @@ function updateSingleHunter(
       if (hunter.turretPlaceEndMs > now) {
         syncGhostPartnerPosition(state, hunter);
         if (distance(state.player, hunter.pos) < 0.45) {
-          if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
+          if (applyPlayerEnemyHit(state, now, "caught")) return false;
         }
         return true;
       }
@@ -965,7 +964,7 @@ function updateSingleHunter(
   if (hunter.backCheckState !== "none") {
     syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
-      if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
+      if (applyPlayerEnemyHit(state, now, "caught")) return false;
     }
     return true;
   }
@@ -994,7 +993,7 @@ function updateSingleHunter(
   syncGhostPartnerPosition(state, hunter);
 
   if (distance(state.player, hunter.pos) < 0.45) {
-    if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
+    if (applyPlayerEnemyHit(state, now, "caught")) return false;
   }
 
   return true;
@@ -1003,11 +1002,10 @@ function updateSingleHunter(
 export function updateHunters(
   state: GameState,
   dt: number,
-  now: number,
-  onLoseReason: (value: LoseReason) => void
+  now: number
 ) {
   for (const hunter of state.hunters) {
-    if (!updateSingleHunter(state, hunter, dt, now, onLoseReason)) return false;
+    if (!updateSingleHunter(state, hunter, dt, now)) return false;
   }
   return true;
 }

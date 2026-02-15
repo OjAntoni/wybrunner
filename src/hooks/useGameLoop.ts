@@ -29,6 +29,7 @@ export function useGameLoop({
   setItemsLeft,
   setCoinsCollected,
   setPlayerHearts,
+  setLoseReason,
   updateState,
   draw,
 }: UseGameLoopParams) {
@@ -69,6 +70,7 @@ export function useGameLoop({
       itemsLeft: Number.NaN,
       coinsCollected: Number.NaN,
       playerHearts: Number.NaN,
+      loseReason: stateRef.current.loseReason,
     };
     let rafId = 0;
     let perfFrames = 0;
@@ -163,6 +165,7 @@ export function useGameLoop({
         setItemsLeft,
         setCoinsCollected,
         setPlayerHearts,
+        setLoseReason,
         measureTimings: perfEnabled,
         uiStateCache,
         onTimings: perfEnabled ? onTimings : undefined,
@@ -194,6 +197,7 @@ export function useGameLoop({
     setCoinsCollected,
     setItemsLeft,
     setPlayerHearts,
+    setLoseReason,
     setStatus,
     stateRef,
     statusRef,

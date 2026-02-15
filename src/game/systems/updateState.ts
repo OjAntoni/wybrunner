@@ -26,7 +26,7 @@ export function updateGameState(
 
   updateTurrets(state, dt, now);
 
-  if (!updateProjectiles(state, dt, now, deps.onLoseReason)) return;
+  if (!updateProjectiles(state, dt, now)) return;
 
   updateItems(
     state,
@@ -38,11 +38,11 @@ export function updateGameState(
 
   updateTimedSystems(state, dt, now, playerProgress.playerCell);
 
-  if (!updateMonster(state, dt, now, deps.touchEnabled, deps.onLoseReason)) return;
-  if (!updateHunters(state, dt, now, deps.onLoseReason)) return;
+  if (!updateMonster(state, dt, now, deps.touchEnabled)) return;
+  if (!updateHunters(state, dt, now)) return;
   updateEnemySenseIndicator(state, dt);
 
   if (state.status === "playing" && state.helpers.length > 0) {
-    updateHelpers(state, dt, now, deps.onLoseReason);
+    updateHelpers(state, dt, now);
   }
 }

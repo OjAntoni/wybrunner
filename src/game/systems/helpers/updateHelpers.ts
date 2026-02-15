@@ -4,7 +4,7 @@ import {
   HELPER_SPEED_MULT,
   PLAYER_SPEED,
 } from "../../config/constants";
-import type { GameState, Helper, LoseReason } from "../../model/types";
+import type { GameState, Helper } from "../../model/types";
 import { cellCenter, cellKey } from "../../utils/grid";
 import { distance } from "../../utils/math";
 import { applyPlayerEnemyHit } from "../update/playerDamage";
@@ -12,8 +12,7 @@ import { applyPlayerEnemyHit } from "../update/playerDamage";
 export function updateHelpers(
   state: GameState,
   dt: number,
-  now: number,
-  onLose: (reason: LoseReason) => void
+  now: number
 ) {
   const next: Helper[] = [];
   for (const helper of state.helpers) {
@@ -33,7 +32,7 @@ export function updateHelpers(
     }
 
     if (distance(state.player, helper.pos) < 0.45) {
-      if (applyPlayerEnemyHit(state, now, "helper", onLose)) return;
+      if (applyPlayerEnemyHit(state, now, "helper")) return;
     }
 
     const helperSpeed =
@@ -84,7 +83,7 @@ export function updateHelpers(
     }
 
     if (distance(state.player, helper.pos) < 0.45) {
-      if (applyPlayerEnemyHit(state, now, "helper", onLose)) return;
+      if (applyPlayerEnemyHit(state, now, "helper")) return;
     }
 
     next.push(helper);

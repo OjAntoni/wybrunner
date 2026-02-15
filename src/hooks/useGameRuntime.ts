@@ -21,15 +21,12 @@ export function useGameRuntime({
   setSpikesLeft,
   setBombsLeft,
   setCoinsCollected,
-  setLoseReason,
 }: UseGameRuntimeParams) {
   const { getInputDir } = useRuntimeInput({ keysRef, touchMoveRef });
   const { updateState } = useRuntimeStateUpdate({
     getInputDir,
     touchEnabledRef,
-    setCoinsCollected,
     setBombsLeft,
-    setLoseReason,
   });
   const { draw } = useRuntimeDraw({
     touchEnabledRef,

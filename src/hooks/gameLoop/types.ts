@@ -1,5 +1,5 @@
 import type { MutableRefObject } from "react";
-import type { GameState, GameStatus, UIScreen } from "../../game/model/types";
+import type { GameState, GameStatus, LoseReason, UIScreen } from "../../game/model/types";
 
 export type UseGameLoopParams = {
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
@@ -15,6 +15,7 @@ export type UseGameLoopParams = {
   setItemsLeft: (value: number) => void;
   setCoinsCollected: (value: number) => void;
   setPlayerHearts: (value: number) => void;
+  setLoseReason: (value: LoseReason) => void;
   updateState: (state: GameState, dt: number, now: number) => void;
   draw: (ctx: CanvasRenderingContext2D, state: GameState, now: number) => void;
 };

@@ -8,7 +8,7 @@ import type { UpdateGameStateDeps } from "./types";
 
 type PlayerProgressDeps = Pick<
   UpdateGameStateDeps,
-  "getInputDir" | "touchEnabled" | "onCoinsCollected" | "onLoseReason"
+  "getInputDir" | "touchEnabled"
 >;
 
 export type PlayerProgressResult = {
@@ -72,7 +72,11 @@ export function updatePlayerProgress(
   if (state.coins.has(playerKey)) {
     state.coins.delete(playerKey);
     state.coinsCollected += 1;
-    deps.onCoinsCollected(state.coinsCollected);
+  }
+
+  if (state.lifeHearts.has(playerKey)) {
+    state.lifeHearts.delete(playerKey);
+    state.playerHearts += 1;
   }
 
   if (enteredNewCell) {
@@ -86,14 +90,14 @@ export function updatePlayerProgress(
       state.undergroundTrapRevealMs.set(prevKey, now);
     }
     if (state.undergroundTrapsRevealed.has(playerKey)) {
-      if (applyPlayerEnemyHit(state, now, "trap", deps.onLoseReason)) {
+      if (applyPlayerEnemyHit(state, now, "trap")) {
         return { playerCell, playerKey, alive: false };
       }
     }
   }
 
   if (state.traps.has(playerKey)) {
-    if (applyPlayerEnemyHit(state, now, "trap", deps.onLoseReason)) {
+    if (applyPlayerEnemyHit(state, now, "trap")) {
       return { playerCell, playerKey, alive: false };
     }
   }

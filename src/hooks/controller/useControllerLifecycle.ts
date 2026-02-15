@@ -22,6 +22,7 @@ type UseControllerLifecycleParams = {
     | "setItemsLeft"
     | "setCoinsCollected"
     | "setPlayerHearts"
+    | "setLoseReason"
   >;
   resetTouchInput: () => void;
   runtime: {
@@ -69,6 +70,7 @@ export function useControllerLifecycle({
     setItemsLeft,
     setCoinsCollected,
     setPlayerHearts,
+    setLoseReason,
   } = state;
   const { updateState, draw } = runtime;
 
@@ -107,6 +109,7 @@ export function useControllerLifecycle({
     setItemsLeft,
     setCoinsCollected,
     setPlayerHearts,
+    setLoseReason,
     updateState,
     draw,
   });

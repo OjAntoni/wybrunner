@@ -1,5 +1,5 @@
 import type { GameState } from "../model/types";
-import { drawBoosters, drawCoins, drawItems } from "./sceneCollectiblesLayer";
+import { drawBoosters, drawCoins, drawItems, drawLifeHearts } from "./sceneCollectiblesLayer";
 import { drawExplosions } from "./sceneEffectsLayer";
 import {
   drawRevealedUndergroundTraps,
@@ -19,6 +19,7 @@ export function drawWorldObjects(
   bounds: VisibleTileBounds
 ) {
   drawCoins(ctx, state, camX, camY, bounds);
+  drawLifeHearts(ctx, state, now, camX, camY, bounds);
   drawItems(ctx, state, now, camX, camY, viewW, viewH);
   drawBoosters(ctx, state, now, camX, camY, bounds);
   drawTraps(ctx, state, now, camX, camY, bounds);

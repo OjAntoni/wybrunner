@@ -1,5 +1,5 @@
 import type { MutableRefObject } from "react";
-import type { GameState, GameStatus, UIScreen } from "../../game/model/types";
+import type { GameState, GameStatus, LoseReason, UIScreen } from "../../game/model/types";
 
 type StepGameFrameParams = {
   now: number;
@@ -16,11 +16,13 @@ type StepGameFrameParams = {
   setItemsLeft: (value: number) => void;
   setCoinsCollected: (value: number) => void;
   setPlayerHearts: (value: number) => void;
+  setLoseReason: (value: LoseReason) => void;
   measureTimings?: boolean;
   uiStateCache: {
     itemsLeft: number;
     coinsCollected: number;
     playerHearts: number;
+    loseReason: LoseReason;
   };
   onTimings?: (updateMs: number, drawMs: number, activeFrame: boolean) => void;
 };
@@ -40,6 +42,7 @@ export function stepGameFrame({
   setItemsLeft,
   setCoinsCollected,
   setPlayerHearts,
+  setLoseReason,
   measureTimings,
   uiStateCache,
   onTimings,
@@ -73,6 +76,10 @@ export function stepGameFrame({
     if (state.playerHearts !== uiStateCache.playerHearts) {
       uiStateCache.playerHearts = state.playerHearts;
       setPlayerHearts(state.playerHearts);
+    }
+    if (state.loseReason !== uiStateCache.loseReason) {
+      uiStateCache.loseReason = state.loseReason;
+      setLoseReason(state.loseReason);
     }
     if (shouldMeasure) {
       updateMs = performance.now() - updateStart;

@@ -31,6 +31,7 @@ export function HudLayer({ view, refs }: HudLayerProps) {
     helpText,
   } = view;
   const { hudTopRef, inventoryRef } = refs;
+  const heartsVisible = Math.max(PLAYER_HEARTS_MAX, playerHearts);
   return (
     <div className="hud">
       <div className={`hud-top${compactHud ? " hud-top-compact" : ""}`} ref={hudTopRef}>
@@ -44,8 +45,8 @@ export function HudLayer({ view, refs }: HudLayerProps) {
             </div>
             <div className="hearts-stat">
               Lives:
-              <span className="hud-hearts" aria-label={`Lives: ${playerHearts} of ${PLAYER_HEARTS_MAX}`}>
-                {Array.from({ length: PLAYER_HEARTS_MAX }, (_, i) => i).map((i) => (
+              <span className="hud-hearts" aria-label={`Lives: ${playerHearts}`}>
+                {Array.from({ length: heartsVisible }, (_, i) => i).map((i) => (
                   <span key={`compact-heart-${i}`} className={`hud-heart ${i < playerHearts ? "filled" : "empty"}`}>
                     <svg className="hud-heart-icon" viewBox="0 0 16 14" aria-hidden="true">
                       <path d="M8 13 L2.6 7.6 C1.2 6.2 1.2 3.8 2.6 2.6 C4 1.4 6.2 1.8 8 3.8 C9.8 1.8 12 1.4 13.4 2.6 C14.8 3.8 14.8 6.2 13.4 7.6 Z" />
@@ -71,8 +72,8 @@ export function HudLayer({ view, refs }: HudLayerProps) {
                 </div>
                 <div className="stat-item hearts-stat">
                   Lives:
-                  <span className="hud-hearts" aria-label={`Lives: ${playerHearts} of ${PLAYER_HEARTS_MAX}`}>
-                    {Array.from({ length: PLAYER_HEARTS_MAX }, (_, i) => i).map((i) => (
+                  <span className="hud-hearts" aria-label={`Lives: ${playerHearts}`}>
+                    {Array.from({ length: heartsVisible }, (_, i) => i).map((i) => (
                       <span key={`heart-${i}`} className={`hud-heart ${i < playerHearts ? "filled" : "empty"}`}>
                         <svg className="hud-heart-icon" viewBox="0 0 16 14" aria-hidden="true">
                           <path d="M8 13 L2.6 7.6 C1.2 6.2 1.2 3.8 2.6 2.6 C4 1.4 6.2 1.8 8 3.8 C9.8 1.8 12 1.4 13.4 2.6 C14.8 3.8 14.8 6.2 13.4 7.6 Z" />

@@ -7,6 +7,7 @@ import {
 import type { GameState } from "../model/types";
 import { cellKey, inBounds } from "../utils/grid";
 import { blowUp, keysInBlast } from "../world/bombs";
+import { applyHunterDeathDrop } from "../systems/update/hunterDrops";
 
 function showNotEnoughMoneyPopup(state: GameState, now: number) {
   state.playerPopup = {
@@ -99,7 +100,9 @@ export function placeBomb(
   state.hunters = state.hunters.filter((hunter) => {
     const hx = Math.floor(hunter.pos.x);
     const hy = Math.floor(hunter.pos.y);
-    return !blastSet.has(cellKey(hx, hy));
+    if (!blastSet.has(cellKey(hx, hy))) return true;
+    applyHunterDeathDrop(state, { x: hx, y: hy });
+    return false;
   });
   state.turrets = state.turrets.filter((turret) => {
     const tx = Math.floor(turret.pos.x);
