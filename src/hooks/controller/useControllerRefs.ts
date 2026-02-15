@@ -1,6 +1,7 @@
 import { useRef, type MutableRefObject } from "react";
 import { initGame } from "../../game/model/initGame";
 import type { GameState, UIScreen, Vec } from "../../game/model/types";
+import type { HudRectsCache } from "../../game/render/hudOcclusion";
 
 export type ControllerRefs = {
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
@@ -25,11 +26,7 @@ export type ControllerRefs = {
   joystickKnobRef: MutableRefObject<HTMLDivElement | null>;
   touchEnabledRef: MutableRefObject<boolean>;
   touchMoveRef: MutableRefObject<Vec>;
-  hudRectsRef: MutableRefObject<{
-    hudTop: DOMRect | null;
-    inventory: DOMRect | null;
-    lastUpdate: number;
-  }>;
+  hudRectsRef: MutableRefObject<HudRectsCache>;
 };
 
 export function useControllerRefs(): ControllerRefs {
@@ -55,11 +52,13 @@ export function useControllerRefs(): ControllerRefs {
   const joystickKnobRef = useRef<HTMLDivElement>(null);
   const touchEnabledRef = useRef(false);
   const touchMoveRef = useRef<Vec>({ x: 0, y: 0 });
-  const hudRectsRef = useRef<{
-    hudTop: DOMRect | null;
-    inventory: DOMRect | null;
-    lastUpdate: number;
-  }>({ hudTop: null, inventory: null, lastUpdate: 0 });
+  const hudRectsRef = useRef<HudRectsCache>({
+    hudTop: null,
+    inventory: null,
+    lastUpdate: 0,
+    hudOccluded: false,
+    inventoryOccluded: false,
+  });
 
   return {
     canvasRef,

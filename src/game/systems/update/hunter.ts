@@ -673,36 +673,67 @@ function bestHunterNeighborStep(grid: GameState["grid"], start: Vec, target: Vec
 }
 
 function bfsNextStepHunter(grid: GameState["grid"], start: Vec, target: Vec): Vec {
-  const queue: Vec[] = [start];
-  const prev = new Map<string, string>();
-  prev.set(cellKey(start.x, start.y), "");
+  const height = grid.length;
+  const width = height > 0 ? grid[0].length : 0;
+  if (width <= 0 || height <= 0) return { x: 0, y: 0 };
+  if (
+    start.x < 0 ||
+    start.y < 0 ||
+    target.x < 0 ||
+    target.y < 0 ||
+    start.x >= width ||
+    target.x >= width ||
+    start.y >= height ||
+    target.y >= height
+  ) {
+    return { x: 0, y: 0 };
+  }
 
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    if (current.x === target.x && current.y === target.y) break;
+  const totalCells = width * height;
+  const parent = new Int32Array(totalCells);
+  parent.fill(-1);
+  const queue = new Int32Array(totalCells);
+  let head = 0;
+  let tail = 0;
+
+  const startIdx = start.y * width + start.x;
+  const targetIdx = target.y * width + target.x;
+
+  parent[startIdx] = startIdx;
+  queue[tail] = startIdx;
+  tail += 1;
+
+  while (head < tail) {
+    const currentIdx = queue[head];
+    head += 1;
+    if (currentIdx === targetIdx) break;
+
+    const currentX = currentIdx % width;
+    const currentY = (currentIdx / width) | 0;
+    const current = { x: currentX, y: currentY };
 
     for (const direction of HUNTER_MOVE_DIRS) {
       if (!canMoveHunterDirection(grid, current, direction)) continue;
-      const nx = current.x + direction.x;
-      const ny = current.y + direction.y;
-      const key = cellKey(nx, ny);
-      if (prev.has(key)) continue;
-      prev.set(key, cellKey(current.x, current.y));
-      queue.push({ x: nx, y: ny });
+      const nx = currentX + direction.x;
+      const ny = currentY + direction.y;
+      const nextIdx = ny * width + nx;
+      if (parent[nextIdx] !== -1) continue;
+      parent[nextIdx] = currentIdx;
+      queue[tail] = nextIdx;
+      tail += 1;
     }
   }
 
-  const targetKey = cellKey(target.x, target.y);
-  if (!prev.has(targetKey)) return { x: 0, y: 0 };
+  if (parent[targetIdx] === -1) return { x: 0, y: 0 };
 
-  let stepKey = targetKey;
-  let parentKey = prev.get(stepKey)!;
-  while (parentKey && parentKey !== cellKey(start.x, start.y)) {
-    stepKey = parentKey;
-    parentKey = prev.get(stepKey)!;
+  let stepIdx = targetIdx;
+  while (stepIdx !== startIdx && parent[stepIdx] !== startIdx) {
+    stepIdx = parent[stepIdx];
+    if (stepIdx < 0) return { x: 0, y: 0 };
   }
 
-  const [sx, sy] = stepKey.split(",").map(Number);
+  const sx = stepIdx % width;
+  const sy = (stepIdx / width) | 0;
   return { x: sx - start.x, y: sy - start.y };
 }
 

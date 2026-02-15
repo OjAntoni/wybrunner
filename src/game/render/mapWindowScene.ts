@@ -97,7 +97,7 @@ export function drawMapWindowScene({
   ctx.fillStyle = "#08121a";
   ctx.fillRect(0, 0, viewW, viewH);
 
-  drawTerrainTiles(ctx, state, camX, camY, bounds);
+  drawTerrainTiles(ctx, state, camX, camY, bounds, viewW, viewH);
   drawArrowThrowers(ctx, state, now, camX, camY, bounds);
   drawWorldObjects(ctx, state, now, camX, camY, viewW, viewH, bounds);
   drawArrows(ctx, state, camX, camY, viewW, viewH);

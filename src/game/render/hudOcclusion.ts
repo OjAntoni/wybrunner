@@ -12,6 +12,8 @@ export type HudRectsCache = {
   hudTop: DOMRect | null;
   inventory: DOMRect | null;
   lastUpdate: number;
+  hudOccluded: boolean;
+  inventoryOccluded: boolean;
 };
 
 type UpdateHudOcclusionParams = {
@@ -72,6 +74,12 @@ export function updateHudOcclusion({
     playerCssY >= cache.inventory.top - pad &&
     playerCssY <= cache.inventory.bottom + pad;
 
-  hudTopEl.classList.toggle("occluded", underHud);
-  inventoryEl.classList.toggle("occluded", underInv);
+  if (cache.hudOccluded !== underHud) {
+    cache.hudOccluded = underHud;
+    hudTopEl.classList.toggle("occluded", underHud);
+  }
+  if (cache.inventoryOccluded !== underInv) {
+    cache.inventoryOccluded = underInv;
+    inventoryEl.classList.toggle("occluded", underInv);
+  }
 }

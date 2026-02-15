@@ -104,6 +104,20 @@ function collectGhostVisionCircles(
   return circles;
 }
 
+function getPlayerNightVisionDirection(state: GameState) {
+  const facing = state.playerFacingIndicator;
+  const len = Math.hypot(facing.x, facing.y);
+  if (len > 0.0001) {
+    return { x: facing.x / len, y: facing.y / len };
+  }
+  const fallback = state.playerFacing;
+  const fallbackLen = Math.hypot(fallback.x, fallback.y);
+  if (fallbackLen > 0.0001) {
+    return { x: fallback.x / fallbackLen, y: fallback.y / fallbackLen };
+  }
+  return { x: 1, y: 0 };
+}
+
 function eraseDarknessInVisionAreas(
   ctx: CanvasRenderingContext2D,
   playerX: number,
@@ -202,7 +216,7 @@ export function drawNightLightingOverlay(
   const points = sampleVisionConeBoundary(
     state.grid,
     state.player,
-    state.playerFacing,
+    getPlayerNightVisionDirection(state),
     PLAYER_NIGHT_VISION_RADIUS_TILES,
     PLAYER_NIGHT_VISION_ANGLE_DEG,
     PLAYER_NIGHT_VISION_RAY_COUNT

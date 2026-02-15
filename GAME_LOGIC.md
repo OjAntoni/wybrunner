@@ -19,6 +19,12 @@ Code references:
 - Controller composes runtime, interaction bindings, and lifecycle sync.
 - Frame loop updates state, then renders canvas every frame.
 - Runtime uses a simulation clock that only advances during active gameplay; pause/map/equipment/restart-confirm/menu states freeze game time.
+- Runtime simulation delta is clamped per frame (`24ms`) to reduce visible movement jumps after occasional external browser/compositor stalls.
+- Canvas back-buffer resizing is event-driven (resize observer / window resize / DPR change) rather than forced every frame.
+- Canvas render DPR is capped by default to `1.5` to reduce compositor/GPU spikes on high-DPR displays; optional override is available via `window.__GAME_MAX_DPR__`.
+- If no manual DPR override is set, runtime adaptively lowers max DPR in steps when repeated large external frame-gap spikes are detected.
+- HUD counters (items/coins/hearts) sync to React state only when values change.
+- Optional runtime perf logging can be enabled from browser console via `window.__GAME_PERF__ = true`, printing periodic RAF-gap and game-work timing summaries (`gap avg`, `busy avg`, `update`, `draw`, worst values) plus per-frame spike lines when frame gap or busy time crosses thresholds.
 
 Code references:
 - `src/App.tsx`
@@ -98,6 +104,7 @@ Code references:
   - `ghost`: night-only flying monster.
 - No chaser exists initially; hunters may place chasers later.
 - Chaser pathing uses BFS next step; falls back to nearest-neighbor steering.
+- Chaser and hunter BFS path searches use index-based queue/parent arrays to reduce GC spikes during enemy updates.
 - Chaser avoids immediate reverse turns when possible.
 - Chaser speed modifiers include base multiplier, touch-mode multiplier, and temporary boost multiplier.
 - Chaser body is hidden while the chaser tile is still on undiscovered land.
@@ -280,7 +287,7 @@ Code references:
 Per frame, draw order is orchestrated in `drawScene`:
 
 1. Prepare camera/viewport.
-2. Terrain + throwers.
+2. Terrain + throwers (terrain is drawn from a cached world-sized layer and refreshed when bombs change walls or when a new run loads a new grid).
 3. World objects and arrows.
 4. Fog areas and exploration clouds.
 5. Hunter + turret vision layers, helpers, hunters, turrets, player (with smoothed facing indicator triangle), monsters (chaser).
@@ -325,6 +332,7 @@ Code references:
   - darkness is erased on a dedicated darkness overlay (`destination-out`) with three vision shapes: player near circle, player cone, and ghost circles.
   - overlapping vision areas remain visible as a union (no overlap darkening).
   - cone/wall clipping uses exact grid-boundary ray casting (DDA) for sharper wall silhouettes without step-based scalloping.
+  - turret vision cone boundary sampling is cached across frames; hunter and player night-vision cones sample every frame using smooth facing to avoid front-edge snapping/jitter.
   - visible areas use hard borders only (no perimeter soft-transition/falloff).
   - exploration clouds and fog-area clouds smoothly crossfade between day sprites and black night sprites during transitions; full night uses the black variant.
   - only the vision mask area remains visible; outside it is darkened.

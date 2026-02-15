@@ -9,9 +9,41 @@ import {
   TURRET_VISION_RADIUS_TILES,
 } from "../config/constants";
 import type { GameState } from "../model/types";
-import { directionFromAngle, getHunterFacingAngle } from "../world/hunterFacing";
+import { getHunterFacingAngle } from "../world/hunterFacing";
 import { castVisionRayDistance, sampleVisionConeBoundary } from "../world/hunterVision";
 import { isCellCoveredByExploreClouds } from "../world/exploration";
+
+type VisionCacheEntry = {
+  key: string;
+  points: { x: number; y: number }[];
+};
+
+const turretVisionCache = new Map<number, VisionCacheEntry>();
+
+function quantize(value: number, step: number) {
+  return Math.round(value / step);
+}
+
+function terrainRevision(state: GameState) {
+  const count = state.explosions.length;
+  if (count === 0) return 0;
+  return state.explosions[count - 1].start;
+}
+
+function getCachedVisionBoundary(
+  cache: Map<number, VisionCacheEntry>,
+  id: number,
+  key: string,
+  build: () => { x: number; y: number }[]
+) {
+  const existing = cache.get(id);
+  if (existing && existing.key === key) {
+    return existing.points;
+  }
+  const points = build();
+  cache.set(id, { key, points });
+  return points;
+}
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
@@ -36,6 +68,9 @@ export function drawHunterVisions(
   camX: number,
   camY: number
 ) {
+  const revision = terrainRevision(state);
+  const activeTurretIds = new Set<number>();
+
   for (const hunter of state.hunters) {
     const hunterCell = {
       x: Math.floor(hunter.pos.x),
@@ -45,13 +80,13 @@ export function drawHunterVisions(
       continue;
     }
 
-    const facingDirection = directionFromAngle(getHunterFacingAngle(hunter, now));
+    const facingAngle = getHunterFacingAngle(hunter, now);
     const isChasing = hunter.mode === "chase";
     const visionAngle = hunter.visionAngleDeg || HUNTER_VISION_ANGLE_DEG;
     const points = sampleVisionConeBoundary(
       state.grid,
       hunter.pos,
-      facingDirection,
+      { x: Math.cos(facingAngle), y: Math.sin(facingAngle) },
       HUNTER_VISION_RADIUS_TILES,
       visionAngle,
       HUNTER_VISION_RAY_COUNT
@@ -76,6 +111,7 @@ export function drawHunterVisions(
   }
 
   for (const turret of state.turrets) {
+    activeTurretIds.add(turret.id);
     const turretCell = {
       x: Math.floor(turret.pos.x),
       y: Math.floor(turret.pos.y),
@@ -84,7 +120,6 @@ export function drawHunterVisions(
 
     const lineFactor = getTurretLineFactor(turret, now);
     const effectiveAngleDeg = Math.max(1, TURRET_VISION_ANGLE_DEG * (1 - lineFactor));
-    const direction = directionFromAngle(turret.facingAngle);
     const turretX = turret.pos.x * TILE_SIZE - camX;
     const turretY = turret.pos.y * TILE_SIZE - camY;
 
@@ -109,13 +144,26 @@ export function drawHunterVisions(
       continue;
     }
 
-    const points = sampleVisionConeBoundary(
-      state.grid,
-      turret.pos,
-      direction,
-      TURRET_VISION_RADIUS_TILES,
-      effectiveAngleDeg,
-      HUNTER_VISION_RAY_COUNT
+    const key = [
+      quantize(turret.pos.x, 0.25),
+      quantize(turret.pos.y, 0.25),
+      quantize(turret.facingAngle, Math.PI / 180),
+      quantize(effectiveAngleDeg, 0.5),
+      revision,
+    ].join(":");
+    const points = getCachedVisionBoundary(
+      turretVisionCache,
+      turret.id,
+      key,
+      () =>
+        sampleVisionConeBoundary(
+          state.grid,
+          turret.pos,
+          { x: Math.cos(turret.facingAngle), y: Math.sin(turret.facingAngle) },
+          TURRET_VISION_RADIUS_TILES,
+          effectiveAngleDeg,
+          HUNTER_VISION_RAY_COUNT
+        )
     );
     if (points.length === 0) continue;
 
@@ -133,4 +181,8 @@ export function drawHunterVisions(
     ctx.stroke();
     ctx.restore();
   }
+
+  turretVisionCache.forEach((_, id) => {
+    if (!activeTurretIds.has(id)) turretVisionCache.delete(id);
+  });
 }

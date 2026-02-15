@@ -16,7 +16,11 @@
 - `src/game/systems/*`: state mutation/update logic.
 - `src/game/world/*`: pathing, exploration, fog, maze generation.
 - `src/game/render/*`: canvas render pipeline and scene layers.
-- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: simulation-time clock advancement (advances only while gameplay is actively running).
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: simulation-time clock advancement (advances only while gameplay is actively running), event-driven canvas resize (resize observer/window resize + DPR-change guard), and change-only UI counter sync to reduce per-frame React work.
+- `src/hooks/useGameLoop.ts`: simulation frame delta is capped (`24ms`) so rare long RAF gaps do not produce large one-frame world jumps after a stall.
+- `src/hooks/gameLoop/resizeCanvas.ts`: canvas back-buffer DPR is clamped (default max `1.5`, overridable with `window.__GAME_MAX_DPR__`) to reduce raster/compositor stalls that do not show up as JS update/draw time.
+- `src/hooks/useGameLoop.ts`: optional adaptive DPR controller (enabled only when user has not set `window.__GAME_MAX_DPR__`) lowers DPR stepwise after repeated large external frame-gap spikes to reduce compositor misses during gameplay.
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: includes optional in-browser perf telemetry (`window.__GAME_PERF__ = true`) that separates RAF frame-gap timing from game busy time (`update + draw`) and emits threshold-based per-frame spike logs to distinguish external stalls from in-game work spikes.
 - `src/hooks/runtime/useRuntimeCombat.ts`: player-triggered sword swing animation action.
 
 ## Controller Layers
@@ -64,6 +68,10 @@
 - `src/game/render/sceneActors.ts`: player (including pulsing, smoothed facing indicator triangle, sword swing animation, and hidden-enemy sense arcs), dynamic monster list (chasers + night ghost pack) with tiny health hearts, hunters with tiny health hearts, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text; ghost render includes lifecycle-driven alpha/scale (3s fade in/out), default/angry/sad face variants (`to_hunter` + `with_hunter` are angry/slightly red, `return_to_path` is sad/non-red), and exposes a tiny dotted white path-loop overlay draw used after night darkening.
 - `src/game/render/hunterVisionLayer.ts`: hunter + turret vision rendering (wall-clipped sectors with turret cone-to-line targeting transition).
 - `src/game/render/dayNightLayer.ts`: day-night darkening overlay that erases darkness on an offscreen darkness layer via `destination-out` using player near-circle + player cone + ghost circles (ghost circles respect ghost fade alpha and use partial erase for dimmer ghost-lit areas; escorting `with_hunter` ghosts use 3x ghost-erase strength), adds a thin perimeter ring for ghost circles (white by default, slightly red only for active relay states `to_hunter`/`with_hunter`), then composites that layer back to preserve underlying map colors, with flashlight startup flicker during day->night transition and center warning text draw.
+- `src/game/render/dayNightLayer.ts`: player night-vision cone uses the smoothed facing indicator direction (`playerFacingIndicator`) each frame to avoid jittery front-edge snapping during movement/turning.
+- `src/game/render/hudOcclusion.ts`: HUD overlap checks with cached rect sampling and change-only class toggles to avoid unnecessary DOM writes on every frame.
+- `src/game/render/hunterVisionLayer.ts`: hunter cones are sampled each frame (smooth facing) to avoid cache-quantization jitter; turret cones remain cached per-entity using quantized pose + effective angle + terrain revision, with stale cache cleanup when turrets despawn.
+- `src/game/render/sceneTerrainLayer.ts`: terrain tile colors are pre-rendered into a cached world canvas and each frame draws only the visible camera window (`drawImage` crop); cache invalidates when bomb explosions modify terrain and when game state swaps to a new grid instance (new run/restart).
 - `src/game/render/cloudLayers.ts`: compatibility export for cloud layer entry points.
 - `src/game/render/exploreCloudLayer.ts`: explored-area cloud rendering (supports day/night sprite variants with transition crossfade blend).
 - `src/game/render/fogAreaLayer.ts`: fog-area cloud rendering (supports day/night sprite variants with transition crossfade blend).
@@ -84,7 +92,7 @@
 - `src/game/systems/update/sword.ts`: sword hit resolution on eligible mobs with health tracking and wall-blocked hit tiles.
 - `src/game/systems/update/playerDamage.ts`: enemy-hit heart reduction + invulnerability timing.
 - `src/game/systems/update/monster.ts` (typed `monsters[]` update: ground chaser pathing + full-night ghost pack spawn/despawn, sector-distributed ghost path generation for map-wide coverage, guaranteed smoothly player-anchored path for at least one ghost per night spawn, ghost-to-hunter relay logic [ghost detects player, remembers position, flies `2x` speed to closest patrol hunter, then escorts during commanded chase], smooth return-to-path movement (no snap teleport), per-ghost cyclic curved air-path movement that ignores walls, non-lethal ghost behavior, and 3s lifecycle fade timing for appear/disappear; chaser health is decremented by sword hits)
-- `src/game/systems/update/hunter.ts` (multi-hunter patrol/chase update with patrol momentum/open-space steering + short-corridor escape bias + recent-cell anti-loop penalty + tight-loop 3x3 escape + last-seen nervous scan for a fixed duration + occasional 180-degree back-check behavior + timed chaser placement after failed chase + per-step probabilistic turret placement + ghost-command chase handling/release + hit-triggered aggressive chase with slowdown multiplier)
+- `src/game/systems/update/hunter.ts` (multi-hunter patrol/chase update with patrol momentum/open-space steering + short-corridor escape bias + recent-cell anti-loop penalty + tight-loop 3x3 escape + last-seen nervous scan for a fixed duration + occasional 180-degree back-check behavior + timed chaser placement after failed chase + per-step probabilistic turret placement + ghost-command chase handling/release + hit-triggered aggressive chase with slowdown multiplier; chase BFS now uses index-based queue/parent arrays to avoid `shift()` and string-map churn)
 - `src/game/systems/update/enemySense.ts`: bucketed hidden-enemy proximity indicator state with smooth fade-in/out.
 - `src/game/systems/outcome.ts`: lose-state transition.
 - `src/game/systems/artifactSpawns.ts`: booster/trap artifact effects.
@@ -98,6 +106,7 @@
 - `src/game/world/hunterVision.ts`: hunter/player/turret line-of-sight and cone ray sampling with exact grid-boundary ray casting (DDA) for wall clipping.
 - `src/game/world/hunterFacing.ts`: hunter facing-angle/turn-animation helpers (1s rotation interpolation).
 - `src/game/world/ghostVisibility.ts`: ghost lifecycle alpha helpers (3s fade-in/fade-out) shared by monster update and render layers.
+- `src/game/world/pathingBfs.ts`: chaser BFS next-step pathing optimized with index-based queue/parent arrays (no `Array.shift()` / string key maps on hot path).
 
 ## UI Layers
 
