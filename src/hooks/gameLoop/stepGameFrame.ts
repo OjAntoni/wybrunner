@@ -16,6 +16,7 @@ type StepGameFrameParams = {
   setItemsLeft: (value: number) => void;
   setCoinsCollected: (value: number) => void;
   setPlayerHearts: (value: number) => void;
+  measureTimings?: boolean;
   uiStateCache: {
     itemsLeft: number;
     coinsCollected: number;
@@ -39,9 +40,11 @@ export function stepGameFrame({
   setItemsLeft,
   setCoinsCollected,
   setPlayerHearts,
+  measureTimings,
   uiStateCache,
   onTimings,
 }: StepGameFrameParams): number {
+  const shouldMeasure = !!(measureTimings && onTimings);
   let nextNow = now;
   const state = stateRef.current;
   let updateMs = 0;
@@ -53,7 +56,7 @@ export function stepGameFrame({
     state.status === "playing"
   ) {
     activeFrame = true;
-    const updateStart = performance.now();
+    const updateStart = shouldMeasure ? performance.now() : 0;
     nextNow += dt * 1000;
     updateStateRef.current(state, dt, nextNow);
     if (state.status !== statusRef.current) {
@@ -71,12 +74,16 @@ export function stepGameFrame({
       uiStateCache.playerHearts = state.playerHearts;
       setPlayerHearts(state.playerHearts);
     }
-    updateMs = performance.now() - updateStart;
+    if (shouldMeasure) {
+      updateMs = performance.now() - updateStart;
+    }
   }
 
-  const drawStart = performance.now();
+  const drawStart = shouldMeasure ? performance.now() : 0;
   drawRef.current(ctx, state, nextNow);
-  const drawMs = performance.now() - drawStart;
-  onTimings?.(updateMs, drawMs, activeFrame);
+  if (shouldMeasure) {
+    const drawMs = performance.now() - drawStart;
+    onTimings(updateMs, drawMs, activeFrame);
+  }
   return nextNow;
 }

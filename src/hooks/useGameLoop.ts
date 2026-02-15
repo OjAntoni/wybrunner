@@ -7,16 +7,11 @@ import { useGameLoopRefs } from "./gameLoop/useGameLoopRefs";
 const PERF_REPORT_INTERVAL_MS = 2000;
 const PERF_SPIKE_GAP_MS = 24;
 const PERF_SPIKE_BUSY_MS = 10;
-const ADAPTIVE_DPR_INITIAL = 1.5;
-const ADAPTIVE_DPR_MIN = 1;
-const ADAPTIVE_DPR_STEP = 0.25;
-const ADAPTIVE_DPR_SPIKE_EXTERNAL_MS = 40;
-const ADAPTIVE_DPR_SPIKES_BEFORE_DOWNGRADE = 3;
-const ADAPTIVE_DPR_WINDOW_MS = 12000;
 const MAX_SIM_DT_MS = 24;
 
 type PerfWindow = Window & {
   __GAME_PERF__?: boolean;
+  __GAME_PERF_VERBOSE__?: boolean;
   __GAME_MAX_DPR__?: number;
 };
 
@@ -50,8 +45,11 @@ export function useGameLoop({
     if (!ctx) return;
     ctx.imageSmoothingEnabled = false;
 
+    const perfWindow = window as PerfWindow;
+
     const applyResize = () => {
       resizeCanvas({ canvasRef, dprRef, canvasCssSizeRef });
+      ctx.imageSmoothingEnabled = false;
     };
 
     applyResize();
@@ -73,15 +71,6 @@ export function useGameLoop({
       playerHearts: Number.NaN,
     };
     let rafId = 0;
-    const perfWindow = window as PerfWindow;
-    const adaptiveDprEnabled = perfWindow.__GAME_MAX_DPR__ === undefined;
-    let adaptiveMaxDpr = adaptiveDprEnabled
-      ? ADAPTIVE_DPR_INITIAL
-      : Math.max(ADAPTIVE_DPR_MIN, perfWindow.__GAME_MAX_DPR__ ?? ADAPTIVE_DPR_INITIAL);
-    if (adaptiveDprEnabled) {
-      perfWindow.__GAME_MAX_DPR__ = adaptiveMaxDpr;
-      applyResize();
-    }
     let perfFrames = 0;
     let perfGapMsTotal = 0;
     let perfWorstGapMs = 0;
@@ -92,7 +81,8 @@ export function useGameLoop({
     let perfReportAt = performance.now() + PERF_REPORT_INTERVAL_MS;
     let perfLastUpdateMs = 0;
     let perfLastDrawMs = 0;
-    const adaptiveSpikeTimes: number[] = [];
+    let perfSpikeCount = 0;
+    let perfWorstExternalMs = 0;
 
     const onTimings = (updateMs: number, drawMs: number, activeFrame: boolean) => {
       if (!perfWindow.__GAME_PERF__ || !activeFrame) return;
@@ -103,39 +93,22 @@ export function useGameLoop({
     const reportPerfFrame = (rawGapMs: number, activeFrame: boolean) => {
       if (!perfWindow.__GAME_PERF__ || !activeFrame) return;
       const frameMs = perfLastUpdateMs + perfLastDrawMs;
+      const externalMs = Math.max(0, rawGapMs - frameMs);
       perfFrames += 1;
       perfGapMsTotal += rawGapMs;
       perfFrameMsTotal += frameMs;
       perfUpdateMsTotal += perfLastUpdateMs;
       perfDrawMsTotal += perfLastDrawMs;
+      if (externalMs > perfWorstExternalMs) perfWorstExternalMs = externalMs;
       if (rawGapMs > perfWorstGapMs) perfWorstGapMs = rawGapMs;
       if (frameMs > perfWorstFrameMs) perfWorstFrameMs = frameMs;
 
       if (rawGapMs >= PERF_SPIKE_GAP_MS || frameMs >= PERF_SPIKE_BUSY_MS) {
-        const externalMs = Math.max(0, rawGapMs - frameMs);
-        console.log(
-          `[perf-spike] gap=${rawGapMs.toFixed(2)}ms busy=${frameMs.toFixed(2)}ms update=${perfLastUpdateMs.toFixed(2)}ms draw=${perfLastDrawMs.toFixed(2)}ms external=${externalMs.toFixed(2)}ms`
-        );
-
-        if (adaptiveDprEnabled && externalMs >= ADAPTIVE_DPR_SPIKE_EXTERNAL_MS) {
-          const now = performance.now();
-          adaptiveSpikeTimes.push(now);
-          while (
-            adaptiveSpikeTimes.length > 0 &&
-            now - adaptiveSpikeTimes[0] > ADAPTIVE_DPR_WINDOW_MS
-          ) {
-            adaptiveSpikeTimes.shift();
-          }
-          if (
-            adaptiveSpikeTimes.length >= ADAPTIVE_DPR_SPIKES_BEFORE_DOWNGRADE &&
-            adaptiveMaxDpr > ADAPTIVE_DPR_MIN
-          ) {
-            adaptiveMaxDpr = Math.max(ADAPTIVE_DPR_MIN, adaptiveMaxDpr - ADAPTIVE_DPR_STEP);
-            perfWindow.__GAME_MAX_DPR__ = adaptiveMaxDpr;
-            adaptiveSpikeTimes.length = 0;
-            applyResize();
-            console.log(`[perf] adaptive DPR lowered to ${adaptiveMaxDpr.toFixed(2)}`);
-          }
+        perfSpikeCount += 1;
+        if (perfWindow.__GAME_PERF_VERBOSE__) {
+          console.log(
+            `[perf-spike] gap=${rawGapMs.toFixed(2)}ms busy=${frameMs.toFixed(2)}ms update=${perfLastUpdateMs.toFixed(2)}ms draw=${perfLastDrawMs.toFixed(2)}ms external=${externalMs.toFixed(2)}ms`
+          );
         }
       }
 
@@ -146,7 +119,7 @@ export function useGameLoop({
       const avgUpdate = perfUpdateMsTotal / Math.max(1, perfFrames);
       const avgDraw = perfDrawMsTotal / Math.max(1, perfFrames);
       console.log(
-        `[perf] gap avg=${avgGap.toFixed(2)}ms busy avg=${avgFrame.toFixed(2)}ms update=${avgUpdate.toFixed(2)}ms draw=${avgDraw.toFixed(2)}ms worst busy=${perfWorstFrameMs.toFixed(2)}ms worst gap=${perfWorstGapMs.toFixed(2)}ms fps=${(1000 / Math.max(0.001, avgGap)).toFixed(1)}`
+        `[perf] gap avg=${avgGap.toFixed(2)}ms busy avg=${avgFrame.toFixed(2)}ms update=${avgUpdate.toFixed(2)}ms draw=${avgDraw.toFixed(2)}ms worst busy=${perfWorstFrameMs.toFixed(2)}ms worst gap=${perfWorstGapMs.toFixed(2)}ms worst external=${perfWorstExternalMs.toFixed(2)}ms spikes=${perfSpikeCount} fps=${(1000 / Math.max(0.001, avgGap)).toFixed(1)}`
       );
       perfFrames = 0;
       perfGapMsTotal = 0;
@@ -155,6 +128,8 @@ export function useGameLoop({
       perfUpdateMsTotal = 0;
       perfDrawMsTotal = 0;
       perfWorstFrameMs = 0;
+      perfWorstExternalMs = 0;
+      perfSpikeCount = 0;
       perfReportAt = now + PERF_REPORT_INTERVAL_MS;
     };
 
@@ -165,6 +140,13 @@ export function useGameLoop({
       if (dprRef.current !== (window.devicePixelRatio || 1)) {
         applyResize();
       }
+
+      const activeGameplayFrame =
+        screenRef.current === "game" &&
+        !confirmRestartRef.current &&
+        !pausedRef.current &&
+        statusRef.current === "playing";
+      const perfEnabled = !!perfWindow.__GAME_PERF__;
 
       gameNow = stepGameFrame({
         now: gameNow,
@@ -181,17 +163,15 @@ export function useGameLoop({
         setItemsLeft,
         setCoinsCollected,
         setPlayerHearts,
+        measureTimings: perfEnabled,
         uiStateCache,
-        onTimings,
+        onTimings: perfEnabled ? onTimings : undefined,
       });
       gameNowRef.current = gameNow;
-      reportPerfFrame(
-        rawGapMs,
-        screenRef.current === "game" &&
-          !confirmRestartRef.current &&
-          !pausedRef.current &&
-          statusRef.current === "playing"
-      );
+
+      if (perfEnabled) {
+        reportPerfFrame(rawGapMs, activeGameplayFrame);
+      }
 
       rafId = requestAnimationFrame(loop);
     };

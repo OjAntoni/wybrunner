@@ -57,6 +57,7 @@ export function drawTerrainTiles(
   viewW: number,
   viewH: number
 ) {
+  ctx.imageSmoothingEnabled = false;
   const ownerDocument = ctx.canvas.ownerDocument ?? document;
   const layer = ensureTerrainLayer(state, ownerDocument);
   if (!layer) {

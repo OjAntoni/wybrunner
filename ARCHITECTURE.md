@@ -19,8 +19,7 @@
 - `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: simulation-time clock advancement (advances only while gameplay is actively running), event-driven canvas resize (resize observer/window resize + DPR-change guard), and change-only UI counter sync to reduce per-frame React work.
 - `src/hooks/useGameLoop.ts`: simulation frame delta is capped (`24ms`) so rare long RAF gaps do not produce large one-frame world jumps after a stall.
 - `src/hooks/gameLoop/resizeCanvas.ts`: canvas back-buffer DPR is clamped (default max `1.5`, overridable with `window.__GAME_MAX_DPR__`) to reduce raster/compositor stalls that do not show up as JS update/draw time.
-- `src/hooks/useGameLoop.ts`: optional adaptive DPR controller (enabled only when user has not set `window.__GAME_MAX_DPR__`) lowers DPR stepwise after repeated large external frame-gap spikes to reduce compositor misses during gameplay.
-- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: includes optional in-browser perf telemetry (`window.__GAME_PERF__ = true`) that separates RAF frame-gap timing from game busy time (`update + draw`) and emits threshold-based per-frame spike logs to distinguish external stalls from in-game work spikes.
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: perf telemetry timings are collected only when `window.__GAME_PERF__ = true`; default mode reports periodic summaries, and `window.__GAME_PERF_VERBOSE__ = true` enables per-spike logs for deep diagnostics.
 - `src/hooks/runtime/useRuntimeCombat.ts`: player-triggered sword swing animation action.
 
 ## Controller Layers

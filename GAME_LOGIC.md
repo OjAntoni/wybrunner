@@ -22,9 +22,8 @@ Code references:
 - Runtime simulation delta is clamped per frame (`24ms`) to reduce visible movement jumps after occasional external browser/compositor stalls.
 - Canvas back-buffer resizing is event-driven (resize observer / window resize / DPR change) rather than forced every frame.
 - Canvas render DPR is capped by default to `1.5` to reduce compositor/GPU spikes on high-DPR displays; optional override is available via `window.__GAME_MAX_DPR__`.
-- If no manual DPR override is set, runtime adaptively lowers max DPR in steps when repeated large external frame-gap spikes are detected.
 - HUD counters (items/coins/hearts) sync to React state only when values change.
-- Optional runtime perf logging can be enabled from browser console via `window.__GAME_PERF__ = true`, printing periodic RAF-gap and game-work timing summaries (`gap avg`, `busy avg`, `update`, `draw`, worst values) plus per-frame spike lines when frame gap or busy time crosses thresholds.
+- Optional runtime perf logging can be enabled from browser console via `window.__GAME_PERF__ = true`, printing periodic RAF-gap and game-work timing summaries with spike counts; detailed per-spike lines are printed only when `window.__GAME_PERF_VERBOSE__ = true`.
 
 Code references:
 - `src/App.tsx`
