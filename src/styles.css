@@ -237,6 +237,15 @@ body,
   margin-left: 6px;
 }
 
+.hud-hearts-extra {
+  display: inline-block;
+  min-width: 3ch;
+  margin-left: 2px;
+  text-align: left;
+  color: #d6e9ff;
+  font-variant-numeric: tabular-nums;
+}
+
 .hud-heart {
   display: inline-flex;
 }
@@ -276,8 +285,12 @@ body,
 }
 
 .coins-count {
+  display: inline-block;
+  min-width: 3ch;
+  text-align: right;
   color: #ffd65c;
   text-shadow: 0 0 10px rgba(255, 214, 92, 0.18);
+  font-variant-numeric: tabular-nums;
 }
 
 .coin-counter {

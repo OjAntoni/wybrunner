@@ -99,9 +99,9 @@ export function drawPlayer(
   camY: number
 ) {
   const hurtFlicker = now < state.playerHurtUntilMs;
-  const flickerOn = !hurtFlicker || Math.sin(now / 45) > 0;
+  const hurtPulse = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(now / 55));
   ctx.save();
-  ctx.globalAlpha = flickerOn ? 1 : 0.35;
+  ctx.globalAlpha = hurtFlicker ? hurtPulse : 1;
   ctx.fillStyle = "#59d9ff";
   ctx.fillRect(
     state.player.x * TILE_SIZE - camX - TILE_SIZE / 2 + 1,

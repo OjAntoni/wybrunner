@@ -1,3 +1,4 @@
+import { startTransition } from "react";
 import type { MutableRefObject } from "react";
 import type { GameState, GameStatus, LoseReason, UIScreen } from "../../game/model/types";
 
@@ -67,15 +68,24 @@ export function stepGameFrame({
     }
     if (state.items.size !== uiStateCache.itemsLeft) {
       uiStateCache.itemsLeft = state.items.size;
-      setItemsLeft(state.items.size);
+      const nextItemsLeft = state.items.size;
+      startTransition(() => {
+        setItemsLeft(nextItemsLeft);
+      });
     }
     if (state.coinsCollected !== uiStateCache.coinsCollected) {
       uiStateCache.coinsCollected = state.coinsCollected;
-      setCoinsCollected(state.coinsCollected);
+      const nextCoins = state.coinsCollected;
+      startTransition(() => {
+        setCoinsCollected(nextCoins);
+      });
     }
     if (state.playerHearts !== uiStateCache.playerHearts) {
       uiStateCache.playerHearts = state.playerHearts;
-      setPlayerHearts(state.playerHearts);
+      const nextHearts = state.playerHearts;
+      startTransition(() => {
+        setPlayerHearts(nextHearts);
+      });
     }
     if (state.loseReason !== uiStateCache.loseReason) {
       uiStateCache.loseReason = state.loseReason;

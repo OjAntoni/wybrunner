@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { BOMB_PURCHASE_COINS, ITEMS_TARGET, SPIKE_PURCHASE_COINS } from "../../game/config/constants";
 
 type InventoryPanelProps = {
@@ -20,7 +21,7 @@ function CoinCostBadge({ amount }: { amount: number }) {
   );
 }
 
-export function InventoryPanel({
+function InventoryPanelComponent({
   touchEnabled,
   spikesLeft,
   bombsLeft,
@@ -99,3 +100,13 @@ export function InventoryPanel({
     </>
   );
 }
+
+export const InventoryPanel = memo(InventoryPanelComponent, (prev, next) => {
+  return (
+    prev.touchEnabled === next.touchEnabled &&
+    prev.spikesLeft === next.spikesLeft &&
+    prev.bombsLeft === next.bombsLeft &&
+    prev.itemsLeft === next.itemsLeft &&
+    prev.coinsCollected === next.coinsCollected
+  );
+});

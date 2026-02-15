@@ -17,6 +17,7 @@
 - `src/game/world/*`: pathing, exploration, fog, maze generation.
 - `src/game/render/*`: canvas render pipeline and scene layers.
 - `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: simulation-time clock advancement (advances only while gameplay is actively running), event-driven canvas resize (resize observer/window resize + DPR-change guard), and change-only UI counter sync to reduce per-frame React work.
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: HUD counter sync (`items/coins/hearts`) is dispatched via React transitions so canvas simulation/draw remains responsive during counter updates.
 - `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: lose reason UI state is synchronized from game state on frame sync, avoiding direct simulation-to-React callbacks during hit processing.
 - `src/hooks/useGameLoop.ts`: simulation frame delta is capped (`24ms`) so rare long RAF gaps do not produce large one-frame world jumps after a stall.
 - `src/hooks/gameLoop/resizeCanvas.ts`: canvas back-buffer DPR is clamped (default max `1.5`, overridable with `window.__GAME_MAX_DPR__`) to reduce raster/compositor stalls that do not show up as JS update/draw time.
@@ -66,7 +67,7 @@
 - `src/game/render/collectibleShared.ts`: collectible cell/bounds helpers.
 - `src/game/render/sceneHazardsLayer.ts`: traps/spikes/underground traps.
 - `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions).
-- `src/game/render/sceneActors.ts`: player (including pulsing, smoothed facing indicator triangle, sword swing animation, and hidden-enemy sense arcs), dynamic monster list (chasers + night ghost pack) with tiny health hearts, hunters with tiny health hearts, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text; ghost render includes lifecycle-driven alpha/scale (3s fade in/out), default/angry/sad face variants (`to_hunter` + `with_hunter` are angry/slightly red, `return_to_path` is sad/non-red), and exposes a tiny dotted white path-loop overlay draw used after night darkening.
+- `src/game/render/sceneActors.ts`: player (including pulsing, smoothed facing indicator triangle, sword swing animation, smooth hurt-pulse alpha effect while invulnerable, and hidden-enemy sense arcs), dynamic monster list (chasers + night ghost pack) with tiny health hearts, hunters with tiny health hearts, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text; ghost render includes lifecycle-driven alpha/scale (3s fade in/out), default/angry/sad face variants (`to_hunter` + `with_hunter` are angry/slightly red, `return_to_path` is sad/non-red), and exposes a tiny dotted white path-loop overlay draw used after night darkening.
 - `src/game/render/hunterVisionLayer.ts`: hunter + turret vision rendering (wall-clipped sectors with turret cone-to-line targeting transition).
 - `src/game/render/dayNightLayer.ts`: day-night darkening overlay that erases darkness on an offscreen darkness layer via `destination-out` using player near-circle + player cone + ghost circles (ghost circles respect ghost fade alpha and use partial erase for dimmer ghost-lit areas; escorting `with_hunter` ghosts use 3x ghost-erase strength), adds a thin perimeter ring for ghost circles (white by default, slightly red only for active relay states `to_hunter`/`with_hunter`), then composites that layer back to preserve underlying map colors, with flashlight startup flicker during day->night transition and center warning text draw.
 - `src/game/render/dayNightLayer.ts`: player night-vision cone uses the smoothed facing indicator direction (`playerFacingIndicator`) each frame to avoid jittery front-edge snapping during movement/turning.
@@ -116,6 +117,9 @@
 - `src/ui/gameView/menu/*`: menu screen variants.
 - `src/ui/gameView/overlays/*`: game overlay widgets.
 - `src/ui/gameView/GameScreenView.tsx`: in-game layer composition.
+- `src/ui/gameView/GameOverlays.tsx`: overlay gateway that conditionally mounts overlays (end/pause/map/equipment/restart) so closed overlays do not re-run hook trees on unrelated HUD counter updates.
+- `src/ui/gameView/HudLayer.tsx`: fixed-base heart row (`3` hearts) with `+N` overflow label to keep HUD width stable while still showing extra life gains.
+- `src/ui/gameView/HudLayer.tsx`, `src/ui/gameView/TouchLayer.tsx`, `src/ui/gameView/GameOverlays.tsx`, `src/ui/gameView/InventoryPanel.tsx`: memoized UI layers with focused prop equality checks to avoid unnecessary subtree re-renders during unrelated gameplay updates.
 - `src/ui/gameView/MenuScreenView.tsx`: menu/controls overlay composition.
 - `src/ui/gameView/overlays/MapOverlay.tsx`: interactive map window overlay, including desktop keyboard/mouse controls and touch drag/pinch support.
 - `src/ui/gameView/InventoryPanel.tsx`: desktop/equipment inventory visuals and conditional item cost badges (shown when item count reaches zero).

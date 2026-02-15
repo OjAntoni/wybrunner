@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { ITEMS_TARGET, PLAYER_HEARTS_MAX } from "../../game/config/constants";
 import { InventoryPanel } from "./InventoryPanel";
 import type { GameViewModel, GameViewRefs } from "./types";
@@ -18,7 +19,17 @@ type HudLayerProps = {
   refs: Pick<GameViewRefs, "hudTopRef" | "inventoryRef">;
 };
 
-export function HudLayer({ view, refs }: HudLayerProps) {
+function buildHeartSlots(heartsVisible: number, playerHearts: number, keyPrefix: string) {
+  return Array.from({ length: heartsVisible }, (_, i) => (
+    <span key={`${keyPrefix}-${i}`} className={`hud-heart ${i < playerHearts ? "filled" : "empty"}`}>
+      <svg className="hud-heart-icon" viewBox="0 0 16 14" aria-hidden="true">
+        <path d="M8 13 L2.6 7.6 C1.2 6.2 1.2 3.8 2.6 2.6 C4 1.4 6.2 1.8 8 3.8 C9.8 1.8 12 1.4 13.4 2.6 C14.8 3.8 14.8 6.2 13.4 7.6 Z" />
+      </svg>
+    </span>
+  ));
+}
+
+function HudLayerComponent({ view, refs }: HudLayerProps) {
   const {
     compactHud,
     status,
@@ -31,7 +42,18 @@ export function HudLayer({ view, refs }: HudLayerProps) {
     helpText,
   } = view;
   const { hudTopRef, inventoryRef } = refs;
-  const heartsVisible = Math.max(PLAYER_HEARTS_MAX, playerHearts);
+  const heartsVisible = PLAYER_HEARTS_MAX;
+  const filledHearts = Math.max(0, Math.min(playerHearts, PLAYER_HEARTS_MAX));
+  const extraHearts = Math.max(0, playerHearts - PLAYER_HEARTS_MAX);
+  const compactHeartSlots = useMemo(
+    () => buildHeartSlots(heartsVisible, filledHearts, "compact-heart"),
+    [filledHearts, heartsVisible]
+  );
+  const fullHeartSlots = useMemo(
+    () => buildHeartSlots(heartsVisible, filledHearts, "heart"),
+    [filledHearts, heartsVisible]
+  );
+
   return (
     <div className="hud">
       <div className={`hud-top${compactHud ? " hud-top-compact" : ""}`} ref={hudTopRef}>
@@ -46,13 +68,8 @@ export function HudLayer({ view, refs }: HudLayerProps) {
             <div className="hearts-stat">
               Lives:
               <span className="hud-hearts" aria-label={`Lives: ${playerHearts}`}>
-                {Array.from({ length: heartsVisible }, (_, i) => i).map((i) => (
-                  <span key={`compact-heart-${i}`} className={`hud-heart ${i < playerHearts ? "filled" : "empty"}`}>
-                    <svg className="hud-heart-icon" viewBox="0 0 16 14" aria-hidden="true">
-                      <path d="M8 13 L2.6 7.6 C1.2 6.2 1.2 3.8 2.6 2.6 C4 1.4 6.2 1.8 8 3.8 C9.8 1.8 12 1.4 13.4 2.6 C14.8 3.8 14.8 6.2 13.4 7.6 Z" />
-                    </svg>
-                  </span>
-                ))}
+                {compactHeartSlots}
+                <span className="hud-hearts-extra">{extraHearts > 0 ? `+${extraHearts}` : "\u00A0"}</span>
               </span>
             </div>
           </div>
@@ -73,13 +90,8 @@ export function HudLayer({ view, refs }: HudLayerProps) {
                 <div className="stat-item hearts-stat">
                   Lives:
                   <span className="hud-hearts" aria-label={`Lives: ${playerHearts}`}>
-                    {Array.from({ length: heartsVisible }, (_, i) => i).map((i) => (
-                      <span key={`heart-${i}`} className={`hud-heart ${i < playerHearts ? "filled" : "empty"}`}>
-                        <svg className="hud-heart-icon" viewBox="0 0 16 14" aria-hidden="true">
-                          <path d="M8 13 L2.6 7.6 C1.2 6.2 1.2 3.8 2.6 2.6 C4 1.4 6.2 1.8 8 3.8 C9.8 1.8 12 1.4 13.4 2.6 C14.8 3.8 14.8 6.2 13.4 7.6 Z" />
-                        </svg>
-                      </span>
-                    ))}
+                    {fullHeartSlots}
+                    <span className="hud-hearts-extra">{extraHearts > 0 ? `+${extraHearts}` : "\u00A0"}</span>
                   </span>
                 </div>
               </div>
@@ -110,3 +122,19 @@ export function HudLayer({ view, refs }: HudLayerProps) {
     </div>
   );
 }
+
+export const HudLayer = memo(HudLayerComponent, (prev, next) => {
+  return (
+    prev.view.compactHud === next.view.compactHud &&
+    prev.view.status === next.view.status &&
+    prev.view.touchEnabled === next.view.touchEnabled &&
+    prev.view.itemsLeft === next.view.itemsLeft &&
+    prev.view.coinsCollected === next.view.coinsCollected &&
+    prev.view.spikesLeft === next.view.spikesLeft &&
+    prev.view.bombsLeft === next.view.bombsLeft &&
+    prev.view.playerHearts === next.view.playerHearts &&
+    prev.view.helpText === next.view.helpText &&
+    prev.refs.hudTopRef === next.refs.hudTopRef &&
+    prev.refs.inventoryRef === next.refs.inventoryRef
+  );
+});

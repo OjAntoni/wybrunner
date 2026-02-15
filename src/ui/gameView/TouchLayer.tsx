@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { BOMB_PURCHASE_COINS, SPIKE_PURCHASE_COINS } from "../../game/config/constants";
 import type { GameViewActions, GameViewModel, GameViewRefs } from "./types";
 
@@ -29,7 +30,7 @@ function TouchCostBadge({ amount }: { amount: number }) {
   );
 }
 
-export function TouchLayer({ view, refs, actions }: TouchLayerProps) {
+function TouchLayerComponent({ view, refs, actions }: TouchLayerProps) {
   const { spikesLeft, bombsLeft } = view;
   const spikeOutOfStock = spikesLeft <= 0;
   const bombOutOfStock = bombsLeft <= 0;
@@ -115,3 +116,21 @@ export function TouchLayer({ view, refs, actions }: TouchLayerProps) {
     </div>
   );
 }
+
+export const TouchLayer = memo(TouchLayerComponent, (prev, next) => {
+  return (
+    prev.view.spikesLeft === next.view.spikesLeft &&
+    prev.view.bombsLeft === next.view.bombsLeft &&
+    prev.refs.joystickRef === next.refs.joystickRef &&
+    prev.refs.joystickZoneRef === next.refs.joystickZoneRef &&
+    prev.refs.joystickKnobRef === next.refs.joystickKnobRef &&
+    prev.actions.onPauseGame === next.actions.onPauseGame &&
+    prev.actions.onOpenEquipment === next.actions.onOpenEquipment &&
+    prev.actions.onJoystickPointerDown === next.actions.onJoystickPointerDown &&
+    prev.actions.onJoystickPointerMove === next.actions.onJoystickPointerMove &&
+    prev.actions.onJoystickPointerUp === next.actions.onJoystickPointerUp &&
+    prev.actions.onTrapPointerDown === next.actions.onTrapPointerDown &&
+    prev.actions.onBombPointerDown === next.actions.onBombPointerDown &&
+    prev.actions.onSwordPointerDown === next.actions.onSwordPointerDown
+  );
+});
