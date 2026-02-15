@@ -14,11 +14,21 @@ export type PlayerPopup = {
   endMs: number;
 };
 
+export type EnemySenseSegment = {
+  key: number;
+  dir: Vec;
+  alpha: number;
+};
+
 export type GameState = {
   grid: Cell[][];
   player: Vec;
   playerFacing: Vec;
   playerFacingIndicator: Vec;
+  playerFacingTurnDir: 1 | -1;
+  playerHearts: number;
+  playerInvulnerableUntilMs: number;
+  playerHurtUntilMs: number;
   monsters: Monster[];
   hunters: Hunter[];
   turrets: Turret[];
@@ -48,6 +58,7 @@ export type GameState = {
   fogUntil: number;
   explosions: Explosion[];
   playerPopup: PlayerPopup | null;
+  enemySenseSegments: EnemySenseSegment[];
   swordSwingStartMs: number | null;
   swordCooldownUntilMs: number;
   swordSwingHitMs: number | null;

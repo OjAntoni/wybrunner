@@ -14,6 +14,7 @@ export type UseGameLoopParams = {
   setStatus: (value: GameStatus) => void;
   setItemsLeft: (value: number) => void;
   setCoinsCollected: (value: number) => void;
+  setPlayerHearts: (value: number) => void;
   updateState: (state: GameState, dt: number, now: number) => void;
   draw: (ctx: CanvasRenderingContext2D, state: GameState, now: number) => void;
 };

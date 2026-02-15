@@ -29,6 +29,7 @@ export function GameScreenView({ view, refs, actions }: GameScreenViewProps) {
           coinsCollected: view.coinsCollected,
           spikesLeft: view.spikesLeft,
           bombsLeft: view.bombsLeft,
+          playerHearts: view.playerHearts,
           helpText: view.helpText,
         }}
         refs={{ hudTopRef: refs.hudTopRef, inventoryRef: refs.inventoryRef }}

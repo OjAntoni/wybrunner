@@ -17,6 +17,7 @@ export function useGameLoop({
   setStatus,
   setItemsLeft,
   setCoinsCollected,
+  setPlayerHearts,
   updateState,
   draw,
 }: UseGameLoopParams) {
@@ -63,6 +64,7 @@ export function useGameLoop({
         setStatus,
         setItemsLeft,
         setCoinsCollected,
+        setPlayerHearts,
         resizeCanvas: applyResize,
       });
       gameNowRef.current = gameNow;
@@ -86,6 +88,7 @@ export function useGameLoop({
     screenRef,
     setCoinsCollected,
     setItemsLeft,
+    setPlayerHearts,
     setStatus,
     stateRef,
     statusRef,

@@ -1,5 +1,6 @@
 import type { GameState } from "../model/types";
 import { updateHelpers } from "./helpers";
+import { updateEnemySenseIndicator } from "./update/enemySense";
 import { updateHunters } from "./update/hunter";
 import { updateItems } from "./update/items";
 import { updateMonster } from "./update/monster";
@@ -39,6 +40,7 @@ export function updateGameState(
 
   if (!updateMonster(state, dt, now, deps.touchEnabled, deps.onLoseReason)) return;
   if (!updateHunters(state, dt, now, deps.onLoseReason)) return;
+  updateEnemySenseIndicator(state, dt);
 
   if (state.status === "playing" && state.helpers.length > 0) {
     updateHelpers(state, dt, now, deps.onLoseReason);

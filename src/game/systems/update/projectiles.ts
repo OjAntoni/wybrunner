@@ -2,7 +2,7 @@ import { PLAYER_SPEED } from "../../config/constants";
 import type { Arrow, GameState, LoseReason } from "../../model/types";
 import { inBounds } from "../../utils/grid";
 import { distance } from "../../utils/math";
-import { loseGame } from "../outcome";
+import { applyPlayerEnemyHit } from "./playerDamage";
 
 export function updateProjectiles(
   state: GameState,
@@ -48,8 +48,8 @@ export function updateProjectiles(
       if (!inBounds(ax, ay)) continue;
       if (state.grid[ay][ax] === 1) continue;
       if (distance(nextPos, state.player) < 0.42) {
-        loseGame(state, "arrow", onLoseReason);
-        return false;
+        if (applyPlayerEnemyHit(state, now, "arrow", onLoseReason)) return false;
+        continue;
       }
       nextArrows.push({ ...arrow, pos: nextPos });
     }

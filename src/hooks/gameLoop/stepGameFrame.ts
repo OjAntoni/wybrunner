@@ -15,6 +15,7 @@ type StepGameFrameParams = {
   setStatus: (value: GameStatus) => void;
   setItemsLeft: (value: number) => void;
   setCoinsCollected: (value: number) => void;
+  setPlayerHearts: (value: number) => void;
   resizeCanvas: () => void;
 };
 
@@ -32,6 +33,7 @@ export function stepGameFrame({
   setStatus,
   setItemsLeft,
   setCoinsCollected,
+  setPlayerHearts,
   resizeCanvas,
 }: StepGameFrameParams): number {
   let nextNow = now;
@@ -49,6 +51,7 @@ export function stepGameFrame({
     }
     setItemsLeft(state.items.size);
     setCoinsCollected(state.coinsCollected);
+    setPlayerHearts(state.playerHearts);
   }
 
   resizeCanvas();

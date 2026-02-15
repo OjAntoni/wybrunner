@@ -7,6 +7,7 @@ import { drawFog } from "./fogOverlay";
 import { drawGuidanceArrows } from "./guidance";
 import { drawHunterVisions } from "./hunterVisionLayer";
 import {
+  drawEnemySenseIndicator,
   drawGhostPathsOverlay,
   drawGhosts,
   drawHelpers,
@@ -82,6 +83,7 @@ export function drawScene({
   drawHunters(ctx, state, now, camX, camY);
   drawTurrets(ctx, state, now, camX, camY);
   drawPlayer(ctx, state, now, camX, camY);
+  drawEnemySenseIndicator(ctx, state, camX, camY);
   drawMonsters(ctx, state, now, camX, camY);
 
   if (now < state.fogUntil) {

@@ -21,7 +21,7 @@ import { isGhostDisappearAnimationFinished } from "../../world/ghostVisibility";
 import { bfsNextStep, bestNeighborStep, bestNeighborStepAvoid } from "../../world/pathing";
 import { getDayNightSnapshot } from "../dayNight";
 import { isAtCellCenter, isOpposite } from "../movement";
-import { loseGame } from "../outcome";
+import { applyPlayerEnemyHit, isPlayerInvisibleToEnemies } from "./playerDamage";
 
 type ChaserMonster = Extract<Monster, { kind: "chaser" }>;
 type GhostMonster = Extract<Monster, { kind: "ghost" }>;
@@ -475,12 +475,13 @@ function activateGhostHunterCommand(ghost: GhostMonster, hunter: Hunter, remembe
   ghost.target = null;
 }
 
-function isGhostSeeingPlayer(ghost: GhostMonster, state: GameState) {
+function isGhostSeeingPlayer(ghost: GhostMonster, state: GameState, now: number) {
+  if (isPlayerInvisibleToEnemies(state, now)) return false;
   return distance(ghost.pos, state.player) <= GHOST_NIGHT_VISION_RADIUS_TILES;
 }
 
-function updateGhostMemoryIfSeeing(ghost: GhostMonster, state: GameState) {
-  if (!isGhostSeeingPlayer(ghost, state)) return false;
+function updateGhostMemoryIfSeeing(ghost: GhostMonster, state: GameState, now: number) {
+  if (!isGhostSeeingPlayer(ghost, state, now)) return false;
   ghost.rememberedPlayerPos = { ...state.player };
   return true;
 }
@@ -632,6 +633,8 @@ function updateChaserMonster(
     monster.boostUntil = Math.max(monster.boostUntil, now + CHASER_BOOST_MS);
   }
 
+  const playerInvisible = isPlayerInvisibleToEnemies(state, now);
+
   if (now >= monster.stunUntil) {
     const chaserSpeed =
       PLAYER_SPEED *
@@ -641,7 +644,14 @@ function updateChaserMonster(
       (now < monster.boostUntil ? CHASER_BOOST_MULT : 1);
 
     const atCenter = isAtCellCenter(monster.pos);
-    if (atCenter && !monster.target) {
+    if (!atCenter && !monster.target) {
+      monster.target = {
+        x: monsterCell.x + 0.5,
+        y: monsterCell.y + 0.5,
+      };
+    }
+
+    if (atCenter && !monster.target && !playerInvisible) {
       let desired = bfsNextStep(state.grid, monsterCell, playerCell);
       if (desired.x === 0 && desired.y === 0) {
         desired = bestNeighborStep(state.grid, monsterCell, playerCell);
@@ -665,7 +675,6 @@ function updateChaserMonster(
           y: targetCell.y + 0.5,
         };
       }
-
       monster.lastPathTime = now;
       monster.lastCell = { x: monsterCell.x, y: monsterCell.y };
     }
@@ -755,7 +764,7 @@ function updateGhostMonster(state: GameState, monster: GhostMonster, dt: number,
   if (baseGhostSpeed <= 0) return;
 
   if (monster.behavior === "path") {
-    if (updateGhostMemoryIfSeeing(monster, state)) {
+    if (updateGhostMemoryIfSeeing(monster, state, now)) {
       const closestHunter = findClosestDefaultHunterForGhost(state, monster, now);
       if (closestHunter) {
         monster.assignedHunterId = closestHunter.id;
@@ -768,7 +777,7 @@ function updateGhostMonster(state: GameState, monster: GhostMonster, dt: number,
   }
 
   if (monster.behavior === "to_hunter") {
-    updateGhostMemoryIfSeeing(monster, state);
+    updateGhostMemoryIfSeeing(monster, state, now);
 
     const assignedHunter = findHunterById(state, monster.assignedHunterId);
     if (!assignedHunter || !isHunterDefaultStateForGhostRecruit(assignedHunter, now)) {
@@ -798,7 +807,7 @@ function updateGhostMonster(state: GameState, monster: GhostMonster, dt: number,
       monster.pos = { ...assignedHunter.pos };
       monster.dir = { ...assignedHunter.dir };
       monster.target = null;
-      if (updateGhostMemoryIfSeeing(monster, state)) {
+      if (updateGhostMemoryIfSeeing(monster, state, now)) {
         const rememberedPos = monster.rememberedPlayerPos ?? state.player;
         assignedHunter.lastSeenPlayer = { ...rememberedPos };
         assignedHunter.ghostCommandTarget = { ...rememberedPos };
@@ -807,7 +816,7 @@ function updateGhostMonster(state: GameState, monster: GhostMonster, dt: number,
   }
 
   if (monster.behavior === "return_to_path") {
-    if (updateGhostMemoryIfSeeing(monster, state)) {
+    if (updateGhostMemoryIfSeeing(monster, state, now)) {
       const closestHunter = findClosestDefaultHunterForGhost(state, monster, now);
       if (closestHunter) {
         monster.assignedHunterId = closestHunter.id;
@@ -915,8 +924,7 @@ export function updateMonster(
     }
 
     if (monster.kind !== "ghost" && distance(state.player, monster.pos) < 0.45) {
-      loseGame(state, "caught", onLoseReason);
-      return false;
+      if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
     }
   }
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ITEMS_TARGET } from "../../game/config/constants";
+import { ITEMS_TARGET, PLAYER_HEARTS_MAX } from "../../game/config/constants";
 import type {
   GameStatus,
   LoseReason,
@@ -14,6 +14,7 @@ export type ControllerStateModel = {
   coinsCollected: number;
   spikesLeft: number;
   bombsLeft: number;
+  playerHearts: number;
   loseReason: LoseReason;
   confirmRestartOpen: boolean;
   paused: boolean;
@@ -29,6 +30,7 @@ export type ControllerStateModel = {
   setCoinsCollected: (value: number) => void;
   setSpikesLeft: (value: number) => void;
   setBombsLeft: (value: number) => void;
+  setPlayerHearts: (value: number) => void;
   setLoseReason: (value: LoseReason) => void;
   setConfirmRestartOpen: (value: boolean) => void;
   setPaused: (value: boolean) => void;
@@ -46,6 +48,7 @@ export function useControllerState(): ControllerStateModel {
   const [coinsCollected, setCoinsCollected] = useState(0);
   const [spikesLeft, setSpikesLeft] = useState(3);
   const [bombsLeft, setBombsLeft] = useState(1);
+  const [playerHearts, setPlayerHearts] = useState(PLAYER_HEARTS_MAX);
   const [loseReason, setLoseReason] = useState<LoseReason>("caught");
   const [confirmRestartOpen, setConfirmRestartOpen] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -70,6 +73,7 @@ export function useControllerState(): ControllerStateModel {
     coinsCollected,
     spikesLeft,
     bombsLeft,
+    playerHearts,
     loseReason,
     confirmRestartOpen,
     paused,
@@ -85,6 +89,7 @@ export function useControllerState(): ControllerStateModel {
     setCoinsCollected,
     setSpikesLeft,
     setBombsLeft,
+    setPlayerHearts,
     setLoseReason,
     setConfirmRestartOpen,
     setPaused,

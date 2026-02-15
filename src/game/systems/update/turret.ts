@@ -10,6 +10,7 @@ import {
 } from "../../config/constants";
 import type { GameState, Turret, Vec } from "../../model/types";
 import { isTargetVisibleInVisionCone } from "../../world/hunterVision";
+import { isPlayerInvisibleToEnemies } from "./playerDamage";
 
 let turretIdCounter = 1;
 
@@ -86,14 +87,17 @@ export function updateTurrets(state: GameState, dt: number, now: number) {
       x: Math.cos(turret.facingAngle),
       y: Math.sin(turret.facingAngle),
     };
-    const seesPlayer = isTargetVisibleInVisionCone(
-      state.grid,
-      turret.pos,
-      facingDirection,
-      state.player,
-      TURRET_VISION_RADIUS_TILES,
-      TURRET_VISION_ANGLE_DEG
-    );
+    const playerInvisible = isPlayerInvisibleToEnemies(state, now);
+    const seesPlayer =
+      !playerInvisible &&
+      isTargetVisibleInVisionCone(
+        state.grid,
+        turret.pos,
+        facingDirection,
+        state.player,
+        TURRET_VISION_RADIUS_TILES,
+        TURRET_VISION_ANGLE_DEG
+      );
 
     if (seesPlayer) {
       enterTrackMode(turret, now);

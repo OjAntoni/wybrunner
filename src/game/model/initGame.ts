@@ -7,6 +7,7 @@ import {
   HUNTER_PATROL_MAX_STRAIGHT_STEPS,
   HUNTER_PATROL_MIN_STRAIGHT_STEPS,
   HUNTER_VISION_ANGLE_DEG,
+  PLAYER_HEARTS_MAX,
 } from "../config/constants";
 import { buildInitialPlacements } from "./initGamePlacements";
 import { CARDINAL_DIRS } from "../world/pathingDirections";
@@ -82,6 +83,10 @@ export function initGame(now: number = performance.now()): GameState {
     player: cellCenter(playerCell),
     playerFacing: { x: 1, y: 0 },
     playerFacingIndicator: { x: 1, y: 0 },
+    playerFacingTurnDir: 1,
+    playerHearts: PLAYER_HEARTS_MAX,
+    playerInvulnerableUntilMs: 0,
+    playerHurtUntilMs: 0,
     monsters: [],
     hunters,
     turrets: [],
@@ -111,6 +116,7 @@ export function initGame(now: number = performance.now()): GameState {
     fogUntil: 0,
     explosions: [],
     playerPopup: null,
+    enemySenseSegments: [],
     swordSwingStartMs: null,
     swordCooldownUntilMs: 0,
     swordSwingHitMs: null,

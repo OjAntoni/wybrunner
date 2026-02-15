@@ -60,7 +60,7 @@ export function updateHudOcclusion({
   const playerCssX = playerViewX * cameraZoom;
   const playerCssY = playerViewY * cameraZoom;
 
-  const pad = 10;
+  const pad = 100;
   const underHud =
     playerCssX >= cache.hudTop.left - pad &&
     playerCssX <= cache.hudTop.right + pad &&

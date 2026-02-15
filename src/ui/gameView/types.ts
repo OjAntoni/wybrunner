@@ -20,6 +20,7 @@ export type GameViewModel = {
   coinsCollected: number;
   spikesLeft: number;
   bombsLeft: number;
+  playerHearts: number;
   helpText: string;
 };
 

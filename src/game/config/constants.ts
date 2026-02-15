@@ -7,6 +7,8 @@ export const COINS_TARGET = 100;
 export const UNDERGROUND_TRAPS_TARGET = 30;
 
 export const PLAYER_SPEED = 4; // tiles per second
+export const PLAYER_HEARTS_MAX = 3;
+export const PLAYER_INVULNERABLE_MS = 4000;
 export const EXTRA_CONNECTION_RATIO = 0.2;
 export const ENTITY_RADIUS = 0.3; // tiles
 
@@ -44,6 +46,10 @@ export const CHASER_BOOST_MS = 3000;
 // 20% slower globally
 export const CHASER_SPEED_MULT = 0.8;
 export const GHOST_SPEED_MULT = 0.72;
+export const ENEMY_SENSE_RADIUS_TILES = 2;
+export const ENEMY_SENSE_DETECT_RADIUS_TILES = 7;
+export const ENEMY_SENSE_BUCKETS = 32;
+export const ENEMY_SENSE_FADE_SPEED = 8;
 export const GHOST_COUNT_MIN = 13;
 export const GHOST_COUNT_MAX = 21;
 export const GHOST_NIGHT_VISION_RADIUS_TILES = 4;
@@ -58,6 +64,7 @@ export const HUNTER_COUNT_MIN = 20;
 export const HUNTER_COUNT_MAX = 30;
 export const HUNTER_WALK_SPEED_MULT = 0.45;
 export const HUNTER_CHASE_SPEED_MULT = 1.3;
+export const HUNTER_AGGRESSIVE_SPEED_MULT = 0.75;
 export const HUNTER_VISION_RADIUS_TILES = 9;
 export const HUNTER_VISION_ANGLE_DEG = 60;
 export const HUNTER_VISION_RAY_COUNT = 48;

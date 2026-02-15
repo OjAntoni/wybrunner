@@ -1,6 +1,7 @@
 import { SWORD_SWING_DURATION_MS } from "../../config/constants";
 import type { GameState, Vec } from "../../model/types";
 import { cellKey, inBounds } from "../../utils/grid";
+import { castVisionRayDistance } from "../../world/hunterVision";
 
 function getCardinalFacing(facing: Vec) {
   const absX = Math.abs(facing.x);
@@ -11,6 +12,22 @@ function getCardinalFacing(facing: Vec) {
   }
   const signY = facing.y >= 0 ? 1 : -1;
   return { x: 0, y: signY };
+}
+
+function isOffsetBlocked(grid: GameState["grid"], baseX: number, baseY: number, dx: number, dy: number) {
+  const targetX = baseX + dx;
+  const targetY = baseY + dy;
+  if (!inBounds(targetX, targetY)) return true;
+  if (grid[targetY][targetX] !== 0) return true;
+  const origin = { x: baseX + 0.5, y: baseY + 0.5 };
+  const targetPos = { x: targetX + 0.5, y: targetY + 0.5 };
+  const toTargetX = targetPos.x - origin.x;
+  const toTargetY = targetPos.y - origin.y;
+  const dist = Math.hypot(toTargetX, toTargetY);
+  if (dist <= 0.0001) return false;
+  const angle = Math.atan2(toTargetY, toTargetX);
+  const visible = castVisionRayDistance(grid, origin, angle, dist);
+  return dist > visible + 0.08;
 }
 
 function buildSwordHitSet(state: GameState) {
@@ -37,7 +54,7 @@ function buildSwordHitSet(state: GameState) {
     const tileX = baseX + offset.x;
     const tileY = baseY + offset.y;
     if (!inBounds(tileX, tileY)) continue;
-    if (state.grid[tileY][tileX] !== 0) continue;
+    if (isOffsetBlocked(state.grid, baseX, baseY, offset.x, offset.y)) continue;
     hitKeys.add(cellKey(tileX, tileY));
   }
   return hitKeys;

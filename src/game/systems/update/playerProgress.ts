@@ -3,7 +3,7 @@ import type { GameState, Vec } from "../../model/types";
 import { cellKey } from "../../utils/grid";
 import { clearExploreClouds, updateDiscoveredArtifacts } from "../../world/exploration";
 import { tryMove } from "../movement";
-import { loseGame } from "../outcome";
+import { applyPlayerEnemyHit } from "./playerDamage";
 import type { UpdateGameStateDeps } from "./types";
 
 type PlayerProgressDeps = Pick<
@@ -35,18 +35,22 @@ export function updatePlayerProgress(
   const indicatorTarget = state.playerFacing;
   const indicator = state.playerFacingIndicator;
   const dot = indicator.x * indicatorTarget.x + indicator.y * indicatorTarget.y;
+  const cross = indicator.x * indicatorTarget.y - indicator.y * indicatorTarget.x;
+  const crossAbs = Math.abs(cross);
+  if (crossAbs > 0.0001) {
+    state.playerFacingTurnDir = cross > 0 ? 1 : -1;
+  }
   const turnBoost = dot < -0.2 ? 2.2 : 1;
   const indicatorLerp = 1 - Math.exp(-dt * 10 * turnBoost);
-  indicator.x += (indicatorTarget.x - indicator.x) * indicatorLerp;
-  indicator.y += (indicatorTarget.y - indicator.y) * indicatorLerp;
-  const indicatorLen = Math.hypot(indicator.x, indicator.y);
-  if (indicatorLen > 0.0001) {
-    indicator.x /= indicatorLen;
-    indicator.y /= indicatorLen;
-  } else {
-    indicator.x = indicatorTarget.x;
-    indicator.y = indicatorTarget.y;
+  const currentAngle = Math.atan2(indicator.y, indicator.x);
+  const targetAngle = Math.atan2(indicatorTarget.y, indicatorTarget.x);
+  let angleDelta = normalizeAngle(targetAngle - currentAngle);
+  if (crossAbs <= 0.0001 && dot < 0) {
+    angleDelta = state.playerFacingTurnDir * Math.PI;
   }
+  const nextAngle = currentAngle + angleDelta * indicatorLerp;
+  indicator.x = Math.cos(nextAngle);
+  indicator.y = Math.sin(nextAngle);
   const playerSpeed = PLAYER_SPEED * dt;
   state.player = tryMove(state.grid, state.player, move, playerSpeed, deps.touchEnabled);
 
@@ -82,15 +86,24 @@ export function updatePlayerProgress(
       state.undergroundTrapRevealMs.set(prevKey, now);
     }
     if (state.undergroundTrapsRevealed.has(playerKey)) {
-      loseGame(state, "trap", deps.onLoseReason);
-      return { playerCell, playerKey, alive: false };
+      if (applyPlayerEnemyHit(state, now, "trap", deps.onLoseReason)) {
+        return { playerCell, playerKey, alive: false };
+      }
     }
   }
 
   if (state.traps.has(playerKey)) {
-    loseGame(state, "trap", deps.onLoseReason);
-    return { playerCell, playerKey, alive: false };
+    if (applyPlayerEnemyHit(state, now, "trap", deps.onLoseReason)) {
+      return { playerCell, playerKey, alive: false };
+    }
   }
 
   return { playerCell, playerKey, alive: true };
+}
+
+function normalizeAngle(angle: number) {
+  let out = angle;
+  while (out <= -Math.PI) out += Math.PI * 2;
+  while (out > Math.PI) out -= Math.PI * 2;
+  return out;
 }

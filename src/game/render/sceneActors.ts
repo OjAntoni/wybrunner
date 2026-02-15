@@ -1,5 +1,7 @@
 import {
   CHASER_HEALTH,
+  ENEMY_SENSE_BUCKETS,
+  ENEMY_SENSE_RADIUS_TILES,
   HUNTER_CHASER_PLACE_DOT_STEP_MS,
   HUNTER_HEALTH,
   SWORD_SWING_DURATION_MS,
@@ -7,6 +9,7 @@ import {
 } from "../config/constants";
 import type { GameState } from "../model/types";
 import { getHunterFacingAngle } from "../world/hunterFacing";
+import { castVisionRayDistance } from "../world/hunterVision";
 import { getGhostVisibilityAlpha } from "../world/ghostVisibility";
 import { isCellCoveredByExploreClouds } from "../world/exploration";
 import { inBounds } from "../utils/grid";
@@ -95,6 +98,10 @@ export function drawPlayer(
   camX: number,
   camY: number
 ) {
+  const hurtFlicker = now < state.playerHurtUntilMs;
+  const flickerOn = !hurtFlicker || Math.sin(now / 45) > 0;
+  ctx.save();
+  ctx.globalAlpha = flickerOn ? 1 : 0.35;
   ctx.fillStyle = "#59d9ff";
   ctx.fillRect(
     state.player.x * TILE_SIZE - camX - TILE_SIZE / 2 + 1,
@@ -104,6 +111,44 @@ export function drawPlayer(
   );
   drawPlayerFacingIndicator(ctx, state, now, camX, camY);
   drawPlayerSwordSwing(ctx, state, now, camX, camY);
+  ctx.restore();
+}
+
+export function drawEnemySenseIndicator(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  camX: number,
+  camY: number
+) {
+  const segments = state.enemySenseSegments;
+  if (segments.length === 0) return;
+  const centerX = state.player.x * TILE_SIZE - camX;
+  const centerY = state.player.y * TILE_SIZE - camY;
+  const radius = ENEMY_SENSE_RADIUS_TILES * TILE_SIZE;
+  const baseArc = (Math.PI * 2) / ENEMY_SENSE_BUCKETS;
+  const arcSpan = baseArc * 2.16;
+  const arcHalf = arcSpan * 0.5;
+  const lineWidth = Math.max(1.2, TILE_SIZE * 0.12);
+  const blur = TILE_SIZE * 0.6;
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.shadowBlur = blur;
+  for (const segment of segments) {
+    if (segment.alpha <= 0.01) continue;
+    const dirLen = Math.hypot(segment.dir.x, segment.dir.y);
+    if (dirLen <= 0.0001) continue;
+    const angle = Math.atan2(segment.dir.y, segment.dir.x);
+    const alpha = Math.max(0, Math.min(1, segment.alpha));
+    ctx.lineWidth = lineWidth + alpha * 0.6;
+    ctx.strokeStyle = `rgba(255, 96, 96, ${(0.2125 * alpha).toFixed(3)})`;
+    ctx.shadowColor = `rgba(255, 70, 70, ${(0.1625 * alpha).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, angle - arcHalf, angle + arcHalf);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawPlayerFacingIndicator(
@@ -227,7 +272,7 @@ function drawPlayerSwordSwing(
     const tileX = Math.floor(state.player.x) + offset.x;
     const tileY = Math.floor(state.player.y) + offset.y;
     if (!inBounds(tileX, tileY)) continue;
-    if (state.grid[tileY][tileX] !== 0) continue;
+    if (!isSwordOffsetHittable(state, offset.x, offset.y)) continue;
     ctx.fillStyle = `rgba(220, 220, 220, ${glow.toFixed(3)})`;
     ctx.fillRect(
       tileX * TILE_SIZE - camX,
@@ -238,6 +283,24 @@ function drawPlayerSwordSwing(
   }
 
   ctx.restore();
+}
+
+function isSwordOffsetHittable(state: GameState, dx: number, dy: number) {
+  const baseX = Math.floor(state.player.x);
+  const baseY = Math.floor(state.player.y);
+  const targetX = baseX + dx;
+  const targetY = baseY + dy;
+  if (!inBounds(targetX, targetY)) return false;
+  if (state.grid[targetY][targetX] !== 0) return false;
+  const origin = { x: baseX + 0.5, y: baseY + 0.5 };
+  const target = { x: targetX + 0.5, y: targetY + 0.5 };
+  const tx = target.x - origin.x;
+  const ty = target.y - origin.y;
+  const dist = Math.hypot(tx, ty);
+  if (dist <= 0.0001) return true;
+  const angle = Math.atan2(ty, tx);
+  const visible = castVisionRayDistance(state.grid, origin, angle, dist);
+  return dist <= visible + 0.08;
 }
 
 function drawGhost(

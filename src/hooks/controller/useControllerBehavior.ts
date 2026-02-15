@@ -39,6 +39,7 @@ export function useControllerBehavior({
     coinsCollected,
     spikesLeft,
     bombsLeft,
+    playerHearts,
     helpText,
   } = state;
   const { canvasRef, hudTopRef, inventoryRef, joystickRef, joystickZoneRef, joystickKnobRef } = refs;
@@ -60,6 +61,7 @@ export function useControllerBehavior({
       coinsCollected,
       spikesLeft,
       bombsLeft,
+      playerHearts,
       helpText,
     },
     refs: {

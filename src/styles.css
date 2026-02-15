@@ -224,6 +224,34 @@ body,
   justify-content: space-between;
 }
 
+.hearts-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-hearts {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+}
+
+.hud-heart {
+  display: inline-flex;
+}
+
+.hud-heart-icon {
+  width: 14px;
+  height: 12px;
+  fill: rgba(120, 40, 40, 0.6);
+}
+
+.hud-heart.filled .hud-heart-icon {
+  fill: #ff6b86;
+  filter: drop-shadow(0 0 4px rgba(255, 90, 120, 0.55));
+}
+
 .stat-item {
   white-space: nowrap;
 }
@@ -236,6 +264,11 @@ body,
   align-items: flex-start;
   font-size: 9px;
   line-height: 1.25;
+}
+
+.hud-top.hud-top-compact .hud-heart-icon {
+  width: 11px;
+  height: 10px;
 }
 
 .coins-stat {

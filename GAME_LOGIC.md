@@ -6,7 +6,7 @@ This document explains the current gameplay logic, mechanics, features, and comp
 
 - The player explores a procedurally generated maze, collects artifacts, and avoids lethal threats.
 - Win condition: collect all artifacts.
-- Lose conditions: caught by chaser or hunters, trap hit, helper collision, or arrow hit.
+- Lose conditions: hearts depleted by enemy hit (chaser/hunter/helper/arrow) or trap damage.
 
 Code references:
 - `src/game/config/constants.ts`
@@ -52,8 +52,10 @@ Code references:
 - Entering new cells updates exploration clearing and discovered artifacts.
 - Coin collection increments counter.
 - Sword swing animation triggers on attack input and sweeps from right shoulder to left; the visual hit zone covers front, two-steps front, left, right, and front diagonals (6 tiles total) with a 1s cooldown between swings.
-- Sword hits remove one heart from chasers and hunters in the hit tiles; chasers have 1 heart, hunters have 3, and turrets/ghosts are immune. Tiny heart pips render above each damageable mob. Hit mobs flicker briefly when damaged; hunters are stunned for 0.7s and then become aggressive (chasing in the hit direction, then a 4s nervous scan that moves around the last-seen area while turning).
-- Underground traps stay hidden while first stepped on and only reveal after the player leaves; stepping onto a revealed underground trap is lethal.
+- Sword hits remove one heart from chasers and hunters in the hit tiles; chasers have 1 heart, hunters have 3, and turrets/ghosts are immune. Hits require clear line-of-sight (no wall between player and hit tile). Tiny heart pips render above each damageable mob. Hit mobs flicker briefly when damaged; hunters are stunned for 0.7s and then become aggressive (chasing in the hit direction, then a 4s nervous scan that moves around the last-seen area while turning).
+- Player has 3 hearts. Enemy hits (caught/arrow/helper) remove one heart; if at least 2 remain, the player flickers and is invisible to enemies for 4s. If only 1 heart remains, the next enemy hit ends the game.
+- Underground traps stay hidden while first stepped on and only reveal after the player leaves; stepping onto a revealed underground trap removes one heart.
+- Hidden-enemy sense: if a chaser/hunter/turret is under undiscovered clouds within 7 tiles, a red, softly blurred arc appears on an invisible 2-tile radius ring around the player pointing toward that enemy; arcs fade in/out smoothly.
 
 Code references:
 - `src/game/input/direction.ts`
@@ -151,7 +153,7 @@ Code references:
   - Hunter body and vision cone are hidden while hunter is on undiscovered land, except chase mode where hunter and cone remain visible.
 - Chase model:
   - If player is inside visible cone with clear line-of-sight, that hunter enters chase.
-  - Chase speed is `1.3 * player speed`.
+- Aggressive movement speed (chase + nervous scan) is `1.3 * player speed * 0.75` (`0.975 * player speed`).
   - If player leaves vision while chasing, hunter continues toward last seen player position.
   - If hunter reaches last seen position without reacquiring vision, it nervously scans all directions in place.
   - Nervous scan direction is randomized per scan (clockwise or counterclockwise).

@@ -2,6 +2,7 @@ import {
   HUNTER_BACK_CHECK_CHANCE,
   HUNTER_BACK_CHECK_LOOK_MS,
   HUNTER_BACK_CHECK_MIN_CLEAR_TILES,
+  HUNTER_AGGRESSIVE_SPEED_MULT,
   HUNTER_CHASER_PLACE_CHANCE_NO_CHASER,
   HUNTER_CHASER_PLACE_CHANCE_WITH_CHASER,
   HUNTER_CHASER_PLACE_DURATION_MS,
@@ -31,7 +32,7 @@ import { isTargetVisibleInVisionCone } from "../../world/hunterVision";
 import { isAtCellCenter, isOpposite } from "../movement";
 import { createMonsterAt, returnGhostToPath } from "./monster";
 import { createTurretAt } from "./turret";
-import { loseGame } from "../outcome";
+import { applyPlayerEnemyHit, isPlayerInvisibleToEnemies } from "./playerDamage";
 
 type GhostMonster = Extract<GameState["monsters"][number], { kind: "ghost" }>;
 
@@ -783,16 +784,14 @@ function updateSingleHunter(
   if (hunter.chaserPlaceEndMs > now || hunter.turretPlaceEndMs > now) {
     syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
-      loseGame(state, "caught", onLoseReason);
-      return false;
+      if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
     }
     return true;
   }
   if (now < hunter.stunUntil) {
     syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
-      loseGame(state, "caught", onLoseReason);
-      return false;
+      if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
     }
     return true;
   }
@@ -802,14 +801,17 @@ function updateSingleHunter(
     hunter.mode === "chase" || hunter.nervousScanActive
       ? 120
       : HUNTER_VISION_ANGLE_DEG;
-  const seesPlayer = isTargetVisibleInVisionCone(
-    state.grid,
-    hunter.pos,
-    facingDirection,
-    state.player,
-    HUNTER_VISION_RADIUS_TILES,
-    visionAngle
-  );
+  const playerInvisible = isPlayerInvisibleToEnemies(state, now);
+  const seesPlayer =
+    !playerInvisible &&
+    isTargetVisibleInVisionCone(
+      state.grid,
+      hunter.pos,
+      facingDirection,
+      state.player,
+      HUNTER_VISION_RADIUS_TILES,
+      visionAngle
+    );
   updateHunterPursuitState(hunter, state.player, seesPlayer);
   if (hunter.mode === "chase") {
     clearBackCheckState(hunter);
@@ -823,21 +825,22 @@ function updateSingleHunter(
       if (hunter.chaserPlaceEndMs > now) {
         syncGhostPartnerPosition(state, hunter);
         if (distance(state.player, hunter.pos) < 0.45) {
-          loseGame(state, "caught", onLoseReason);
-          return false;
+          if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
         }
         return true;
       }
     }
   }
 
-  const speedMult = hunter.mode === "chase" ? HUNTER_CHASE_SPEED_MULT : HUNTER_WALK_SPEED_MULT;
+  const isAggressive = hunter.mode === "chase" || hunter.nervousScanActive;
+  const speedMult = isAggressive
+    ? HUNTER_CHASE_SPEED_MULT * HUNTER_AGGRESSIVE_SPEED_MULT
+    : HUNTER_WALK_SPEED_MULT;
   const hunterSpeed = PLAYER_SPEED * dt * speedMult;
   if (hunter.backCheckState !== "none") {
     syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
-      loseGame(state, "caught", onLoseReason);
-      return false;
+      if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
     }
     return true;
   }
@@ -855,8 +858,7 @@ function updateSingleHunter(
       if (hunter.turretPlaceEndMs > now) {
         syncGhostPartnerPosition(state, hunter);
         if (distance(state.player, hunter.pos) < 0.45) {
-          loseGame(state, "caught", onLoseReason);
-          return false;
+          if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
         }
         return true;
       }
@@ -932,8 +934,7 @@ function updateSingleHunter(
   if (hunter.backCheckState !== "none") {
     syncGhostPartnerPosition(state, hunter);
     if (distance(state.player, hunter.pos) < 0.45) {
-      loseGame(state, "caught", onLoseReason);
-      return false;
+      if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
     }
     return true;
   }
@@ -962,8 +963,7 @@ function updateSingleHunter(
   syncGhostPartnerPosition(state, hunter);
 
   if (distance(state.player, hunter.pos) < 0.45) {
-    loseGame(state, "caught", onLoseReason);
-    return false;
+    if (applyPlayerEnemyHit(state, now, "caught", onLoseReason)) return false;
   }
 
   return true;
