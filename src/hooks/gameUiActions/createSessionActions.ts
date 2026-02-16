@@ -27,6 +27,8 @@ export function createSessionActions(
     params.setEquipmentOpen(false);
     params.controlsReturnToGameRef.current = false;
     params.setControlsReturnToGame(false);
+    params.bestiaryReturnToGameRef.current = false;
+    params.setBestiaryReturnToGame(false);
     params.resetTouchInput();
     params.confirmRestartRef.current = true;
     params.setConfirmRestartOpen(true);
@@ -50,6 +52,8 @@ export function createSessionActions(
     params.keysRef.current.clear();
     params.controlsReturnToGameRef.current = false;
     params.setControlsReturnToGame(false);
+    params.bestiaryReturnToGameRef.current = false;
+    params.setBestiaryReturnToGame(false);
     params.mapOpenRef.current = false;
     params.mapReturnToPauseRef.current = false;
     params.setMapOpen(false);

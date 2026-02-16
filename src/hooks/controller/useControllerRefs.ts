@@ -20,6 +20,7 @@ export type ControllerRefs = {
   pausedRef: MutableRefObject<boolean>;
   equipmentOpenRef: MutableRefObject<boolean>;
   controlsReturnToGameRef: MutableRefObject<boolean>;
+  bestiaryReturnToGameRef: MutableRefObject<boolean>;
   mapReturnToPauseRef: MutableRefObject<boolean>;
   joystickRef: MutableRefObject<HTMLDivElement | null>;
   joystickZoneRef: MutableRefObject<HTMLDivElement | null>;
@@ -46,6 +47,7 @@ export function useControllerRefs(): ControllerRefs {
   const pausedRef = useRef(false);
   const equipmentOpenRef = useRef(false);
   const controlsReturnToGameRef = useRef(false);
+  const bestiaryReturnToGameRef = useRef(false);
   const mapReturnToPauseRef = useRef(false);
   const joystickRef = useRef<HTMLDivElement>(null);
   const joystickZoneRef = useRef<HTMLDivElement>(null);
@@ -77,6 +79,7 @@ export function useControllerRefs(): ControllerRefs {
     pausedRef,
     equipmentOpenRef,
     controlsReturnToGameRef,
+    bestiaryReturnToGameRef,
     mapReturnToPauseRef,
     joystickRef,
     joystickZoneRef,

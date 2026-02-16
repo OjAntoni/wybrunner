@@ -2,12 +2,12 @@ import type { GameViewActions, GameViewModel } from "../types";
 
 type MainMenuContentProps = {
   view: Pick<GameViewModel, "touchEnabled">;
-  actions: Pick<GameViewActions, "onStartNewGame" | "onOpenControls">;
+  actions: Pick<GameViewActions, "onStartNewGame" | "onOpenControls" | "onOpenBestiary">;
 };
 
 export function MainMenuContent({ view, actions }: MainMenuContentProps) {
   const { touchEnabled } = view;
-  const { onStartNewGame, onOpenControls } = actions;
+  const { onStartNewGame, onOpenControls, onOpenBestiary } = actions;
 
   return (
     <>
@@ -20,14 +20,17 @@ export function MainMenuContent({ view, actions }: MainMenuContentProps) {
         <button className="menu-button" onClick={() => onOpenControls(false)}>
           Controls
         </button>
+        <button className="menu-button" onClick={() => onOpenBestiary(false)}>
+          Bestiary
+        </button>
       </div>
       <div className="menu-hint">
         {touchEnabled ? (
-          "Tap Start New Game or Controls."
+          "Tap Start New Game, Controls, or Bestiary."
         ) : (
           <>
             Press <span className="keycap">Enter</span> to start, <span className="keycap">C</span>{" "}
-            for controls
+            for controls, <span className="keycap">B</span> for bestiary
           </>
         )}
       </div>

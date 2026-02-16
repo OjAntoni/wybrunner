@@ -14,6 +14,8 @@ export function useGameUiActions(params: UseGameUiActionsParams) {
     closeEquipment: navigation.closeEquipment,
     openControls: navigation.openControls,
     closeControls: navigation.closeControls,
+    openBestiary: navigation.openBestiary,
+    closeBestiary: navigation.closeBestiary,
     goToMainMenu: navigation.goToMainMenu,
     openRestartConfirm: session.openRestartConfirm,
     closeRestartConfirm: session.closeRestartConfirm,

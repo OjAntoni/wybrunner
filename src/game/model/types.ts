@@ -27,4 +27,10 @@ export type {
   Turret,
   TurretMode,
 } from "./types/entities";
-export type { EnemySenseSegment, Explosion, GameState, PlayerPopup } from "./types/state";
+export type {
+  CoinPickupBurst,
+  EnemySenseSegment,
+  Explosion,
+  GameState,
+  PlayerPopup,
+} from "./types/state";

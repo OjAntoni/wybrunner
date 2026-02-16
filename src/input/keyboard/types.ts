@@ -3,6 +3,8 @@ import type { GameState, UIScreen } from "../../game/model/types";
 
 export type KeyboardCallbacks = {
   closeControls: () => void;
+  openBestiary: (fromGame: boolean) => void;
+  closeBestiary: () => void;
   startNewGame: () => void;
   openControls: (fromGame: boolean) => void;
   goToMainMenu: () => void;

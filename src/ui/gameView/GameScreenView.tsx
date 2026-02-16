@@ -81,6 +81,7 @@ export function GameScreenView({ view, refs, actions }: GameScreenViewProps) {
           onOpenMap: actions.onOpenMap,
           onCloseMap: actions.onCloseMap,
           onOpenControls: actions.onOpenControls,
+          onOpenBestiary: actions.onOpenBestiary,
           onOpenRestartConfirm: actions.onOpenRestartConfirm,
           onCloseEquipment: actions.onCloseEquipment,
           onResumeFromEquipment: actions.onResumeFromEquipment,

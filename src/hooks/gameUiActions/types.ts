@@ -12,6 +12,7 @@ export type UseGameUiActionsParams = {
   pausedRef: MutableRefObject<boolean>;
   equipmentOpenRef: MutableRefObject<boolean>;
   controlsReturnToGameRef: MutableRefObject<boolean>;
+  bestiaryReturnToGameRef: MutableRefObject<boolean>;
   mapReturnToPauseRef: MutableRefObject<boolean>;
   resetTouchInput: () => void;
   setScreen: (value: UIScreen) => void;
@@ -25,5 +26,6 @@ export type UseGameUiActionsParams = {
   setPaused: (value: boolean) => void;
   setEquipmentOpen: (value: boolean) => void;
   setControlsReturnToGame: (value: boolean) => void;
+  setBestiaryReturnToGame: (value: boolean) => void;
   setMapOpen: (value: boolean) => void;
 };

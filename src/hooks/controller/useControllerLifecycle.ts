@@ -14,6 +14,7 @@ type UseControllerLifecycleParams = {
     | "paused"
     | "equipmentOpen"
     | "controlsReturnToGame"
+    | "bestiaryReturnToGame"
     | "touchEnabled"
     | "status"
     | "setTouchEnabled"
@@ -53,6 +54,7 @@ export function useControllerLifecycle({
     pausedRef,
     equipmentOpenRef,
     controlsReturnToGameRef,
+    bestiaryReturnToGameRef,
     touchEnabledRef,
   } = refs;
   const {
@@ -62,6 +64,7 @@ export function useControllerLifecycle({
     paused,
     equipmentOpen,
     controlsReturnToGame,
+    bestiaryReturnToGame,
     touchEnabled,
     status,
     setTouchEnabled,
@@ -81,6 +84,7 @@ export function useControllerLifecycle({
     paused,
     equipmentOpen,
     controlsReturnToGame,
+    bestiaryReturnToGame,
     touchEnabled,
     status,
     screenRef,
@@ -89,6 +93,7 @@ export function useControllerLifecycle({
     pausedRef,
     equipmentOpenRef,
     controlsReturnToGameRef,
+    bestiaryReturnToGameRef,
     touchEnabledRef,
     resetTouchInput,
   });

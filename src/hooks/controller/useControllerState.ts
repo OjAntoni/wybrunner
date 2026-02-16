@@ -22,6 +22,7 @@ export type ControllerStateModel = {
   touchEnabled: boolean;
   compactHud: boolean;
   controlsReturnToGame: boolean;
+  bestiaryReturnToGame: boolean;
   helpText: string;
   setScreen: (value: UIScreen) => void;
   setMapOpen: (value: boolean) => void;
@@ -38,6 +39,7 @@ export type ControllerStateModel = {
   setTouchEnabled: (value: boolean) => void;
   setCompactHud: (value: boolean) => void;
   setControlsReturnToGame: (value: boolean) => void;
+  setBestiaryReturnToGame: (value: boolean) => void;
 };
 
 export function useControllerState(): ControllerStateModel {
@@ -56,6 +58,7 @@ export function useControllerState(): ControllerStateModel {
   const [touchEnabled, setTouchEnabled] = useState(false);
   const [compactHud, setCompactHud] = useState(false);
   const [controlsReturnToGame, setControlsReturnToGame] = useState(false);
+  const [bestiaryReturnToGame, setBestiaryReturnToGame] = useState(false);
 
   const helpText = useMemo(
     () =>
@@ -81,6 +84,7 @@ export function useControllerState(): ControllerStateModel {
     touchEnabled,
     compactHud,
     controlsReturnToGame,
+    bestiaryReturnToGame,
     helpText,
     setScreen,
     setMapOpen,
@@ -97,5 +101,6 @@ export function useControllerState(): ControllerStateModel {
     setTouchEnabled,
     setCompactHud,
     setControlsReturnToGame,
+    setBestiaryReturnToGame,
   };
 }

@@ -8,6 +8,7 @@ type UseUiStateSyncParams = {
   paused: boolean;
   equipmentOpen: boolean;
   controlsReturnToGame: boolean;
+  bestiaryReturnToGame: boolean;
   touchEnabled: boolean;
   status: GameStatus;
   screenRef: MutableRefObject<UIScreen>;
@@ -16,6 +17,7 @@ type UseUiStateSyncParams = {
   pausedRef: MutableRefObject<boolean>;
   equipmentOpenRef: MutableRefObject<boolean>;
   controlsReturnToGameRef: MutableRefObject<boolean>;
+  bestiaryReturnToGameRef: MutableRefObject<boolean>;
   touchEnabledRef: MutableRefObject<boolean>;
   resetTouchInput: () => void;
 };
@@ -27,6 +29,7 @@ export function useUiStateSync({
   paused,
   equipmentOpen,
   controlsReturnToGame,
+  bestiaryReturnToGame,
   touchEnabled,
   status,
   screenRef,
@@ -35,6 +38,7 @@ export function useUiStateSync({
   pausedRef,
   equipmentOpenRef,
   controlsReturnToGameRef,
+  bestiaryReturnToGameRef,
   touchEnabledRef,
   resetTouchInput,
 }: UseUiStateSyncParams) {
@@ -45,8 +49,11 @@ export function useUiStateSync({
     pausedRef.current = paused;
     equipmentOpenRef.current = equipmentOpen;
     controlsReturnToGameRef.current = controlsReturnToGame;
+    bestiaryReturnToGameRef.current = bestiaryReturnToGame;
     touchEnabledRef.current = touchEnabled;
   }, [
+    bestiaryReturnToGame,
+    bestiaryReturnToGameRef,
     confirmRestartOpen,
     confirmRestartRef,
     controlsReturnToGame,

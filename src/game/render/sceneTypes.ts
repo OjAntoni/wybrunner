@@ -23,5 +23,6 @@ export type SceneViewport = {
   camY: number;
   viewW: number;
   viewH: number;
+  heartbeatPulse: number;
   bounds: VisibleTileBounds;
 };

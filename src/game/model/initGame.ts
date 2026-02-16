@@ -1,6 +1,7 @@
 import { generateMaze } from "../world/maze";
 import { buildExploreCloudBuckets, buildExploreClouds } from "../world/exploreClouds";
 import { cellCenter, cellKey } from "../utils/grid";
+import { resetSceneCamera } from "../render/camera";
 import type { GameState, Hunter } from "./types";
 import {
   HUNTER_HEALTH,
@@ -22,6 +23,7 @@ function randomIntInRange(min: number, max: number) {
 }
 
 export function initGame(now: number = performance.now()): GameState {
+  resetSceneCamera();
   const grid = generateMaze();
   const {
     playerCell,
@@ -117,6 +119,7 @@ export function initGame(now: number = performance.now()): GameState {
     fogStart: 0,
     fogUntil: 0,
     explosions: [],
+    coinPickupBursts: [],
     playerPopup: null,
     enemySenseSegments: [],
     swordSwingStartMs: null,

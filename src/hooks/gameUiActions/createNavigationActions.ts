@@ -10,6 +10,8 @@ export type NavigationActions = {
   closeEquipment: () => void;
   openControls: (fromGame: boolean) => void;
   closeControls: () => void;
+  openBestiary: (fromGame: boolean) => void;
+  closeBestiary: () => void;
   goToMainMenu: () => void;
 };
 
@@ -82,6 +84,19 @@ export function createNavigationActions(params: UseGameUiActionsParams): Navigat
     goToScreen(returnToGame ? "game" : "menu");
   };
 
+  const openBestiary = (fromGame: boolean) => {
+    params.bestiaryReturnToGameRef.current = fromGame;
+    params.setBestiaryReturnToGame(fromGame);
+    goToScreen("bestiary");
+  };
+
+  const closeBestiary = () => {
+    const returnToGame = params.bestiaryReturnToGameRef.current;
+    params.bestiaryReturnToGameRef.current = false;
+    params.setBestiaryReturnToGame(false);
+    goToScreen(returnToGame ? "game" : "menu");
+  };
+
   const goToMainMenu = () => {
     params.keysRef.current.clear();
     params.mapOpenRef.current = false;
@@ -91,6 +106,8 @@ export function createNavigationActions(params: UseGameUiActionsParams): Navigat
     params.setEquipmentOpen(false);
     params.controlsReturnToGameRef.current = false;
     params.setControlsReturnToGame(false);
+    params.bestiaryReturnToGameRef.current = false;
+    params.setBestiaryReturnToGame(false);
     params.resetTouchInput();
     params.confirmRestartRef.current = false;
     params.setConfirmRestartOpen(false);
@@ -108,6 +125,8 @@ export function createNavigationActions(params: UseGameUiActionsParams): Navigat
     closeEquipment,
     openControls,
     closeControls,
+    openBestiary,
+    closeBestiary,
     goToMainMenu,
   };
 }

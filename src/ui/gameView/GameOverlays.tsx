@@ -32,6 +32,7 @@ type GameOverlaysProps = {
     | "onOpenMap"
     | "onCloseMap"
     | "onOpenControls"
+    | "onOpenBestiary"
     | "onOpenRestartConfirm"
     | "onCloseEquipment"
     | "onResumeFromEquipment"
@@ -69,6 +70,7 @@ function GameOverlaysComponent({ view, actions }: GameOverlaysProps) {
             onPauseOpenEquipment: actions.onPauseOpenEquipment,
             onOpenMap: actions.onOpenMap,
             onOpenControls: actions.onOpenControls,
+            onOpenBestiary: actions.onOpenBestiary,
             onOpenRestartConfirm: actions.onOpenRestartConfirm,
             onGoToMainMenu: actions.onGoToMainMenu,
           }}
@@ -139,6 +141,7 @@ export const GameOverlays = memo(GameOverlaysComponent, (prev, next) => {
     prev.actions.onOpenMap === next.actions.onOpenMap &&
     prev.actions.onCloseMap === next.actions.onCloseMap &&
     prev.actions.onOpenControls === next.actions.onOpenControls &&
+    prev.actions.onOpenBestiary === next.actions.onOpenBestiary &&
     prev.actions.onOpenRestartConfirm === next.actions.onOpenRestartConfirm &&
     prev.actions.onCloseEquipment === next.actions.onCloseEquipment &&
     prev.actions.onResumeFromEquipment === next.actions.onResumeFromEquipment &&

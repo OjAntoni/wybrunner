@@ -21,6 +21,7 @@ type UseControllerInteractionsParams = {
     | "setPaused"
     | "setEquipmentOpen"
     | "setControlsReturnToGame"
+    | "setBestiaryReturnToGame"
     | "setMapOpen"
   >;
   runtime: {
@@ -50,6 +51,7 @@ export function useControllerInteractions({
     setPaused,
     setEquipmentOpen,
     setControlsReturnToGame,
+    setBestiaryReturnToGame,
     setMapOpen,
   } = state;
 
@@ -71,6 +73,7 @@ export function useControllerInteractions({
     pausedRef,
     equipmentOpenRef: refs.equipmentOpenRef,
     controlsReturnToGameRef,
+    bestiaryReturnToGameRef: refs.bestiaryReturnToGameRef,
     mapReturnToPauseRef: refs.mapReturnToPauseRef,
     resetTouchInput,
     setScreen,
@@ -84,6 +87,7 @@ export function useControllerInteractions({
     setPaused,
     setEquipmentOpen,
     setControlsReturnToGame,
+    setBestiaryReturnToGame,
     setMapOpen,
   });
 

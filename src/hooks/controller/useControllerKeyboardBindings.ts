@@ -3,6 +3,8 @@ import type { ControllerRefs } from "./useControllerRefs";
 
 type UiActionsForKeyboard = {
   closeControls: () => void;
+  openBestiary: (fromGame: boolean) => void;
+  closeBestiary: () => void;
   startNewGame: () => void;
   openControls: (fromGame: boolean) => void;
   goToMainMenu: () => void;
@@ -71,6 +73,8 @@ export function useControllerKeyboardBindings({
     keysRef,
     callbacks: {
       closeControls: uiActions.closeControls,
+      openBestiary: uiActions.openBestiary,
+      closeBestiary: uiActions.closeBestiary,
       startNewGame: uiActions.startNewGame,
       openControls: uiActions.openControls,
       goToMainMenu: uiActions.goToMainMenu,

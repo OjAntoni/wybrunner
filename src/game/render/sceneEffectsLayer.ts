@@ -23,3 +23,30 @@ export function drawExplosions(
     ctx.restore();
   }
 }
+
+export function drawCoinPickupBursts(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  now: number,
+  camX: number,
+  camY: number
+) {
+  for (const burst of state.coinPickupBursts) {
+    const age = Math.max(0, now - burst.start);
+    const t = Math.min(age / 220, 1);
+    const ease = 1 - (1 - t) * (1 - t);
+    const alpha = 0.45 * (1 - t);
+    if (alpha <= 0.001) continue;
+
+    const cx = burst.x * TILE_SIZE - camX;
+    const cy = burst.y * TILE_SIZE - camY;
+    const radius = 2 + ease * 7;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.fillStyle = `rgba(255, 220, 110, ${alpha.toFixed(3)})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}

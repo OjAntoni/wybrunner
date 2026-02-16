@@ -5,6 +5,7 @@ import { drawExploreClouds, drawFogAreas } from "./cloudLayers";
 import { drawNightLightingOverlay, drawNightWarningText } from "./dayNightLayer";
 import { drawFog } from "./fogOverlay";
 import { drawGuidanceArrows } from "./guidance";
+import { drawHeartbeatBorderOverlay } from "./heartbeatOverlay";
 import { drawHunterVisions } from "./hunterVisionLayer";
 import {
   drawEnemySenseIndicator,
@@ -32,9 +33,10 @@ export function drawScene({
   fogSpritesRef,
   exploreCloudSpritesRef,
 }: DrawSceneParams) {
-  const { camX, camY, viewW, viewH, bounds } = prepareSceneViewport({
+  const { camX, camY, viewW, viewH, heartbeatPulse, bounds } = prepareSceneViewport({
     ctx,
     state,
+    now,
     dpr,
     touchEnabled,
   });
@@ -114,5 +116,6 @@ export function drawScene({
   drawGhostPathsOverlay(ctx, state, now, camX, camY);
   drawGhosts(ctx, state, now, camX, camY);
   drawPlayerPopup(ctx, state, now, camX, camY, touchEnabled);
+  drawHeartbeatBorderOverlay(ctx, viewW, viewH, heartbeatPulse);
   drawNightWarningText(ctx, overlaySnapshot, viewW, viewH);
 }

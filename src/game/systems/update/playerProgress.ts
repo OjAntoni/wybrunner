@@ -72,6 +72,11 @@ export function updatePlayerProgress(
   if (state.coins.has(playerKey)) {
     state.coins.delete(playerKey);
     state.coinsCollected += 1;
+    state.coinPickupBursts.push({
+      x: playerCell.x + 0.5,
+      y: playerCell.y + 0.5,
+      start: now,
+    });
   }
 
   if (state.lifeHearts.has(playerKey)) {

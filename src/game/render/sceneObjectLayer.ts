@@ -1,6 +1,6 @@
 import type { GameState } from "../model/types";
 import { drawBoosters, drawCoins, drawItems, drawLifeHearts } from "./sceneCollectiblesLayer";
-import { drawExplosions } from "./sceneEffectsLayer";
+import { drawCoinPickupBursts, drawExplosions } from "./sceneEffectsLayer";
 import {
   drawRevealedUndergroundTraps,
   drawSpikes,
@@ -19,6 +19,7 @@ export function drawWorldObjects(
   bounds: VisibleTileBounds
 ) {
   drawCoins(ctx, state, camX, camY, bounds);
+  drawCoinPickupBursts(ctx, state, now, camX, camY);
   drawLifeHearts(ctx, state, now, camX, camY, bounds);
   drawItems(ctx, state, now, camX, camY, viewW, viewH);
   drawBoosters(ctx, state, now, camX, camY, bounds);

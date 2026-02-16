@@ -8,6 +8,7 @@ export function updateTimedSystems(
   playerCell: Vec
 ) {
   state.explosions = state.explosions.filter((explosion) => now - explosion.start < 600);
+  state.coinPickupBursts = state.coinPickupBursts.filter((burst) => now - burst.start < 220);
   if (state.playerPopup && now >= state.playerPopup.endMs) {
     state.playerPopup = null;
   }

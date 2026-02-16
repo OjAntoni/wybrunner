@@ -16,6 +16,7 @@ export type GameViewModel = {
   confirmRestartOpen: boolean;
   equipmentOpen: boolean;
   controlsReturnToGame: boolean;
+  bestiaryReturnToGame: boolean;
   itemsLeft: number;
   coinsCollected: number;
   spikesLeft: number;
@@ -45,6 +46,8 @@ export type GameViewActions = {
   onCloseEquipment: () => void;
   onOpenControls: (fromGame: boolean) => void;
   onCloseControls: () => void;
+  onOpenBestiary: (fromGame: boolean) => void;
+  onCloseBestiary: () => void;
   onOpenRestartConfirm: () => void;
   onCloseRestartConfirm: () => void;
   onGoToMainMenu: () => void;

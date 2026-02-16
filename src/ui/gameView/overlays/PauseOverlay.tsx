@@ -11,6 +11,7 @@ type PauseOverlayProps = {
     | "onPauseOpenEquipment"
     | "onOpenMap"
     | "onOpenControls"
+    | "onOpenBestiary"
     | "onOpenRestartConfirm"
     | "onGoToMainMenu"
   >;
@@ -23,6 +24,7 @@ export function PauseOverlay({ view, actions }: PauseOverlayProps) {
     onPauseOpenEquipment,
     onOpenMap,
     onOpenControls,
+    onOpenBestiary,
     onOpenRestartConfirm,
     onGoToMainMenu,
   } = actions;
@@ -37,7 +39,7 @@ export function PauseOverlay({ view, actions }: PauseOverlayProps) {
         <div className="overlay-title">Paused</div>
         <div className="overlay-text">
           {touchEnabled ? (
-            "Game paused. Open map, equipment, controls, or resume."
+            "Game paused. Open map, equipment, controls, bestiary, or resume."
           ) : (
             <>
               Press <span className="keycap">Esc</span> to resume.
@@ -57,6 +59,9 @@ export function PauseOverlay({ view, actions }: PauseOverlayProps) {
           <button className="overlay-button" onClick={() => onOpenControls(true)}>
             Controls
           </button>
+          <button className="overlay-button" onClick={() => onOpenBestiary(true)}>
+            Bestiary
+          </button>
           <button className="overlay-button" onClick={onOpenRestartConfirm}>
             Restart
           </button>
@@ -66,11 +71,12 @@ export function PauseOverlay({ view, actions }: PauseOverlayProps) {
         </div>
         <div className="menu-hint">
           {touchEnabled ? (
-            "Use the buttons below to resume, open map/equipment, restart, or return to menu."
+            "Use the buttons below to resume, open map/equipment/controls/bestiary, restart, or return to menu."
           ) : (
             <>
               <span className="keycap">Esc</span> resume <span className="keycap">M</span> map{" "}
-              <span className="keycap">I</span> equipment <span className="keycap">R</span> restart
+              <span className="keycap">I</span> equipment <span className="keycap">B</span> bestiary{" "}
+              <span className="keycap">R</span> restart
             </>
           )}
         </div>

@@ -8,6 +8,12 @@ export type Explosion = {
   start: number;
 };
 
+export type CoinPickupBurst = {
+  x: number;
+  y: number;
+  start: number;
+};
+
 export type PlayerPopup = {
   text: string;
   startMs: number;
@@ -58,6 +64,7 @@ export type GameState = {
   fogStart: number;
   fogUntil: number;
   explosions: Explosion[];
+  coinPickupBursts: CoinPickupBurst[];
   playerPopup: PlayerPopup | null;
   enemySenseSegments: EnemySenseSegment[];
   swordSwingStartMs: number | null;

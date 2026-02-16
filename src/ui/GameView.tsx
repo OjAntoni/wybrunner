@@ -14,11 +14,14 @@ export function GameView({ view, refs, actions }: GameViewProps) {
             screen: view.screen,
             touchEnabled: view.touchEnabled,
             controlsReturnToGame: view.controlsReturnToGame,
+            bestiaryReturnToGame: view.bestiaryReturnToGame,
           }}
           actions={{
             onStartNewGame: actions.onStartNewGame,
             onOpenControls: actions.onOpenControls,
             onCloseControls: actions.onCloseControls,
+            onOpenBestiary: actions.onOpenBestiary,
+            onCloseBestiary: actions.onCloseBestiary,
           }}
         />
       )}

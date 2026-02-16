@@ -41,6 +41,8 @@
 
 - `src/input/keymap.ts`: key-to-direction mapping.
 - `src/input/keyboard/*`: keyboard event decision logic.
+  - Menu handler also routes main-menu navigation shortcuts (`Enter`/`Space` start, `C` controls, `B` bestiary) and submenu back handling.
+  - Paused-game handler also routes `B` to Bestiary from pause context.
   - Includes dedicated map-open keyboard handler routing (`M` toggle/close behavior and map-state key blocking).
 - `src/input/mouse/*`: mouse button routing (left-click sword swing while in active gameplay).
 - `src/input/touch/*`: touch joystick math/guard rules.
@@ -57,6 +59,9 @@
 
 - `src/game/render/scene.ts`: orchestrates scene render order, including night-time cloud blackening via black sprite variants and a post-night-overlay ghost-path + ghost render pass so ghosts are not darkened.
 - `src/game/render/sceneViewport.ts`: camera/viewport setup.
+- `src/game/render/camera.ts`: camera helpers plus smoothed follow, chase zoom hysteresis (trigger/release/hold), and heartbeat zoom pulse state used by scene viewport.
+- `src/game/render/camera.ts`: smoothing uses frame-time-normalized interpolation and an eased non-sinusoidal heartbeat pulse curve (zoom-in/zoom-out).
+- `src/game/render/heartbeatOverlay.ts`: post-process style border vignette overlay synced to chase heartbeat pulse.
 - `src/game/render/sceneTerrainLayer.ts`: tiles + arrow throwers.
 - `src/game/render/sceneObjectLayer.ts`: world object composition.
 - `src/game/render/sceneCollectiblesLayer.ts`: coins/items/life-hearts/boosters.
@@ -66,7 +71,7 @@
 - `src/game/render/lifeHeartLayer.ts`: life-heart pickup rendering.
 - `src/game/render/collectibleShared.ts`: collectible cell/bounds helpers.
 - `src/game/render/sceneHazardsLayer.ts`: traps/spikes/underground traps.
-- `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions).
+- `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions + short coin-pickup burst glows).
 - `src/game/render/sceneActors.ts`: player (including pulsing, smoothed facing indicator triangle, sword swing animation, smooth hurt-pulse alpha effect while invulnerable, and hidden-enemy sense arcs), dynamic monster list (chasers + night ghost pack) with tiny health hearts, hunters with tiny health hearts, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text; ghost render includes lifecycle-driven alpha/scale (3s fade in/out), default/angry/sad face variants (`to_hunter` + `with_hunter` are angry/slightly red, `return_to_path` is sad/non-red), and exposes a tiny dotted white path-loop overlay draw used after night darkening.
 - `src/game/render/hunterVisionLayer.ts`: hunter + turret vision rendering (wall-clipped sectors with turret cone-to-line targeting transition).
 - `src/game/render/dayNightLayer.ts`: day-night darkening overlay that erases darkness on an offscreen darkness layer via `destination-out` using player near-circle + player cone + ghost circles (ghost circles respect ghost fade alpha and use partial erase for dimmer ghost-lit areas; escorting `with_hunter` ghosts use 3x ghost-erase strength), adds a thin perimeter ring for ghost circles (white by default, slightly red only for active relay states `to_hunter`/`with_hunter`), then composites that layer back to preserve underlying map colors, with flashlight startup flicker during day->night transition and center warning text draw.
@@ -90,7 +95,7 @@
 - `src/game/systems/update/projectiles.ts`
 - `src/game/systems/update/turret.ts` (static turret sweep/track/cooldown state machine + turret projectile firing)
 - `src/game/systems/update/items.ts`
-- `src/game/systems/update/timers.ts`
+- `src/game/systems/update/timers.ts` (expires temporary visual/system timers including explosions, coin-pickup bursts, fog areas, and popup lifetime)
 - `src/game/systems/update/sword.ts`: sword hit resolution on eligible mobs with health tracking and wall-blocked hit tiles.
 - `src/game/systems/update/hunterDrops.ts`: hunter death loot drop resolver (heart/coins/nothing chances) with nearby-cell placement validation.
 - `src/game/systems/update/playerDamage.ts`: enemy-hit heart reduction + invulnerability timing.
@@ -115,6 +120,8 @@
 
 - `src/ui/gameView/*`: segmented UI/overlay/menu components.
 - `src/ui/gameView/menu/*`: menu screen variants.
+- `src/ui/gameView/menu/BestiaryMenuContent.tsx`: bestiary menu module with selectable enemy list cards and a detail panel containing portrait, stats, and behavior summary.
+- Bestiary navigation preserves origin context via controller navigation state (`menu` vs paused `game`) so Back/Esc returns to the correct screen.
 - `src/ui/gameView/overlays/*`: game overlay widgets.
 - `src/ui/gameView/GameScreenView.tsx`: in-game layer composition.
 - `src/ui/gameView/GameOverlays.tsx`: overlay gateway that conditionally mounts overlays (end/pause/map/equipment/restart) so closed overlays do not re-run hook trees on unrelated HUD counter updates.

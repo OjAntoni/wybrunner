@@ -61,6 +61,7 @@ Code references:
 - Movement uses collision-aware movement/turn assist logic.
 - Entering new cells updates exploration clearing and discovered artifacts.
 - Coin collection increments counter.
+- Coin pickup also triggers a short gold burst effect at the pickup cell to smooth daytime coin disappearance.
 - Life-heart pickup grants +1 player life.
 - Sword swing animation triggers on attack input and sweeps from right shoulder to left; the visual hit zone covers front, two-steps front, left, right, and front diagonals (6 tiles total) with a 1s cooldown between swings.
 - Sword hits remove one heart from chasers and hunters in the hit tiles; chasers have 1 heart, hunters have 3, and turrets/ghosts are immune. Hits require clear line-of-sight (no wall between player and hit tile). Tiny heart pips render above each damageable mob. Hit mobs flicker briefly when damaged; hunters are stunned for 0.7s and then become aggressive (chasing in the hit direction, then a 4s nervous scan that moves around the last-seen area while turning).
@@ -300,9 +301,17 @@ Per frame, draw order is orchestrated in `drawScene`:
 6. Temporary fog overlay + guidance arrows + night lighting overlay, then ghost path overlay and ghost bodies (drawn after darkening).
 7. Temporary popup text layers (player insufficient-money popup, hunter chaser/turret-placement popups).
 
+Camera behavior:
+- Camera follow is smoothed each frame and adds a longer, smoother zoom-in/out transition when nearby hunters are actively chasing.
+- Chase zoom uses a soft enter/exit blend with release radius + short hold time to prevent flicker/jumps when hunter distance hovers near threshold.
+- During active chase zoom, a subtle heartbeat pulse is applied to camera zoom to increase tension.
+- During active chase pulse, the scene also applies a soft red blurred border vignette synced to the heartbeat.
+- Camera/chase blend smoothing is frame-time normalized (delta-based), and heartbeat pulse uses eased zoom-in/zoom-out (non-sinusoidal) for smoother transitions under variable frame pacing.
+
 Code references:
 - `src/game/render/scene.ts`
 - `src/game/render/sceneViewport.ts`
+- `src/game/render/camera.ts`
 - `src/game/render/sceneTerrainLayer.ts`
 - `src/game/render/sceneObjectLayer.ts`
 - `src/game/render/sceneProjectileLayer.ts`
@@ -359,6 +368,8 @@ Code references:
 ### Keyboard
 
 - Keydown handling is split by UI/game state (menu, paused, equipment, restart confirm, playing).
+- Main menu shortcuts include `Enter`/`Space` to start, `C` for Controls, and `B` for Bestiary.
+- While paused in-game, `B` also opens Bestiary from the pause menu and `Esc` from Bestiary returns to the paused game.
 - Direction keys feed movement set; actions trigger spike/bomb/restart/equipment flows.
 - Sword swing input uses `E` or left mouse button.
 - Desktop map controls:
@@ -393,6 +404,8 @@ Code references:
 
 - `GameView` chooses between game screen and menu screen composition.
 - HUD, overlays, touch layer, and menu content are split into dedicated UI modules.
+- Main menu now includes a Bestiary screen: a clickable enemy list (with portraits) and a detail pane with portrait, hearts, damage impact, day/night activity, and behavior description.
+- Bestiary is also accessible from the in-game pause menu and preserves return context (Back/Esc returns to paused gameplay when opened from pause).
 - Equipment costs are surfaced only when an item inventory is empty: desktop inventory shows spike/bomb coin cost on the first slot icon; mobile touch action buttons show the same costs.
 - HUD life display uses a fixed base heart strip (3 hearts) plus a `+N` overflow indicator, avoiding layout jitter when max life temporarily exceeds the base.
 

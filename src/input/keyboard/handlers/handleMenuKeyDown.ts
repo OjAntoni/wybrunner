@@ -1,6 +1,7 @@
 import type { KeyDownHandlerParams } from "./types";
 
 export function handleMenuKeyDown({ e, refs, callbacks, ctx }: KeyDownHandlerParams) {
+  const onBestiary = refs.screenRef.current === "bestiary";
   const controlsFromGame =
     refs.screenRef.current === "controls" && refs.controlsReturnToGameRef.current;
 
@@ -10,7 +11,7 @@ export function handleMenuKeyDown({ e, refs, callbacks, ctx }: KeyDownHandlerPar
     return true;
   }
 
-  if (e.key === "Enter" || e.key === " ") {
+  if (refs.screenRef.current === "menu" && (e.key === "Enter" || e.key === " ")) {
     callbacks.startNewGame();
     e.preventDefault();
     return true;
@@ -22,7 +23,18 @@ export function handleMenuKeyDown({ e, refs, callbacks, ctx }: KeyDownHandlerPar
     return true;
   }
 
+  if (ctx.lowerKey === "b" && refs.screenRef.current === "menu") {
+    callbacks.openBestiary(false);
+    e.preventDefault();
+    return true;
+  }
+
   if (e.key === "Escape") {
+    if (onBestiary) {
+      callbacks.closeBestiary();
+      e.preventDefault();
+      return true;
+    }
     callbacks.closeControls();
     e.preventDefault();
     return true;
