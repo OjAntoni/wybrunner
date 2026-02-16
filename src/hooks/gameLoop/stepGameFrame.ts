@@ -2,6 +2,8 @@ import { startTransition } from "react";
 import type { MutableRefObject } from "react";
 import type { GameState, GameStatus, LoseReason, UIScreen } from "../../game/model/types";
 
+const COIN_UI_SYNC_INTERVAL_MS = 80;
+
 type StepGameFrameParams = {
   now: number;
   dt: number;
@@ -22,6 +24,8 @@ type StepGameFrameParams = {
   uiStateCache: {
     itemsLeft: number;
     coinsCollected: number;
+    coinsDisplayed: number;
+    coinsNextSyncAt: number;
     playerHearts: number;
     loseReason: LoseReason;
   };
@@ -66,25 +70,34 @@ export function stepGameFrame({
     if (state.status !== statusRef.current) {
       setStatus(state.status);
     }
+    let nextItemsLeft: number | null = null;
+    let nextCoins: number | null = null;
+    let nextHearts: number | null = null;
+
     if (state.items.size !== uiStateCache.itemsLeft) {
       uiStateCache.itemsLeft = state.items.size;
-      const nextItemsLeft = state.items.size;
-      startTransition(() => {
-        setItemsLeft(nextItemsLeft);
-      });
+      nextItemsLeft = state.items.size;
     }
     if (state.coinsCollected !== uiStateCache.coinsCollected) {
       uiStateCache.coinsCollected = state.coinsCollected;
-      const nextCoins = state.coinsCollected;
-      startTransition(() => {
-        setCoinsCollected(nextCoins);
-      });
+    }
+    const shouldSyncCoins =
+      uiStateCache.coinsDisplayed !== uiStateCache.coinsCollected &&
+      (nextNow >= uiStateCache.coinsNextSyncAt || state.status !== "playing");
+    if (shouldSyncCoins) {
+      uiStateCache.coinsDisplayed = uiStateCache.coinsCollected;
+      uiStateCache.coinsNextSyncAt = nextNow + COIN_UI_SYNC_INTERVAL_MS;
+      nextCoins = uiStateCache.coinsDisplayed;
     }
     if (state.playerHearts !== uiStateCache.playerHearts) {
       uiStateCache.playerHearts = state.playerHearts;
-      const nextHearts = state.playerHearts;
+      nextHearts = state.playerHearts;
+    }
+    if (nextItemsLeft !== null || nextCoins !== null || nextHearts !== null) {
       startTransition(() => {
-        setPlayerHearts(nextHearts);
+        if (nextItemsLeft !== null) setItemsLeft(nextItemsLeft);
+        if (nextCoins !== null) setCoinsCollected(nextCoins);
+        if (nextHearts !== null) setPlayerHearts(nextHearts);
       });
     }
     if (state.loseReason !== uiStateCache.loseReason) {
@@ -94,6 +107,14 @@ export function stepGameFrame({
     if (shouldMeasure) {
       updateMs = performance.now() - updateStart;
     }
+  }
+  if (!activeFrame && uiStateCache.coinsDisplayed !== uiStateCache.coinsCollected) {
+    uiStateCache.coinsDisplayed = uiStateCache.coinsCollected;
+    uiStateCache.coinsNextSyncAt = nextNow + COIN_UI_SYNC_INTERVAL_MS;
+    const nextCoins = uiStateCache.coinsDisplayed;
+    startTransition(() => {
+      setCoinsCollected(nextCoins);
+    });
   }
 
   const drawStart = shouldMeasure ? performance.now() : 0;

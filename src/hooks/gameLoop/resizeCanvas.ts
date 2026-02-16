@@ -12,6 +12,12 @@ type ResizeCanvasParams = {
   canvasCssSizeRef: MutableRefObject<{ w: number; h: number }>;
 };
 
+export function getEffectiveGameDpr(dprWindow: DprWindow) {
+  const rawDpr = window.devicePixelRatio || 1;
+  const maxDpr = dprWindow.__GAME_MAX_DPR__ ?? DEFAULT_MAX_GAME_DPR;
+  return Math.max(1, Math.min(rawDpr, maxDpr));
+}
+
 export function resizeCanvas({
   canvasRef,
   dprRef,
@@ -24,9 +30,7 @@ export function resizeCanvas({
   const cssW = Math.max(1, Math.floor(rect.width));
   const cssH = Math.max(1, Math.floor(rect.height));
   const dprWindow = window as DprWindow;
-  const rawDpr = window.devicePixelRatio || 1;
-  const maxDpr = dprWindow.__GAME_MAX_DPR__ ?? DEFAULT_MAX_GAME_DPR;
-  const dpr = Math.max(1, Math.min(rawDpr, maxDpr));
+  const dpr = getEffectiveGameDpr(dprWindow);
   dprRef.current = dpr;
   canvasCssSizeRef.current = { w: cssW, h: cssH };
   const nextW = Math.floor(cssW * dpr);

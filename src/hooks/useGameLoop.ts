@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { resizeCanvas } from "./gameLoop/resizeCanvas";
+import { getEffectiveGameDpr, resizeCanvas } from "./gameLoop/resizeCanvas";
 import { stepGameFrame } from "./gameLoop/stepGameFrame";
 import type { UseGameLoopParams } from "./gameLoop/types";
 import { useGameLoopRefs } from "./gameLoop/useGameLoopRefs";
@@ -69,6 +69,8 @@ export function useGameLoop({
     const uiStateCache = {
       itemsLeft: Number.NaN,
       coinsCollected: Number.NaN,
+      coinsDisplayed: Number.NaN,
+      coinsNextSyncAt: 0,
       playerHearts: Number.NaN,
       loseReason: stateRef.current.loseReason,
     };
@@ -139,7 +141,8 @@ export function useGameLoop({
       const rawGapMs = Math.max(0, time - lastTime);
       const dt = Math.min(rawGapMs, MAX_SIM_DT_MS) / 1000;
       lastTime = time;
-      if (dprRef.current !== (window.devicePixelRatio || 1)) {
+      const effectiveDpr = getEffectiveGameDpr(perfWindow);
+      if (dprRef.current !== effectiveDpr) {
         applyResize();
       }
 

@@ -16,12 +16,14 @@
 - `src/game/systems/*`: state mutation/update logic.
 - `src/game/world/*`: pathing, exploration, fog, maze generation.
 - `src/game/render/*`: canvas render pipeline and scene layers.
-- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: simulation-time clock advancement (advances only while gameplay is actively running), event-driven canvas resize (resize observer/window resize + DPR-change guard), and change-only UI counter sync to reduce per-frame React work.
-- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: HUD counter sync (`items/coins/hearts`) is dispatched via React transitions so canvas simulation/draw remains responsive during counter updates.
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: simulation-time clock advancement (advances only while gameplay is actively running), event-driven canvas resize (resize observer/window resize + effective-DPR change guard), and change-only UI counter sync to reduce per-frame React work.
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: HUD counter sync (`items/coins/hearts`) is dispatched via a batched React transition so canvas simulation/draw remains responsive during counter updates.
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: coin HUD sync is coalesced (`80ms` cadence during active gameplay, immediate flush when gameplay deactivates) to avoid pickup-frame React churn competing with draw.
 - `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: lose reason UI state is synchronized from game state on frame sync, avoiding direct simulation-to-React callbacks during hit processing.
 - `src/hooks/useGameLoop.ts`: simulation frame delta is capped (`24ms`) so rare long RAF gaps do not produce large one-frame world jumps after a stall.
-- `src/hooks/gameLoop/resizeCanvas.ts`: canvas back-buffer DPR is clamped (default max `1.5`, overridable with `window.__GAME_MAX_DPR__`) to reduce raster/compositor stalls that do not show up as JS update/draw time.
+- `src/hooks/gameLoop/resizeCanvas.ts`: canvas back-buffer DPR is clamped (default max `1.5`, overridable with `window.__GAME_MAX_DPR__`) to reduce raster/compositor stalls that do not show up as JS update/draw time; the same effective-DPR calculation is reused by the frame loop guard to avoid false per-frame resize work on high-DPR displays.
 - `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: perf telemetry timings are collected only when `window.__GAME_PERF__ = true`; default mode reports periodic summaries, and `window.__GAME_PERF_VERBOSE__ = true` enables per-spike logs for deep diagnostics.
+- `src/hooks/useGameUiActions.ts`: navigation/session callbacks are memoized so frequent HUD counter updates (for example coin pickups) keep callback identities stable and do not invalidate memoized overlay/touch layers.
 - `src/hooks/runtime/useRuntimeCombat.ts`: player-triggered sword swing animation action.
 
 ## Controller Layers

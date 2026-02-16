@@ -20,14 +20,16 @@ Code references:
 - Frame loop updates state, then renders canvas every frame.
 - Runtime uses a simulation clock that only advances during active gameplay; pause/map/equipment/restart-confirm/menu states freeze game time.
 - Runtime simulation delta is clamped per frame (`24ms`) to reduce visible movement jumps after occasional external browser/compositor stalls.
-- Canvas back-buffer resizing is event-driven (resize observer / window resize / DPR change) rather than forced every frame.
+- Canvas back-buffer resizing is event-driven (resize observer / window resize / DPR change) rather than forced every frame; DPR-change checks use the same effective capped DPR value used by resizing.
 - Canvas render DPR is capped by default to `1.5` to reduce compositor/GPU spikes on high-DPR displays; optional override is available via `window.__GAME_MAX_DPR__`.
 - HUD counters (items/coins/hearts) sync to React state only when values change.
-- HUD counters (items/coins/hearts) are synced with React transitions to reduce main-thread contention with canvas draw/update work.
+- HUD counters (items/coins/hearts) are synced with a batched React transition to reduce main-thread contention with canvas draw/update work.
+- Coin counter UI sync is coalesced to a short cadence (`80ms`) during active gameplay and flushed immediately when gameplay deactivates (pause/map/end), reducing pickup-frame hitches while preserving accurate UI state.
 - Lose reason is also synced from game state inside the frame loop (no direct update callback from simulation systems).
 - Optional runtime perf logging can be enabled from browser console via `window.__GAME_PERF__ = true`, printing periodic RAF-gap and game-work timing summaries with spike counts; detailed per-spike lines are printed only when `window.__GAME_PERF_VERBOSE__ = true`.
 - In-game overlays are mounted only when active (pause/map/equipment/restart/end), so normal coin/heart HUD updates avoid running closed-overlay hook trees.
 - HUD/overlay/touch inventory UI blocks are memoized with focused prop checks, so unrelated events (for example coin updates) skip re-rendering unaffected control layers.
+- Navigation/session callbacks are memoized, so collect-driven HUD updates do not recreate high-level action props and force unnecessary overlay/touch rerenders.
 
 Code references:
 - `src/App.tsx`
