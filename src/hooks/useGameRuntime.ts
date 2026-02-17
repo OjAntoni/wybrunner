@@ -18,15 +18,11 @@ export function useGameRuntime({
   hudRectsRef,
   dprRef,
   canvasRef,
-  setSpikesLeft,
-  setBombsLeft,
-  setCoinsCollected,
 }: UseGameRuntimeParams) {
   const { getInputDir } = useRuntimeInput({ keysRef, touchMoveRef });
   const { updateState } = useRuntimeStateUpdate({
     getInputDir,
     touchEnabledRef,
-    setBombsLeft,
   });
   const { draw } = useRuntimeDraw({
     touchEnabledRef,
@@ -41,9 +37,6 @@ export function useGameRuntime({
   const { placeSpike, placeBomb } = useRuntimeEquipment({
     stateRef,
     gameNowRef,
-    setSpikesLeft,
-    setBombsLeft,
-    setCoinsCollected,
   });
   const { swingSword } = useRuntimeCombat({ stateRef, gameNowRef });
 

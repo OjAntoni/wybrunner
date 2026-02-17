@@ -7,8 +7,7 @@ export function updateItems(
   state: GameState,
   now: number,
   playerCell: Vec,
-  playerKey: string,
-  onBombsLeft: (value: number) => void
+  playerKey: string
 ) {
   if (!state.items.has(playerKey)) return;
 
@@ -17,7 +16,6 @@ export function updateItems(
 
   if (Math.random() < 0.5) {
     state.bombsLeft = Math.min(3, state.bombsLeft + 1);
-    onBombsLeft(state.bombsLeft);
   }
 
   if (state.items.size === 0) {

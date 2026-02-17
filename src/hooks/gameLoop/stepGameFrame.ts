@@ -1,5 +1,13 @@
 import { startTransition } from "react";
 import type { MutableRefObject } from "react";
+import { ITEMS_TARGET, PLAYER_HEARTS_MAX } from "../../game/config/constants";
+import {
+  updateCoinsDom,
+  updateHeartsDom,
+  updateSpikesDom,
+  updateBombsDom,
+  updateArtifactsDom,
+} from "../../game/utils/updateGameUi";
 import type { GameState, GameStatus, LoseReason, UIScreen } from "../../game/model/types";
 
 const COIN_UI_SYNC_INTERVAL_MS = 80;
@@ -17,8 +25,6 @@ type StepGameFrameParams = {
   drawRef: MutableRefObject<(ctx: CanvasRenderingContext2D, state: GameState, now: number) => void>;
   setStatus: (value: GameStatus) => void;
   setItemsLeft: (value: number) => void;
-  setCoinsCollected: (value: number) => void;
-  setPlayerHearts: (value: number) => void;
   setLoseReason: (value: LoseReason) => void;
   measureTimings?: boolean;
   uiStateCache: {
@@ -27,6 +33,8 @@ type StepGameFrameParams = {
     coinsDisplayed: number;
     coinsNextSyncAt: number;
     playerHearts: number;
+    spikesLeft: number;
+    bombsLeft: number;
     loseReason: LoseReason;
   };
   onTimings?: (updateMs: number, drawMs: number, activeFrame: boolean) => void;
@@ -45,8 +53,6 @@ export function stepGameFrame({
   drawRef,
   setStatus,
   setItemsLeft,
-  setCoinsCollected,
-  setPlayerHearts,
   setLoseReason,
   measureTimings,
   uiStateCache,
@@ -71,12 +77,12 @@ export function stepGameFrame({
       setStatus(state.status);
     }
     let nextItemsLeft: number | null = null;
-    let nextCoins: number | null = null;
-    let nextHearts: number | null = null;
 
     if (state.items.size !== uiStateCache.itemsLeft) {
       uiStateCache.itemsLeft = state.items.size;
       nextItemsLeft = state.items.size;
+      // Update DOM directly to avoid React render jitter
+      updateArtifactsDom(ITEMS_TARGET - state.items.size, ITEMS_TARGET);
     }
     if (state.coinsCollected !== uiStateCache.coinsCollected) {
       uiStateCache.coinsCollected = state.coinsCollected;
@@ -87,17 +93,27 @@ export function stepGameFrame({
     if (shouldSyncCoins) {
       uiStateCache.coinsDisplayed = uiStateCache.coinsCollected;
       uiStateCache.coinsNextSyncAt = nextNow + COIN_UI_SYNC_INTERVAL_MS;
-      nextCoins = uiStateCache.coinsDisplayed;
+      // Update DOM directly to avoid React render jitter
+      updateCoinsDom(uiStateCache.coinsDisplayed);
     }
     if (state.playerHearts !== uiStateCache.playerHearts) {
       uiStateCache.playerHearts = state.playerHearts;
-      nextHearts = state.playerHearts;
+      // Update DOM directly to avoid React render jitter
+      updateHeartsDom(state.playerHearts, PLAYER_HEARTS_MAX);
     }
-    if (nextItemsLeft !== null || nextCoins !== null || nextHearts !== null) {
+    if (state.spikesLeft !== uiStateCache.spikesLeft) {
+      uiStateCache.spikesLeft = state.spikesLeft;
+      // Update DOM directly to avoid React render jitter
+      updateSpikesDom(state.spikesLeft);
+    }
+    if (state.bombsLeft !== uiStateCache.bombsLeft) {
+      uiStateCache.bombsLeft = state.bombsLeft;
+      // Update DOM directly to avoid React render jitter
+      updateBombsDom(state.bombsLeft);
+    }
+    if (nextItemsLeft !== null) {
       startTransition(() => {
         if (nextItemsLeft !== null) setItemsLeft(nextItemsLeft);
-        if (nextCoins !== null) setCoinsCollected(nextCoins);
-        if (nextHearts !== null) setPlayerHearts(nextHearts);
       });
     }
     if (state.loseReason !== uiStateCache.loseReason) {
@@ -111,10 +127,7 @@ export function stepGameFrame({
   if (!activeFrame && uiStateCache.coinsDisplayed !== uiStateCache.coinsCollected) {
     uiStateCache.coinsDisplayed = uiStateCache.coinsCollected;
     uiStateCache.coinsNextSyncAt = nextNow + COIN_UI_SYNC_INTERVAL_MS;
-    const nextCoins = uiStateCache.coinsDisplayed;
-    startTransition(() => {
-      setCoinsCollected(nextCoins);
-    });
+    updateCoinsDom(uiStateCache.coinsDisplayed);
   }
 
   const drawStart = shouldMeasure ? performance.now() : 0;

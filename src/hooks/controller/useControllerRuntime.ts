@@ -1,16 +1,11 @@
 import { useGameRuntime } from "../useGameRuntime";
 import type { ControllerRefs } from "./useControllerRefs";
-import type { ControllerStateModel } from "./useControllerState";
 
 type UseControllerRuntimeParams = {
   refs: ControllerRefs;
-  state: Pick<
-    ControllerStateModel,
-    "setSpikesLeft" | "setBombsLeft" | "setCoinsCollected"
-  >;
 };
 
-export function useControllerRuntime({ refs, state }: UseControllerRuntimeParams) {
+export function useControllerRuntime({ refs }: UseControllerRuntimeParams) {
   const {
     stateRef,
     gameNowRef,
@@ -25,7 +20,6 @@ export function useControllerRuntime({ refs, state }: UseControllerRuntimeParams
     dprRef,
     canvasRef,
   } = refs;
-  const { setSpikesLeft, setBombsLeft, setCoinsCollected } = state;
 
   return useGameRuntime({
     stateRef,
@@ -40,8 +34,5 @@ export function useControllerRuntime({ refs, state }: UseControllerRuntimeParams
     hudRectsRef,
     dprRef,
     canvasRef,
-    setSpikesLeft,
-    setBombsLeft,
-    setCoinsCollected,
   });
 }

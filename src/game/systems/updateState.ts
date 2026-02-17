@@ -32,8 +32,7 @@ export function updateGameState(
     state,
     now,
     playerProgress.playerCell,
-    playerProgress.playerKey,
-    deps.onBombsLeft
+    playerProgress.playerKey
   );
 
   updateTimedSystems(state, dt, now, playerProgress.playerCell);

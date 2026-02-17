@@ -15,7 +15,4 @@ export type UseGameRuntimeParams = {
   hudRectsRef: MutableRefObject<HudRectsCache>;
   dprRef: MutableRefObject<number>;
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
-  setSpikesLeft: (value: number) => void;
-  setBombsLeft: (value: number) => void;
-  setCoinsCollected: (value: number) => void;
 };

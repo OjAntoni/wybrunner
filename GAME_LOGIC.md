@@ -22,10 +22,11 @@ Code references:
 - Runtime simulation delta is clamped per frame (`24ms`) to reduce visible movement jumps after occasional external browser/compositor stalls.
 - Canvas back-buffer resizing is event-driven (resize observer / window resize / DPR change) rather than forced every frame; DPR-change checks use the same effective capped DPR value used by resizing.
 - Canvas render DPR is capped by default to `1.5` to reduce compositor/GPU spikes on high-DPR displays; optional override is available via `window.__GAME_MAX_DPR__`.
-- HUD counters (items/coins/hearts) sync to React state only when values change.
-- HUD counters (items/coins/hearts) are synced with a batched React transition to reduce main-thread contention with canvas draw/update work.
-- Coin counter UI sync is coalesced to a short cadence (`80ms`) during active gameplay and flushed immediately when gameplay deactivates (pause/map/end), reducing pickup-frame hitches while preserving accurate UI state.
-- Lose reason is also synced from game state inside the frame loop (no direct update callback from simulation systems).
+- HUD counters (items/coins/hearts/spikes/bombs) are updated via direct DOM manipulation to completely bypass React's render cycle and eliminate frame drops.
+- DOM updates are performed by utility functions in `src/game/utils/updateGameUi.ts` that modify text content and data attributes directly.
+- React state for counters is maintained only for initial render and equipment overlay UI; gameplay updates do not trigger React re-renders.
+- The game loop detects state changes (items, coins, hearts, spikes, bombs) and syncs DOM on the next frame.
+- Lose reason is synced from game state inside the frame loop (no direct update callback from simulation systems).
 - Optional runtime perf logging can be enabled from browser console via `window.__GAME_PERF__ = true`, printing periodic RAF-gap and game-work timing summaries with spike counts; detailed per-spike lines are printed only when `window.__GAME_PERF_VERBOSE__ = true`.
 - In-game overlays are mounted only when active (pause/map/equipment/restart/end), so normal coin/heart HUD updates avoid running closed-overlay hook trees.
 - HUD/overlay/touch inventory UI blocks are memoized with focused prop checks, so unrelated events (for example coin updates) skip re-rendering unaffected control layers.
@@ -87,6 +88,7 @@ Code references:
 - If no spikes are left and coins are below 6, a short "Not enough money" popup appears above the player.
 - Chaser stepping on spike is stunned.
 - Hunters stepping on spike are stunned the same way as chaser.
+- Spike placement no longer triggers immediate React state updates; DOM is synced on next game loop frame.
 
 Code references:
 - `src/game/actions/equipment.ts`
@@ -101,6 +103,7 @@ Code references:
 - Can remove helpers/hunters and invalidate arrows/throwers affected by wall destruction.
 - Chasers placed by hunters are bomb-killable (removed if inside blast radius).
 - Bombs do not affect ghosts.
+- Bomb usage no longer triggers immediate React state updates; DOM is synced on next game loop frame.
 
 Code references:
 - `src/game/actions/equipment.ts`

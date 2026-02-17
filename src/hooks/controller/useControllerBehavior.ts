@@ -14,7 +14,7 @@ export function useControllerBehavior({
   refs,
   state,
 }: UseControllerBehaviorParams): GameViewProps {
-  const runtime = useControllerRuntime({ refs, state });
+  const runtime = useControllerRuntime({ refs });
   const interactions = useControllerInteractions({ refs, state, runtime });
 
   useControllerLifecycle({

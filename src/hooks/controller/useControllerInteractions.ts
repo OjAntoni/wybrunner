@@ -14,8 +14,7 @@ type UseControllerInteractionsParams = {
     | "setStatus"
     | "setItemsLeft"
     | "setCoinsCollected"
-    | "setSpikesLeft"
-    | "setBombsLeft"
+    | "setPlayerHearts"
     | "setLoseReason"
     | "setConfirmRestartOpen"
     | "setPaused"
@@ -44,8 +43,7 @@ export function useControllerInteractions({
     setStatus,
     setItemsLeft,
     setCoinsCollected,
-    setSpikesLeft,
-    setBombsLeft,
+    setPlayerHearts,
     setLoseReason,
     setConfirmRestartOpen,
     setPaused,
@@ -80,8 +78,7 @@ export function useControllerInteractions({
     setStatus,
     setItemsLeft,
     setCoinsCollected,
-    setSpikesLeft,
-    setBombsLeft,
+    setPlayerHearts,
     setLoseReason,
     setConfirmRestartOpen,
     setPaused,

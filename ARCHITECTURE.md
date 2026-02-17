@@ -13,17 +13,20 @@
 - Hunter state also tracks smoothed vision angle (`visionAngleDeg`) for cone transitions.
 - `src/game/model/init/spawnActors.ts`: chooses player/hunter spawn cells with even spatial distribution (farthest-point sampling) and min-distance preference.
 - `src/game/actions/*`: immediate player-triggered actions (equipment placement, purchases, sword swing animation triggers).
+  - Equipment actions (`placeSpike`, `placeBomb`) no longer accept React state callbacks; they only mutate game state.
+  - DOM sync for equipment counters happens on the next game loop frame via `src/game/utils/updateGameUi.ts`.
 - `src/game/systems/*`: state mutation/update logic.
 - `src/game/world/*`: pathing, exploration, fog, maze generation.
 - `src/game/render/*`: canvas render pipeline and scene layers.
-- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: simulation-time clock advancement (advances only while gameplay is actively running), event-driven canvas resize (resize observer/window resize + effective-DPR change guard), and change-only UI counter sync to reduce per-frame React work.
-- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: HUD counter sync (`items/coins/hearts`) is dispatched via a batched React transition so canvas simulation/draw remains responsive during counter updates.
-- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: coin HUD sync is coalesced (`80ms` cadence during active gameplay, immediate flush when gameplay deactivates) to avoid pickup-frame React churn competing with draw.
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: simulation-time clock advancement (advances only while gameplay is actively running), event-driven canvas resize (resize observer/window resize + effective-DPR change guard), and DOM-based UI counter sync to completely bypass React render cycle.
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: HUD counter sync (`items/coins/hearts/spikes/bombs`) is performed via direct DOM manipulation using `src/game/utils/updateGameUi.ts` utilities, eliminating React reconciliation overhead during gameplay.
+- `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: DOM updates happen immediately when state changes are detected in the game loop; no React transitions or batching needed.
 - `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: lose reason UI state is synchronized from game state on frame sync, avoiding direct simulation-to-React callbacks during hit processing.
+- `src/game/utils/updateGameUi.ts`: centralized DOM update utilities for all HUD counters (coins, hearts, artifacts, spikes, bombs) that modify text content and data attributes directly without React.
 - `src/hooks/useGameLoop.ts`: simulation frame delta is capped (`24ms`) so rare long RAF gaps do not produce large one-frame world jumps after a stall.
 - `src/hooks/gameLoop/resizeCanvas.ts`: canvas back-buffer DPR is clamped (default max `1.5`, overridable with `window.__GAME_MAX_DPR__`) to reduce raster/compositor stalls that do not show up as JS update/draw time; the same effective-DPR calculation is reused by the frame loop guard to avoid false per-frame resize work on high-DPR displays.
 - `src/hooks/useGameLoop.ts` + `src/hooks/gameLoop/stepGameFrame.ts`: perf telemetry timings are collected only when `window.__GAME_PERF__ = true`; default mode reports periodic summaries, and `window.__GAME_PERF_VERBOSE__ = true` enables per-spike logs for deep diagnostics.
-- `src/hooks/useGameUiActions.ts`: navigation/session callbacks are memoized so frequent HUD counter updates (for example coin pickups) keep callback identities stable and do not invalidate memoized overlay/touch layers.
+- `src/hooks/useGameUiActions.ts`: navigation/session callbacks are memoized; HUD counter updates no longer affect callback stability since DOM updates bypass React entirely.
 - `src/hooks/runtime/useRuntimeCombat.ts`: player-triggered sword swing animation action.
 
 ## Controller Layers
@@ -31,6 +34,7 @@
 - `src/hooks/controller/*`: app-level orchestration.
   - `useControllerState.ts`: React state + refs.
     - Includes `mapOpen` UI state for the interactive world map window.
+    - Note: spikesLeft/bombsLeft React state setters are no longer passed to runtime; DOM updates handle counter changes.
   - `useControllerRuntime.ts`: runtime loop bindings.
   - `useControllerInteractions.ts`: UI action handlers.
   - `useControllerLifecycle.ts`: sync lifecycle/effects.
@@ -128,11 +132,17 @@
 - `src/ui/gameView/GameScreenView.tsx`: in-game layer composition.
 - `src/ui/gameView/GameOverlays.tsx`: overlay gateway that conditionally mounts overlays (end/pause/map/equipment/restart) so closed overlays do not re-run hook trees on unrelated HUD counter updates.
 - `src/ui/gameView/HudLayer.tsx`: fixed-base heart row (`3` hearts) with `+N` overflow label to keep HUD width stable while still showing extra life gains.
-- `src/ui/gameView/HudLayer.tsx`, `src/ui/gameView/TouchLayer.tsx`, `src/ui/gameView/GameOverlays.tsx`, `src/ui/gameView/InventoryPanel.tsx`: memoized UI layers with focused prop equality checks to avoid unnecessary subtree re-renders during unrelated gameplay updates.
-- `src/ui/gameView/MenuScreenView.tsx`: menu/controls overlay composition.
-- `src/ui/gameView/overlays/MapOverlay.tsx`: interactive map window overlay, including desktop keyboard/mouse controls and touch drag/pinch support.
-- `src/ui/gameView/InventoryPanel.tsx`: desktop/equipment inventory visuals and conditional item cost badges (shown when item count reaches zero).
-- `src/ui/gameView/TouchLayer.tsx`: mobile controls including conditional trap/bomb cost badges (shown when item count reaches zero).
+- `src/ui/gameView/HudLayer.tsx`, `src/ui/gameView/TouchLayer.tsx`, `src/ui/gameView/GameOverlays.tsx`, `src/ui/gameView/InventoryPanel.tsx`: memoized UI layers; counter values are excluded from memo comparison since DOM updates handle them.
+- `src/ui/gameView/InventoryPanel.tsx`: desktop/equipment inventory visuals using data attributes (`data-item-type`, `data-index`, `data-filled`) for slot state; CSS controls visibility.
+- `src/ui/gameView/TouchLayer.tsx`: mobile controls with data attributes for counts; DOM updates modify text content directly.
+
+## DOM Update Strategy
+
+- All frequently-changing HUD counters (coins, hearts, artifacts, spikes, bombs) are updated via direct DOM manipulation.
+- React state is maintained only for initial render values and equipment overlay UI.
+- Game loop detects state changes and calls DOM update utilities immediately.
+- This eliminates React reconciliation overhead during gameplay, preventing frame drops and jitter.
+- CSS selectors use data attributes (`data-hearts`, `data-filled`, `data-count`) to control visibility without React re-renders.
 
 ## Current Refactor Rule
 
@@ -140,3 +150,4 @@
 - Move branch-heavy logic into domain-focused modules.
 - Prefer pure helpers for input/render computations.
 - Keep each module aligned to one gameplay concern.
+- Minimize React state updates in hot paths; prefer direct DOM manipulation for high-frequency UI changes.

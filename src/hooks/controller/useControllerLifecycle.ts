@@ -21,8 +21,6 @@ type UseControllerLifecycleParams = {
     | "setCompactHud"
     | "setStatus"
     | "setItemsLeft"
-    | "setCoinsCollected"
-    | "setPlayerHearts"
     | "setLoseReason"
   >;
   resetTouchInput: () => void;
@@ -71,8 +69,6 @@ export function useControllerLifecycle({
     setCompactHud,
     setStatus,
     setItemsLeft,
-    setCoinsCollected,
-    setPlayerHearts,
     setLoseReason,
   } = state;
   const { updateState, draw } = runtime;
@@ -112,8 +108,6 @@ export function useControllerLifecycle({
     status,
     setStatus,
     setItemsLeft,
-    setCoinsCollected,
-    setPlayerHearts,
     setLoseReason,
     updateState,
     draw,

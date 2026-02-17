@@ -6,6 +6,7 @@ import {
 } from "../config/constants";
 import type { GameState } from "../model/types";
 import { cellKey, inBounds } from "../utils/grid";
+import { updateCoinsDom } from "../utils/updateGameUi";
 import { blowUp, keysInBlast } from "../world/bombs";
 import { applyHunterDeathDrop } from "../systems/update/hunterDrops";
 
@@ -17,19 +18,9 @@ function showNotEnoughMoneyPopup(state: GameState, now: number) {
   };
 }
 
-function spendCoins(
-  state: GameState,
-  amount: number,
-  onCoinsCollectedChange: (next: number) => void
-) {
-  state.coinsCollected -= amount;
-  onCoinsCollectedChange(state.coinsCollected);
-}
 
 export function placeSpike(
   state: GameState,
-  onSpikesLeftChange: (next: number) => void,
-  onCoinsCollectedChange: (next: number) => void,
   now: number
 ) {
   if (state.status !== "playing") return;
@@ -49,17 +40,16 @@ export function placeSpike(
   if (state.spikes.has(key)) return;
   state.spikes.add(key);
   if (payWithCoins) {
-    spendCoins(state, SPIKE_PURCHASE_COINS, onCoinsCollectedChange);
+    state.coinsCollected -= SPIKE_PURCHASE_COINS;
+    updateCoinsDom(state.coinsCollected);
   } else {
     state.spikesLeft -= 1;
-    onSpikesLeftChange(state.spikesLeft);
   }
+  // DOM update will happen on next game loop frame
 }
 
 export function placeBomb(
   state: GameState,
-  onBombsLeftChange: (next: number) => void,
-  onCoinsCollectedChange: (next: number) => void,
   now: number
 ) {
   if (state.status !== "playing") return;
@@ -130,9 +120,10 @@ export function placeBomb(
     return true;
   });
   if (payWithCoins) {
-    spendCoins(state, BOMB_PURCHASE_COINS, onCoinsCollectedChange);
+    state.coinsCollected -= BOMB_PURCHASE_COINS;
+    updateCoinsDom(state.coinsCollected);
   } else {
     state.bombsLeft -= 1;
-    onBombsLeftChange(state.bombsLeft);
   }
+  // DOM update will happen on next game loop frame
 }

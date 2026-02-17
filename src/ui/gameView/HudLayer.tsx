@@ -19,9 +19,10 @@ type HudLayerProps = {
   refs: Pick<GameViewRefs, "hudTopRef" | "inventoryRef">;
 };
 
-function buildHeartSlots(heartsVisible: number, playerHearts: number, keyPrefix: string) {
+function buildHeartSlots(heartsVisible: number, keyPrefix: string) {
+  // Render all heart slots; visibility controlled via CSS data attribute
   return Array.from({ length: heartsVisible }, (_, i) => (
-    <span key={`${keyPrefix}-${i}`} className={`hud-heart ${i < playerHearts ? "filled" : "empty"}`}>
+    <span key={`${keyPrefix}-${i}`} className="hud-heart" data-heart-index={i}>
       <svg className="hud-heart-icon" viewBox="0 0 16 14" aria-hidden="true">
         <path d="M8 13 L2.6 7.6 C1.2 6.2 1.2 3.8 2.6 2.6 C4 1.4 6.2 1.8 8 3.8 C9.8 1.8 12 1.4 13.4 2.6 C14.8 3.8 14.8 6.2 13.4 7.6 Z" />
       </svg>
@@ -43,15 +44,14 @@ function HudLayerComponent({ view, refs }: HudLayerProps) {
   } = view;
   const { hudTopRef, inventoryRef } = refs;
   const heartsVisible = PLAYER_HEARTS_MAX;
-  const filledHearts = Math.max(0, Math.min(playerHearts, PLAYER_HEARTS_MAX));
   const extraHearts = Math.max(0, playerHearts - PLAYER_HEARTS_MAX);
   const compactHeartSlots = useMemo(
-    () => buildHeartSlots(heartsVisible, filledHearts, "compact-heart"),
-    [filledHearts, heartsVisible]
+    () => buildHeartSlots(heartsVisible, "compact-heart"),
+    [heartsVisible]
   );
   const fullHeartSlots = useMemo(
-    () => buildHeartSlots(heartsVisible, filledHearts, "heart"),
-    [filledHearts, heartsVisible]
+    () => buildHeartSlots(heartsVisible, "heart"),
+    [heartsVisible]
   );
 
   return (
@@ -67,9 +67,9 @@ function HudLayerComponent({ view, refs }: HudLayerProps) {
             </div>
             <div className="hearts-stat">
               Lives:
-              <span className="hud-hearts" aria-label={`Lives: ${playerHearts}`}>
+              <span className="hud-hearts" aria-label={`Lives: ${playerHearts}`} data-hearts={playerHearts}>
                 {compactHeartSlots}
-                <span className="hud-hearts-extra">{extraHearts > 0 ? `+${extraHearts}` : "\u00A0"}</span>
+                <span className="hud-hearts-extra" data-extra-hearts={extraHearts}>{extraHearts > 0 ? `+${extraHearts}` : "\u00A0"}</span>
               </span>
             </div>
           </div>
@@ -82,17 +82,17 @@ function HudLayerComponent({ view, refs }: HudLayerProps) {
             <div className="stats">
               <div className="stats-primary">
                 <div className="stat-item">
-                  Artifacts: {ITEMS_TARGET - itemsLeft}/{ITEMS_TARGET}
+                  Artifacts: <span className="artifacts-count">{ITEMS_TARGET - itemsLeft}/{ITEMS_TARGET}</span>
                 </div>
                 <div className="stat-item coins-stat">
                   Coins: <span className="coins-count">{coinsCollected}</span>
                 </div>
                 <div className="stat-item hearts-stat">
                   Lives:
-                  <span className="hud-hearts" aria-label={`Lives: ${playerHearts}`}>
-                    {fullHeartSlots}
-                    <span className="hud-hearts-extra">{extraHearts > 0 ? `+${extraHearts}` : "\u00A0"}</span>
-                  </span>
+              <span className="hud-hearts" aria-label={`Lives: ${playerHearts}`} data-hearts={playerHearts}>
+                {fullHeartSlots}
+                <span className="hud-hearts-extra" data-extra-hearts={extraHearts}>{extraHearts > 0 ? `+${extraHearts}` : "\u00A0"}</span>
+              </span>
                 </div>
               </div>
               <div className="stats-secondary">
@@ -128,11 +128,7 @@ export const HudLayer = memo(HudLayerComponent, (prev, next) => {
     prev.view.compactHud === next.view.compactHud &&
     prev.view.status === next.view.status &&
     prev.view.touchEnabled === next.view.touchEnabled &&
-    prev.view.itemsLeft === next.view.itemsLeft &&
-    prev.view.coinsCollected === next.view.coinsCollected &&
-    prev.view.spikesLeft === next.view.spikesLeft &&
-    prev.view.bombsLeft === next.view.bombsLeft &&
-    prev.view.playerHearts === next.view.playerHearts &&
+    // itemsLeft, coinsCollected, spikesLeft, bombsLeft, playerHearts excluded - updated via DOM
     prev.view.helpText === next.view.helpText &&
     prev.refs.hudTopRef === next.refs.hudTopRef &&
     prev.refs.inventoryRef === next.refs.inventoryRef

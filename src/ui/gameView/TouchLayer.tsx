@@ -88,6 +88,7 @@ function TouchLayerComponent({ view, refs, actions }: TouchLayerProps) {
             onPointerDown={onTrapPointerDown}
             aria-label="Place trap"
             type="button"
+            data-count={spikesLeft}
           >
             {spikeOutOfStock && <TouchCostBadge amount={SPIKE_PURCHASE_COINS} />}
             <svg className="touch-action-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -95,13 +96,14 @@ function TouchLayerComponent({ view, refs, actions }: TouchLayerProps) {
               <rect x="10.5" y="10" width="3" height="10" />
               <rect x="7" y="20" width="10" height="2" />
             </svg>
-            <span className="touch-action-count">x{spikesLeft}</span>
+            <span className="touch-action-count spikes-count">x{spikesLeft}</span>
           </button>
           <button
             className={`touch-action touch-action-bomb${bombOutOfStock ? " touch-action-has-cost" : ""}`}
             onPointerDown={onBombPointerDown}
             aria-label="Place bomb"
             type="button"
+            data-count={bombsLeft}
           >
             {bombOutOfStock && <TouchCostBadge amount={BOMB_PURCHASE_COINS} />}
             <svg className="touch-action-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -109,7 +111,7 @@ function TouchLayerComponent({ view, refs, actions }: TouchLayerProps) {
               <rect x="14" y="6" width="6" height="2" />
               <circle cx="20" cy="6" r="2" />
             </svg>
-            <span className="touch-action-count">x{bombsLeft}</span>
+            <span className="touch-action-count bombs-count">x{bombsLeft}</span>
           </button>
         </div>
       </div>
@@ -118,9 +120,8 @@ function TouchLayerComponent({ view, refs, actions }: TouchLayerProps) {
 }
 
 export const TouchLayer = memo(TouchLayerComponent, (prev, next) => {
+  // Only re-render on structural changes, not count changes
   return (
-    prev.view.spikesLeft === next.view.spikesLeft &&
-    prev.view.bombsLeft === next.view.bombsLeft &&
     prev.refs.joystickRef === next.refs.joystickRef &&
     prev.refs.joystickZoneRef === next.refs.joystickZoneRef &&
     prev.refs.joystickKnobRef === next.refs.joystickKnobRef &&

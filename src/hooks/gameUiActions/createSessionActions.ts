@@ -1,5 +1,12 @@
-import { ITEMS_TARGET } from "../../game/config/constants";
+import { ITEMS_TARGET, PLAYER_HEARTS_MAX } from "../../game/config/constants";
 import { initGame } from "../../game/model/initGame";
+import {
+  updateCoinsDom,
+  updateHeartsDom,
+  updateSpikesDom,
+  updateBombsDom,
+  updateArtifactsDom,
+} from "../../game/utils/updateGameUi";
 import type { UseGameUiActionsParams } from "./types";
 import type { NavigationActions } from "./createNavigationActions";
 
@@ -46,8 +53,13 @@ export function createSessionActions(
     params.setStatus("playing");
     params.setItemsLeft(ITEMS_TARGET);
     params.setCoinsCollected(0);
-    params.setSpikesLeft(3);
-    params.setBombsLeft(1);
+    params.setPlayerHearts(PLAYER_HEARTS_MAX);
+    // Sync DOM
+    updateCoinsDom(0);
+    updateHeartsDom(PLAYER_HEARTS_MAX, PLAYER_HEARTS_MAX);
+    updateSpikesDom(3);
+    updateBombsDom(1);
+    updateArtifactsDom(0, ITEMS_TARGET);
     params.setLoseReason("caught");
     params.keysRef.current.clear();
     params.controlsReturnToGameRef.current = false;
