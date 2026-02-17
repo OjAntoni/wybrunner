@@ -66,10 +66,19 @@ export function drawHunterVisions(
   state: GameState,
   now: number,
   camX: number,
-  camY: number
+  camY: number,
+  viewW: number,
+  viewH: number
 ) {
   const revision = terrainRevision(state);
   const activeTurretIds = new Set<number>();
+  
+  // Calculate viewport bounds with padding for vision radius
+  const visionPadding = HUNTER_VISION_RADIUS_TILES * TILE_SIZE;
+  const minX = camX - visionPadding;
+  const minY = camY - visionPadding;
+  const maxX = camX + viewW + visionPadding;
+  const maxY = camY + viewH + visionPadding;
 
   for (const hunter of state.hunters) {
     const hunterCell = {
@@ -77,6 +86,15 @@ export function drawHunterVisions(
       y: Math.floor(hunter.pos.y),
     };
     if (hunter.mode !== "chase" && isCellCoveredByExploreClouds(state, hunterCell.x, hunterCell.y)) {
+      continue;
+    }
+    
+    // Skip hunters outside viewport (with padding for vision radius)
+    const hunterX = hunter.pos.x * TILE_SIZE - camX;
+    const hunterY = hunter.pos.y * TILE_SIZE - camY;
+    const hunterPixelX = hunter.pos.x * TILE_SIZE;
+    const hunterPixelY = hunter.pos.y * TILE_SIZE;
+    if (hunterPixelX < minX || hunterPixelX > maxX || hunterPixelY < minY || hunterPixelY > maxY) {
       continue;
     }
 
@@ -92,9 +110,6 @@ export function drawHunterVisions(
       HUNTER_VISION_RAY_COUNT
     );
     if (points.length === 0) continue;
-
-    const hunterX = hunter.pos.x * TILE_SIZE - camX;
-    const hunterY = hunter.pos.y * TILE_SIZE - camY;
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(hunterX, hunterY);
@@ -109,9 +124,24 @@ export function drawHunterVisions(
     ctx.stroke();
     ctx.restore();
   }
+  
+  // Calculate turret viewport bounds with padding
+  const turretPadding = TURRET_VISION_RADIUS_TILES * TILE_SIZE;
+  const turretMinX = camX - turretPadding;
+  const turretMinY = camY - turretPadding;
+  const turretMaxX = camX + viewW + turretPadding;
+  const turretMaxY = camY + viewH + turretPadding;
 
   for (const turret of state.turrets) {
     activeTurretIds.add(turret.id);
+    
+    // Skip turrets outside viewport
+    const turretPixelX = turret.pos.x * TILE_SIZE;
+    const turretPixelY = turret.pos.y * TILE_SIZE;
+    if (turretPixelX < turretMinX || turretPixelX > turretMaxX || turretPixelY < turretMinY || turretPixelY > turretMaxY) {
+      continue;
+    }
+    
     const turretCell = {
       x: Math.floor(turret.pos.x),
       y: Math.floor(turret.pos.y),

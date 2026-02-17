@@ -27,7 +27,7 @@ type DarknessOverlay = {
 };
 
 let darknessOverlayCanvas: HTMLCanvasElement | null = null;
-const PLAYER_NIGHT_VISION_RAY_COUNT = 192;
+const PLAYER_NIGHT_VISION_RAY_COUNT = 64;
 const GHOST_VISION_BORDER_ALPHA = 0.28;
 const GHOST_VISION_BORDER_WIDTH_PX = 1.25;
 const GHOST_VISION_REVEAL_ALPHA = 0.2;

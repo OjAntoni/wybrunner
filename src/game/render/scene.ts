@@ -80,7 +80,7 @@ export function drawScene({
     cloudNightBlend
   );
 
-  drawHunterVisions(ctx, state, now, camX, camY);
+  drawHunterVisions(ctx, state, now, camX, camY, viewW, viewH);
   drawHelpers(ctx, state, now, camX, camY);
   drawHunters(ctx, state, now, camX, camY);
   drawTurrets(ctx, state, now, camX, camY);
