@@ -216,13 +216,13 @@ export function drawNightLightingOverlay(
   }
 
   const overlayCtx = overlay.ctx;
+  // Fill entire canvas with darkness color directly (skip clear since we fill everything)
   overlayCtx.setTransform(1, 0, 0, 1, 0, 0);
   overlayCtx.globalCompositeOperation = "source-over";
   overlayCtx.globalAlpha = 1;
-  overlayCtx.clearRect(0, 0, overlay.canvas.width, overlay.canvas.height);
-  overlayCtx.setTransform(overlay.scaleX, 0, 0, overlay.scaleY, 0, 0);
   overlayCtx.fillStyle = `rgba(0, 0, 0, ${snapshot.darknessAlpha.toFixed(3)})`;
-  overlayCtx.fillRect(0, 0, viewW, viewH);
+  overlayCtx.fillRect(0, 0, overlay.canvas.width, overlay.canvas.height);
+  overlayCtx.setTransform(overlay.scaleX, 0, 0, overlay.scaleY, 0, 0);
 
   const flashlightIsOff =
     snapshot.phase === "transition_to_night" && snapshot.flashlightFlickerAlpha >= 0.5;
