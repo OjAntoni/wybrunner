@@ -1,5 +1,6 @@
 import type { UIScreen } from "../../game/model/types";
 import type { UseGameUiActionsParams } from "./types";
+import { deferStateUpdate } from "../../game/utils/deferredState";
 
 export type NavigationActions = {
   goToScreen: (next: UIScreen) => void;
@@ -18,14 +19,16 @@ export type NavigationActions = {
 export function createNavigationActions(params: UseGameUiActionsParams): NavigationActions {
   const goToScreen = (next: UIScreen) => {
     params.screenRef.current = next;
-    params.setScreen(next);
+    // Defer React state update to prevent blocking input handling
+    deferStateUpdate(() => params.setScreen(next));
   };
 
   const pauseGame = () => {
     params.keysRef.current.clear();
     params.resetTouchInput();
     params.pausedRef.current = true;
-    params.setPaused(true);
+    // Defer React state update to prevent blocking input handling
+    deferStateUpdate(() => params.setPaused(true));
   };
 
   const closeMap = () => {
@@ -35,9 +38,12 @@ export function createNavigationActions(params: UseGameUiActionsParams): Navigat
     const returnToPause = params.mapReturnToPauseRef.current;
     params.mapOpenRef.current = false;
     params.mapReturnToPauseRef.current = false;
-    params.setMapOpen(false);
     params.pausedRef.current = returnToPause;
-    params.setPaused(returnToPause);
+    // Batch deferred updates
+    deferStateUpdate(() => {
+      params.setMapOpen(false);
+      params.setPaused(returnToPause);
+    });
   };
 
   const openMap = () => {
@@ -52,9 +58,12 @@ export function createNavigationActions(params: UseGameUiActionsParams): Navigat
     const wasPaused = params.pausedRef.current;
     params.mapReturnToPauseRef.current = wasPaused;
     params.mapOpenRef.current = true;
-    params.setMapOpen(true);
     params.pausedRef.current = true;
-    params.setPaused(true);
+    // Batch deferred updates
+    deferStateUpdate(() => {
+      params.setMapOpen(true);
+      params.setPaused(true);
+    });
   };
 
   const openEquipment = () => {
@@ -63,37 +72,43 @@ export function createNavigationActions(params: UseGameUiActionsParams): Navigat
     if (params.mapOpenRef.current) return;
     pauseGame();
     params.equipmentOpenRef.current = true;
-    params.setEquipmentOpen(true);
+    // Defer React state update
+    deferStateUpdate(() => params.setEquipmentOpen(true));
   };
 
   const closeEquipment = () => {
     params.equipmentOpenRef.current = false;
-    params.setEquipmentOpen(false);
+    // Defer React state update
+    deferStateUpdate(() => params.setEquipmentOpen(false));
   };
 
   const openControls = (fromGame: boolean) => {
     params.controlsReturnToGameRef.current = fromGame;
-    params.setControlsReturnToGame(fromGame);
+    // Defer React state update
+    deferStateUpdate(() => params.setControlsReturnToGame(fromGame));
     goToScreen("controls");
   };
 
   const closeControls = () => {
     const returnToGame = params.controlsReturnToGameRef.current;
     params.controlsReturnToGameRef.current = false;
-    params.setControlsReturnToGame(false);
+    // Defer React state update
+    deferStateUpdate(() => params.setControlsReturnToGame(false));
     goToScreen(returnToGame ? "game" : "menu");
   };
 
   const openBestiary = (fromGame: boolean) => {
     params.bestiaryReturnToGameRef.current = fromGame;
-    params.setBestiaryReturnToGame(fromGame);
+    // Defer React state update
+    deferStateUpdate(() => params.setBestiaryReturnToGame(fromGame));
     goToScreen("bestiary");
   };
 
   const closeBestiary = () => {
     const returnToGame = params.bestiaryReturnToGameRef.current;
     params.bestiaryReturnToGameRef.current = false;
-    params.setBestiaryReturnToGame(false);
+    // Defer React state update
+    deferStateUpdate(() => params.setBestiaryReturnToGame(false));
     goToScreen(returnToGame ? "game" : "menu");
   };
 
@@ -101,18 +116,23 @@ export function createNavigationActions(params: UseGameUiActionsParams): Navigat
     params.keysRef.current.clear();
     params.mapOpenRef.current = false;
     params.mapReturnToPauseRef.current = false;
-    params.setMapOpen(false);
     params.equipmentOpenRef.current = false;
-    params.setEquipmentOpen(false);
     params.controlsReturnToGameRef.current = false;
-    params.setControlsReturnToGame(false);
     params.bestiaryReturnToGameRef.current = false;
-    params.setBestiaryReturnToGame(false);
     params.resetTouchInput();
     params.confirmRestartRef.current = false;
-    params.setConfirmRestartOpen(false);
     params.pausedRef.current = false;
-    params.setPaused(false);
+    
+    // Batch all deferred updates to minimize React re-renders
+    deferStateUpdate(() => {
+      params.setMapOpen(false);
+      params.setEquipmentOpen(false);
+      params.setControlsReturnToGame(false);
+      params.setBestiaryReturnToGame(false);
+      params.setConfirmRestartOpen(false);
+      params.setPaused(false);
+    });
+    
     goToScreen("menu");
   };
 

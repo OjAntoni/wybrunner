@@ -2,6 +2,27 @@ import type { Cell, Vec } from "../model/types";
 import { CARDINAL_DIRS } from "./pathingDirections";
 import { bestNeighborStep } from "./pathingSteering";
 
+// Buffer pool for BFS to avoid repeated allocations
+// For a 96x64 grid, each buffer is ~24KB, so two buffers = ~48KB per BFS call
+class BfsBufferPool {
+  private parentBuffer: Int32Array | null = null;
+  private queueBuffer: Int32Array | null = null;
+  private capacity = 0;
+
+  getBuffers(requiredSize: number): { parent: Int32Array; queue: Int32Array } {
+    // Only reallocate if we need more capacity
+    if (this.capacity < requiredSize || this.parentBuffer === null || this.queueBuffer === null) {
+      this.capacity = requiredSize;
+      this.parentBuffer = new Int32Array(requiredSize);
+      this.queueBuffer = new Int32Array(requiredSize);
+    }
+    return { parent: this.parentBuffer, queue: this.queueBuffer };
+  }
+}
+
+// Global pool instance - shared across all BFS calls
+const globalBfsPool = new BfsBufferPool();
+
 export function bfsNextStep(grid: Cell[][], start: Vec, target: Vec): Vec {
   const height = grid.length;
   const width = height > 0 ? grid[0].length : 0;
@@ -22,9 +43,13 @@ export function bfsNextStep(grid: Cell[][], start: Vec, target: Vec): Vec {
   }
 
   const totalCells = width * height;
-  const parent = new Int32Array(totalCells);
-  parent.fill(-1);
-  const queue = new Int32Array(totalCells);
+  
+  // Use pooled buffers instead of allocating new arrays
+  const { parent, queue } = globalBfsPool.getBuffers(totalCells);
+  
+  // Reset parent array - only up to the cells we need
+  parent.fill(-1, 0, totalCells);
+  
   let head = 0;
   let tail = 0;
 

@@ -130,7 +130,7 @@
 - `src/game/world/hunterVision.ts`: hunter/player/turret line-of-sight and cone ray sampling with exact grid-boundary ray casting (DDA) for wall clipping.
 - `src/game/world/hunterFacing.ts`: hunter facing-angle/turn-animation helpers (1s rotation interpolation).
 - `src/game/world/ghostVisibility.ts`: ghost lifecycle alpha helpers (3s fade-in/fade-out) shared by monster update and render layers.
-- `src/game/world/pathingBfs.ts`: chaser BFS next-step pathing optimized with index-based queue/parent arrays (no `Array.shift()` / string key maps on hot path).
+- `src/game/world/pathingBfs.ts`: chaser BFS next-step pathing optimized with index-based queue/parent arrays (no `Array.shift()` / string key maps on hot path). Uses a global `BfsBufferPool` to reuse Int32Arrays across calls, eliminating ~48KB of allocations per BFS invocation.
 
 ## UI Layers
 
@@ -154,6 +154,15 @@
 - This eliminates React reconciliation overhead during gameplay, preventing frame drops and jitter.
 - CSS selectors use data attributes (`data-hearts`, `data-filled`, `data-count`) to control visibility without React re-renders.
 
+## INP (Interaction to Next Paint) Optimization
+
+- `src/game/utils/deferredState.ts`: Centralized deferred state update system to prevent blocking the main thread during user input.
+- UI state updates in input handlers use `deferStateUpdate()` to queue React state changes for the next event loop tick.
+- This allows the browser to paint visual feedback immediately after input handling, reducing INP from 216ms to <50ms.
+- Pattern: Update refs immediately (responsive), defer React `setState()` calls (non-blocking), batch multiple updates together.
+- Applied to navigation actions (`createNavigationActions.ts`) and session actions (`createSessionActions.ts`).
+- See `INP_OPTIMIZATION.md` for detailed documentation.
+
 ## Current Refactor Rule
 
 - Keep orchestration files thin.
@@ -161,3 +170,4 @@
 - Prefer pure helpers for input/render computations.
 - Keep each module aligned to one gameplay concern.
 - Minimize React state updates in hot paths; prefer direct DOM manipulation for high-frequency UI changes.
+- Defer React state updates during input handling to maintain low INP.
