@@ -81,17 +81,35 @@ function collectGhostVisionCircles(
   state: GameState,
   now: number,
   camX: number,
-  camY: number
+  camY: number,
+  viewW: number,
+  viewH: number
 ): VisionCircle[] {
   const radiusPx = GHOST_NIGHT_VISION_RADIUS_TILES * TILE_SIZE;
   const circles: VisionCircle[] = [];
+  
+  // Calculate viewport bounds with padding for ghost vision radius
+  const padding = radiusPx;
+  const minX = camX - padding;
+  const minY = camY - padding;
+  const maxX = camX + viewW + padding;
+  const maxY = camY + viewH + padding;
+  
   for (const monster of state.monsters) {
     if (monster.kind !== "ghost") continue;
     const alpha = getGhostVisibilityAlpha(monster, now);
     if (alpha <= 0.001) continue;
+    
+    // Skip ghosts outside viewport
+    const ghostPixelX = monster.pos.x * TILE_SIZE;
+    const ghostPixelY = monster.pos.y * TILE_SIZE;
+    if (ghostPixelX < minX || ghostPixelX > maxX || ghostPixelY < minY || ghostPixelY > maxY) {
+      continue;
+    }
+    
     circles.push({
-      x: monster.pos.x * TILE_SIZE - camX,
-      y: monster.pos.y * TILE_SIZE - camY,
+      x: ghostPixelX - camX,
+      y: ghostPixelY - camY,
       radiusPx,
       alpha,
       revealAlpha:
@@ -224,7 +242,7 @@ export function drawNightLightingOverlay(
   const playerX = state.player.x * TILE_SIZE - camX;
   const playerY = state.player.y * TILE_SIZE - camY;
   const nearRadiusPx = PLAYER_NIGHT_NEAR_VISION_RADIUS_TILES * TILE_SIZE;
-  const ghostVisionCircles = collectGhostVisionCircles(state, now, camX, camY);
+  const ghostVisionCircles = collectGhostVisionCircles(state, now, camX, camY, viewW, viewH);
 
   eraseDarknessInVisionAreas(
     overlayCtx,
