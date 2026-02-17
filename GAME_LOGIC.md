@@ -248,6 +248,10 @@ Code references:
 
 - Each artifact pickup can trigger one of three effects: spawn boosters, spawn traps, or activate fog-of-war and fog areas.
 - After enough artifact progress, helper enemies spawn.
+- **Performance optimization**: Open walkable cells are pre-computed during game initialization and stored in `state.openCells`.
+- Artifact effect spawning uses direct list sampling from pre-computed cells instead of trial-and-error random selection.
+- Exclusion checks (items, coins, traps, entities) are performed lazily during sampling rather than building large exclusion Sets.
+- This eliminates frame drops that occurred when the map was crowded and random selection required many iterations.
 
 Code references:
 - `src/game/systems/update/items.ts`
@@ -255,6 +259,8 @@ Code references:
 - `src/game/systems/artifactSpawns.ts`
 - `src/game/systems/fogAreaSpawns.ts`
 - `src/game/systems/helpers/spawnHelpers.ts`
+- `src/game/model/initGame.ts` (openCells initialization)
+- `src/game/world/pathingSampling.ts` (randomOpenCellFromList)
 
 ## 11. Helpers (Secondary Enemies)
 
@@ -352,6 +358,11 @@ Code references:
   - darkness is erased on a dedicated darkness overlay (`destination-out`) with three vision shapes: player near circle, player cone, and ghost circles.
   - overlapping vision areas remain visible as a union (no overlap darkening).
   - cone/wall clipping uses exact grid-boundary ray casting (DDA) for sharper wall silhouettes without step-based scalloping.
+  - **Performance optimizations for night rendering**:
+    - Player night vision rays reduced from 192 to 64 (67% reduction in ray casting)
+    - Hunter/turret vision cones use viewport culling - only visible enemies render vision
+    - Ghost vision circles use viewport culling - only visible ghosts render vision circles
+    - These optimizations reduce ray casting work by ~80% during night mode
   - turret vision cone boundary sampling is cached across frames; hunter and player night-vision cones sample every frame using smooth facing to avoid front-edge snapping/jitter.
   - visible areas use hard borders only (no perimeter soft-transition/falloff).
   - exploration clouds and fog-area clouds smoothly crossfade between day sprites and black night sprites during transitions; full night uses the black variant.

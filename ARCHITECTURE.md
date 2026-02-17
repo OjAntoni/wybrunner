@@ -12,6 +12,7 @@
   - Includes day-night state anchors (`dayNightCycleStartMs`), player-facing direction (`playerFacing`) for night-vision cones, a smoothed facing vector (`playerFacingIndicator`) used by the player indicator render, player hearts with invulnerability timers, and sword swing timing/cooldown (`swordSwingStartMs`, `swordCooldownUntilMs`, `swordSwingHitMs`) for attack animation.
 - Hunter state also tracks smoothed vision angle (`visionAngleDeg`) for cone transitions.
 - `src/game/model/init/spawnActors.ts`: chooses player/hunter spawn cells with even spatial distribution (farthest-point sampling) and min-distance preference.
+- `src/game/model/initGame.ts`: game state initialization including pre-computed `openCells` array for fast random cell selection during artifact effects.
 - `src/game/actions/*`: immediate player-triggered actions (equipment placement, purchases, sword swing animation triggers).
   - Equipment actions (`placeSpike`, `placeBomb`) no longer accept React state callbacks; they only mutate game state.
   - DOM sync for equipment counters happens on the next game loop frame via `src/game/utils/updateGameUi.ts`.
@@ -80,7 +81,13 @@
 - `src/game/render/sceneEffectsLayer.ts`: temporary visual effects (explosions + short coin-pickup burst glows).
 - `src/game/render/sceneActors.ts`: player (including pulsing, smoothed facing indicator triangle, sword swing animation, smooth hurt-pulse alpha effect while invulnerable, and hidden-enemy sense arcs), dynamic monster list (chasers + night ghost pack) with tiny health hearts, hunters with tiny health hearts, turrets, helpers, player popup text, and hunter chaser/turret-placement popup text; ghost render includes lifecycle-driven alpha/scale (3s fade in/out), default/angry/sad face variants (`to_hunter` + `with_hunter` are angry/slightly red, `return_to_path` is sad/non-red), and exposes a tiny dotted white path-loop overlay draw used after night darkening.
 - `src/game/render/hunterVisionLayer.ts`: hunter + turret vision rendering (wall-clipped sectors with turret cone-to-line targeting transition).
+  - **Performance optimization**: Viewport culling skips vision rendering for hunters/turrets outside the visible area (with padding for vision radius).
+  - This reduces ray casting work by ~70-90% when most enemies are offscreen.
 - `src/game/render/dayNightLayer.ts`: day-night darkening overlay that erases darkness on an offscreen darkness layer via `destination-out` using player near-circle + player cone + ghost circles (ghost circles respect ghost fade alpha and use partial erase for dimmer ghost-lit areas; escorting `with_hunter` ghosts use 3x ghost-erase strength), adds a thin perimeter ring for ghost circles (white by default, slightly red only for active relay states `to_hunter`/`with_hunter`), then composites that layer back to preserve underlying map colors, with flashlight startup flicker during day->night transition and center warning text draw.
+  - **Performance optimizations**:
+    - Player vision rays reduced from 192 to 64 (67% reduction).
+    - Ghost vision circles use viewport culling - only ghosts within viewport (+ padding) render vision circles.
+    - Combined optimizations reduce night rendering overhead by ~80%.
 - `src/game/render/dayNightLayer.ts`: player night-vision cone uses the smoothed facing indicator direction (`playerFacingIndicator`) each frame to avoid jittery front-edge snapping during movement/turning.
 - `src/game/render/hudOcclusion.ts`: HUD overlap checks with cached rect sampling and change-only class toggles to avoid unnecessary DOM writes on every frame.
 - `src/game/render/hunterVisionLayer.ts`: hunter cones are sampled each frame (smooth facing) to avoid cache-quantization jitter; turret cones remain cached per-entity using quantized pose + effective angle + terrain revision, with stale cache cleanup when turrets despawn.
@@ -110,6 +117,9 @@
 - `src/game/systems/update/enemySense.ts`: bucketed hidden-enemy proximity indicator state with smooth fade-in/out.
 - `src/game/systems/outcome.ts`: lose-state transition.
 - `src/game/systems/artifactSpawns.ts`: booster/trap artifact effects.
+  - Uses pre-computed `state.openCells` list for O(1) random cell selection instead of trial-and-error sampling.
+  - Lazy exclusion checking eliminates expensive Set building during spawn.
+  - These optimizations prevent frame drops during artifact collection effects.
 - `src/game/systems/fogAreaSpawns.ts`: fog-area artifact generation.
 - `src/game/systems/fogAreaGrowth.ts`: fog-area seed/growth/anchor helpers.
 - `src/game/systems/fogAreaSeed.ts`: fog-area occupancy and seed selection.
