@@ -74,4 +74,5 @@ export type GameState = {
   status: GameStatus;
   loseReason: LoseReason;
   lastPlayerCell: Vec;
+  openCells: Vec[]; // Pre-computed list of walkable cells for fast random selection
 };

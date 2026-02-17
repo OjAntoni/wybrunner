@@ -4,6 +4,8 @@ import { cellCenter, cellKey } from "../utils/grid";
 import { resetSceneCamera } from "../render/camera";
 import type { GameState, Hunter } from "./types";
 import {
+  GRID_H,
+  GRID_W,
   HUNTER_HEALTH,
   HUNTER_PATROL_MAX_STRAIGHT_STEPS,
   HUNTER_PATROL_MIN_STRAIGHT_STEPS,
@@ -13,6 +15,18 @@ import {
 import { buildInitialPlacements } from "./initGamePlacements";
 import { CARDINAL_DIRS } from "../world/pathingDirections";
 import { directionToAngle } from "../world/hunterFacing";
+
+function buildOpenCells(grid: number[][]): { x: number; y: number }[] {
+  const openCells: { x: number; y: number }[] = [];
+  for (let y = 0; y < GRID_H; y++) {
+    for (let x = 0; x < GRID_W; x++) {
+      if (grid[y][x] === 0) {
+        openCells.push({ x, y });
+      }
+    }
+  }
+  return openCells;
+}
 
 function createRngSeed() {
   return ((Date.now() & 0xffffffff) ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
@@ -80,6 +94,7 @@ export function initGame(now: number = performance.now()): GameState {
 
   const exploreClouds = buildExploreClouds(createRngSeed());
   const exploreCloudBuckets = buildExploreCloudBuckets(exploreClouds);
+  const openCells = buildOpenCells(grid);
 
   return {
     grid,
@@ -129,5 +144,6 @@ export function initGame(now: number = performance.now()): GameState {
     status: "playing",
     loseReason: "caught",
     lastPlayerCell: { x: playerCell.x, y: playerCell.y },
+    openCells,
   };
 }

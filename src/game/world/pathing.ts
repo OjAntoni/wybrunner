@@ -5,4 +5,5 @@ export {
   openRunLength,
   randomOpenCellIndex,
   randomOpenCellIndexFar,
+  randomOpenCellFromList,
 } from "./pathingSampling";

@@ -24,6 +24,28 @@ export function randomOpenCellIndex(grid: Cell[][], exclude: Set<string>) {
   }
 }
 
+export function randomOpenCellFromList(openCells: Vec[], exclude: Set<string>): Vec | null {
+  if (openCells.length === 0) return null;
+  
+  // Try up to 50 random picks from the pre-computed list
+  for (let i = 0; i < 50; i++) {
+    const idx = Math.floor(Math.random() * openCells.length);
+    const cell = openCells[idx];
+    if (!exclude.has(cellKey(cell.x, cell.y))) {
+      return cell;
+    }
+  }
+  
+  // Fallback: scan for first non-excluded cell
+  for (const cell of openCells) {
+    if (!exclude.has(cellKey(cell.x, cell.y))) {
+      return cell;
+    }
+  }
+  
+  return null;
+}
+
 export function randomOpenCellIndexFar(
   grid: Cell[][],
   exclude: Set<string>,
