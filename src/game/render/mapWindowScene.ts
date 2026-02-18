@@ -99,7 +99,8 @@ export function drawMapWindowScene({
 
   drawTerrainTiles(ctx, state, camX, camY, bounds, viewW, viewH);
   drawArrowThrowers(ctx, state, now, camX, camY, bounds);
-  drawWorldObjects(ctx, state, now, camX, camY, viewW, viewH, bounds);
+  // In map view, skip small details like coins for better performance
+  drawWorldObjects(ctx, state, now, camX, camY, viewW, viewH, bounds, false);
   drawArrows(ctx, state, camX, camY, viewW, viewH);
 
   drawFogAreas(
@@ -130,14 +131,14 @@ export function drawMapWindowScene({
   );
 
   drawHunterVisions(ctx, state, now, camX, camY, viewW, viewH);
-  drawHelpers(ctx, state, now, camX, camY);
-  drawHunters(ctx, state, now, camX, camY);
-  drawTurrets(ctx, state, now, camX, camY);
+  drawHelpers(ctx, state, now, camX, camY, viewW, viewH);
+  drawHunters(ctx, state, now, camX, camY, viewW, viewH);
+  drawTurrets(ctx, state, now, camX, camY, viewW, viewH);
   drawPlayer(ctx, state, now, camX, camY);
-  drawMonsters(ctx, state, now, camX, camY);
+  drawMonsters(ctx, state, now, camX, camY, viewW, viewH);
   drawNightLightingOverlay(ctx, state, now, camX, camY, viewW, viewH);
-  drawGhostPathsOverlay(ctx, state, now, camX, camY);
-  drawGhosts(ctx, state, now, camX, camY);
+  drawGhostPathsOverlay(ctx, state, now, camX, camY, viewW, viewH);
+  drawGhosts(ctx, state, now, camX, camY, viewW, viewH);
 
   return { center: clampedCenter };
 }

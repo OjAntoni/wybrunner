@@ -16,15 +16,18 @@ export function drawWorldObjects(
   camY: number,
   viewW: number,
   viewH: number,
-  bounds: VisibleTileBounds
+  bounds: VisibleTileBounds,
+  renderSmallDetails: boolean = true
 ) {
-  drawCoins(ctx, state, camX, camY, bounds);
-  drawCoinPickupBursts(ctx, state, now, camX, camY);
+  if (renderSmallDetails) {
+    drawCoins(ctx, state, camX, camY, bounds);
+  }
+  drawCoinPickupBursts(ctx, state, now, camX, camY, viewW, viewH);
   drawLifeHearts(ctx, state, now, camX, camY, bounds);
   drawItems(ctx, state, now, camX, camY, viewW, viewH);
   drawBoosters(ctx, state, now, camX, camY, bounds);
   drawTraps(ctx, state, now, camX, camY, bounds);
   drawRevealedUndergroundTraps(ctx, state, now, camX, camY, bounds);
-  drawExplosions(ctx, state, now, camX, camY);
+  drawExplosions(ctx, state, now, camX, camY, viewW, viewH);
   drawSpikes(ctx, state, now, camX, camY, bounds);
 }

@@ -33,6 +33,7 @@ import { isAtCellCenter, isOpposite } from "../movement";
 import { createMonsterAt, returnGhostToPath } from "./monster";
 import { createTurretAt } from "./turret";
 import { applyPlayerEnemyHit, isPlayerInvisibleToEnemies } from "./playerDamage";
+import { getGlobalActiveChunks, shouldUpdateEntity } from "../../world/chunkProcessing";
 
 type GhostMonster = Extract<GameState["monsters"][number], { kind: "ghost" }>;
 
@@ -1004,7 +1005,23 @@ export function updateHunters(
   dt: number,
   now: number
 ) {
+  const activeChunks = getGlobalActiveChunks();
+
   for (const hunter of state.hunters) {
+    // Skip hunters outside active chunks for performance
+    // However, always update hunters that are chasing or in chase mode
+    // to maintain gameplay integrity
+    if (hunter.mode !== "chase" && !hunter.nervousScanActive) {
+      if (!shouldUpdateEntity(hunter.pos.x, hunter.pos.y, activeChunks)) {
+        // Still check for collision with player even if not updating AI
+        // to prevent unfair hits from "frozen" hunters
+        if (distance(state.player, hunter.pos) < 0.45) {
+          if (applyPlayerEnemyHit(state, now, "caught")) return false;
+        }
+        continue;
+      }
+    }
+
     if (!updateSingleHunter(state, hunter, dt, now)) return false;
   }
   return true;

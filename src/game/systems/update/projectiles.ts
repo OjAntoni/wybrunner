@@ -3,6 +3,7 @@ import type { Arrow, GameState } from "../../model/types";
 import { inBounds } from "../../utils/grid";
 import { distance } from "../../utils/math";
 import { applyPlayerEnemyHit } from "./playerDamage";
+import { getGlobalActiveChunks, shouldUpdateEntity } from "../../world/chunkProcessing";
 
 export function updateProjectiles(
   state: GameState,
@@ -10,10 +11,19 @@ export function updateProjectiles(
   now: number
 ) {
   const arrowSpeed = PLAYER_SPEED * 1.5;
+  const activeChunks = getGlobalActiveChunks();
+
   if (state.arrowThrowers.length > 0) {
     for (const thrower of state.arrowThrowers) {
       if (state.grid[thrower.y][thrower.x] !== 1) continue;
       if (now < thrower.nextFireMs) continue;
+
+      // Skip arrow throwers outside active chunks for performance
+      if (!shouldUpdateEntity(thrower.x, thrower.y, activeChunks)) {
+        // Still update the timer to prevent back-log of arrows
+        thrower.nextFireMs = now + thrower.periodMs;
+        continue;
+      }
 
       thrower.nextFireMs = now + thrower.periodMs;
       thrower.lastFireMs = now;
@@ -50,7 +60,24 @@ export function updateProjectiles(
         if (applyPlayerEnemyHit(state, now, "arrow")) return false;
         continue;
       }
-      nextArrows.push({ ...arrow, pos: nextPos });
+
+      // Only keep arrows that are in or approaching active chunks
+      // This prevents arrows from accumulating infinitely in far-off chunks
+      if (shouldUpdateEntity(nextPos.x, nextPos.y, activeChunks)) {
+        nextArrows.push({ ...arrow, pos: nextPos });
+      } else if (arrow.source === "turret") {
+        // For turret arrows, be more lenient since they can travel far
+        // Keep them if they're within a larger margin
+        const chunkX = Math.floor(ax / 16);
+        const chunkY = Math.floor(ay / 16);
+        const isNearby = Array.from(activeChunks).some(key => {
+          const [acx, acy] = key.split(',').map(Number);
+          return Math.abs(acx - chunkX) <= 1 && Math.abs(acy - chunkY) <= 1;
+        });
+        if (isNearby) {
+          nextArrows.push({ ...arrow, pos: nextPos });
+        }
+      }
     }
     state.arrows = nextArrows;
   }

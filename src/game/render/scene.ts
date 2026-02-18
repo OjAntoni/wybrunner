@@ -24,6 +24,12 @@ import { drawArrowThrowers, drawTerrainTiles } from "./sceneTerrainLayer";
 import type { DrawSceneParams } from "./sceneTypes";
 import { prepareSceneViewport } from "./sceneViewport";
 
+/**
+ * Minimum zoom level at which small details like coins are rendered.
+ * Below this zoom level, coins are not drawn to improve performance.
+ */
+const COIN_RENDER_MIN_ZOOM = 1.5;
+
 export function drawScene({
   ctx,
   state,
@@ -33,13 +39,16 @@ export function drawScene({
   fogSpritesRef,
   exploreCloudSpritesRef,
 }: DrawSceneParams) {
-  const { camX, camY, viewW, viewH, heartbeatPulse, bounds } = prepareSceneViewport({
+  const { camX, camY, viewW, viewH, heartbeatPulse, bounds, zoom } = prepareSceneViewport({
     ctx,
     state,
     now,
     dpr,
     touchEnabled,
   });
+
+  // Determine if we should render small details based on zoom level
+  const renderSmallDetails = zoom >= COIN_RENDER_MIN_ZOOM;
   drawTerrainTiles(ctx, state, camX, camY, bounds, viewW, viewH);
   drawArrowThrowers(ctx, state, now, camX, camY, bounds);
 
@@ -52,7 +61,7 @@ export function drawScene({
   const dayNightSnapshot = getDayNightSnapshot(state, now);
   const cloudNightBlend = dayNightSnapshot.darknessAlpha;
 
-  drawWorldObjects(ctx, state, now, camX, camY, viewW, viewH, bounds);
+  drawWorldObjects(ctx, state, now, camX, camY, viewW, viewH, bounds, renderSmallDetails);
   drawArrows(ctx, state, camX, camY, viewW, viewH);
 
   // Draw cloud layers after arrows so unexplored areas hide projectiles too.
@@ -81,12 +90,12 @@ export function drawScene({
   );
 
   drawHunterVisions(ctx, state, now, camX, camY, viewW, viewH);
-  drawHelpers(ctx, state, now, camX, camY);
-  drawHunters(ctx, state, now, camX, camY);
-  drawTurrets(ctx, state, now, camX, camY);
+  drawHelpers(ctx, state, now, camX, camY, viewW, viewH);
+  drawHunters(ctx, state, now, camX, camY, viewW, viewH);
+  drawTurrets(ctx, state, now, camX, camY, viewW, viewH);
   drawPlayer(ctx, state, now, camX, camY);
   drawEnemySenseIndicator(ctx, state, camX, camY);
-  drawMonsters(ctx, state, now, camX, camY);
+  drawMonsters(ctx, state, now, camX, camY, viewW, viewH);
 
   if (now < state.fogUntil) {
     drawFog(
@@ -113,8 +122,8 @@ export function drawScene({
     playerScreenY
   );
   const overlaySnapshot = drawNightLightingOverlay(ctx, state, now, camX, camY, viewW, viewH);
-  drawGhostPathsOverlay(ctx, state, now, camX, camY);
-  drawGhosts(ctx, state, now, camX, camY);
+  drawGhostPathsOverlay(ctx, state, now, camX, camY, viewW, viewH);
+  drawGhosts(ctx, state, now, camX, camY, viewW, viewH);
   drawPlayerPopup(ctx, state, now, camX, camY, touchEnabled);
   drawHeartbeatBorderOverlay(ctx, viewW, viewH, heartbeatPulse);
   drawNightWarningText(ctx, overlaySnapshot, viewW, viewH);

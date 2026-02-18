@@ -14,6 +14,21 @@ import { getGhostVisibilityAlpha } from "../world/ghostVisibility";
 import { isCellCoveredByExploreClouds } from "../world/exploration";
 import { inBounds } from "../utils/grid";
 
+/** Check if an entity at world position (x, y) is within the viewport plus padding */
+function isInViewport(
+  x: number,
+  y: number,
+  camX: number,
+  camY: number,
+  viewW: number,
+  viewH: number,
+  paddingPx: number = TILE_SIZE
+): boolean {
+  const px = x * TILE_SIZE - camX;
+  const py = y * TILE_SIZE - camY;
+  return px >= -paddingPx && px <= viewW + paddingPx && py >= -paddingPx && py <= viewH + paddingPx;
+}
+
 function drawGhostPath(
   ctx: CanvasRenderingContext2D,
   path: { x: number; y: number }[],
@@ -48,10 +63,21 @@ export function drawGhostPathsOverlay(
   state: GameState,
   now: number,
   camX: number,
-  camY: number
+  camY: number,
+  viewW: number,
+  viewH: number
 ) {
+  // Generous padding for large looping paths (~60 tiles radius)
+  const pathPadding = 60 * TILE_SIZE;
   for (const monster of state.monsters) {
     if (monster.kind !== "ghost") continue;
+    // Quick viewport check using ghost position as proxy for path center
+    const ghostPx = monster.pos.x * TILE_SIZE - camX;
+    const ghostPy = monster.pos.y * TILE_SIZE - camY;
+    if (ghostPx < -pathPadding || ghostPx > viewW + pathPadding ||
+      ghostPy < -pathPadding || ghostPy > viewH + pathPadding) {
+      continue;
+    }
     const visibilityAlpha = getGhostVisibilityAlpha(monster, now);
     drawGhostPath(ctx, monster.path, visibilityAlpha, now, camX, camY);
   }
@@ -62,9 +88,14 @@ export function drawHelpers(
   state: GameState,
   now: number,
   camX: number,
-  camY: number
+  camY: number,
+  viewW: number,
+  viewH: number
 ) {
   for (const helper of state.helpers) {
+    // Viewport culling
+    if (!isInViewport(helper.pos.x, helper.pos.y, camX, camY, viewW, viewH)) continue;
+
     const px = helper.pos.x * TILE_SIZE - camX - TILE_SIZE / 2;
     const py = helper.pos.y * TILE_SIZE - camY - TILE_SIZE / 2;
     const bob = Math.sin(now / 180 + helper.id * 0.01) * 1.2;
@@ -407,10 +438,14 @@ export function drawGhosts(
   state: GameState,
   now: number,
   camX: number,
-  camY: number
+  camY: number,
+  viewW: number,
+  viewH: number
 ) {
   for (const monster of state.monsters) {
     if (monster.kind !== "ghost") continue;
+    // Viewport culling
+    if (!isInViewport(monster.pos.x, monster.pos.y, camX, camY, viewW, viewH)) continue;
     drawGhost(ctx, monster, now, camX, camY);
   }
 }
@@ -420,10 +455,15 @@ export function drawMonsters(
   state: GameState,
   now: number,
   camX: number,
-  camY: number
+  camY: number,
+  viewW: number,
+  viewH: number
 ) {
   for (const monster of state.monsters) {
     if (monster.kind === "ghost") continue;
+
+    // Viewport culling
+    if (!isInViewport(monster.pos.x, monster.pos.y, camX, camY, viewW, viewH)) continue;
 
     const monsterCell = {
       x: Math.floor(monster.pos.x),
@@ -535,10 +575,16 @@ export function drawHunters(
   state: GameState,
   now: number,
   camX: number,
-  camY: number
+  camY: number,
+  viewW: number,
+  viewH: number
 ) {
   for (let i = 0; i < state.hunters.length; i += 1) {
     const hunter = state.hunters[i];
+
+    // Viewport culling - always render chasing hunters even if off-screen
+    if (hunter.mode !== "chase" && !isInViewport(hunter.pos.x, hunter.pos.y, camX, camY, viewW, viewH)) continue;
+
     const hunterCell = {
       x: Math.floor(hunter.pos.x),
       y: Math.floor(hunter.pos.y),
@@ -599,9 +645,14 @@ export function drawTurrets(
   state: GameState,
   now: number,
   camX: number,
-  camY: number
+  camY: number,
+  viewW: number,
+  viewH: number
 ) {
   for (const turret of state.turrets) {
+    // Viewport culling
+    if (!isInViewport(turret.pos.x, turret.pos.y, camX, camY, viewW, viewH)) continue;
+
     const turretCell = {
       x: Math.floor(turret.pos.x),
       y: Math.floor(turret.pos.y),

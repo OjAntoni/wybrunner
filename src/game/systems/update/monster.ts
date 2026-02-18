@@ -22,6 +22,7 @@ import { bfsNextStep, bestNeighborStep, bestNeighborStepAvoid } from "../../worl
 import { getDayNightSnapshot } from "../dayNight";
 import { isAtCellCenter, isOpposite } from "../movement";
 import { applyPlayerEnemyHit, isPlayerInvisibleToEnemies } from "./playerDamage";
+import { getGlobalActiveChunks, shouldUpdateEntity } from "../../world/chunkProcessing";
 
 type ChaserMonster = Extract<Monster, { kind: "chaser" }>;
 type GhostMonster = Extract<Monster, { kind: "ghost" }>;
@@ -495,14 +496,13 @@ function moveGhostTowardsTarget(ghost: GhostMonster, target: Vec, moveDistance: 
 
   setDirectionFromDelta(ghost, dx, dy);
   if (dist <= moveDistance) {
-    ghost.pos = { ...target };
+    ghost.pos.x = target.x;
+    ghost.pos.y = target.y;
     return true;
   }
 
-  ghost.pos = {
-    x: ghost.pos.x + (dx / dist) * moveDistance,
-    y: ghost.pos.y + (dy / dist) * moveDistance,
-  };
+  ghost.pos.x += (dx / dist) * moveDistance;
+  ghost.pos.y += (dy / dist) * moveDistance;
   return false;
 }
 
@@ -536,7 +536,124 @@ function createNightGhost(
   return null;
 }
 
-function spawnNightGhostPack(state: GameState, now: number) {
+// ---------------------------------------------------------------------------
+// Incremental ghost pre-generation state (module-level, avoids GameState change)
+// ---------------------------------------------------------------------------
+type GhostPregenState = {
+  active: boolean;
+  targetCount: number;
+  ghosts: GhostMonster[];
+  sectors: GhostSector[];
+  hasAnchored: boolean;
+  sectorsDone: boolean;
+  fallbackAttempts: number;
+};
+
+let ghostPregen: GhostPregenState | null = null;
+let lastPregenPhase: string = "";
+
+/** Reset pre-generation state (call on game restart / new run). */
+export function resetGhostPregen(): void {
+  ghostPregen = null;
+  lastPregenPhase = "";
+}
+
+const GHOSTS_PER_FRAME = 2;
+
+function initGhostPregen(state: GameState, now: number): void {
+  const count = randomIntInRange(GHOST_COUNT_MIN, GHOST_COUNT_MAX);
+  const sectors = buildGhostSectors(count);
+  ghostPregen = {
+    active: true,
+    targetCount: count,
+    ghosts: [],
+    sectors,
+    hasAnchored: false,
+    sectorsDone: false,
+    fallbackAttempts: 0,
+  };
+
+  // First ghost must pass through the player (anchored).
+  const anchoredGhost = createNightGhost(
+    state,
+    ghostPregen.ghosts,
+    now,
+    popNearestSectorToPlayer(sectors, state.player),
+    true
+  );
+  if (anchoredGhost) {
+    ghostPregen.ghosts.push(anchoredGhost);
+    ghostPregen.hasAnchored = true;
+  }
+}
+
+/** Generate a few ghosts per call; returns true when all ghosts are ready. */
+function stepGhostPregen(state: GameState, now: number): boolean {
+  if (!ghostPregen || !ghostPregen.active) return true;
+  const pg = ghostPregen;
+
+  for (let i = 0; i < GHOSTS_PER_FRAME; i += 1) {
+    if (pg.ghosts.length >= pg.targetCount) break;
+
+    if (!pg.hasAnchored && pg.ghosts.length === 0) {
+      const anchored = createNightGhost(state, pg.ghosts, now, null, true);
+      if (anchored) {
+        pg.ghosts.push(anchored);
+        pg.hasAnchored = true;
+        continue;
+      }
+    }
+
+    if (!pg.sectorsDone) {
+      if (pg.sectors.length > 0) {
+        const sector = pg.sectors.shift()!;
+        const ghost = createNightGhost(state, pg.ghosts, now, sector, false);
+        if (ghost) pg.ghosts.push(ghost);
+      } else {
+        pg.sectorsDone = true;
+      }
+      continue;
+    }
+
+    if (pg.fallbackAttempts < pg.targetCount * 12) {
+      pg.fallbackAttempts += 1;
+      const ghost = createNightGhost(state, pg.ghosts, now, null, false);
+      if (ghost) pg.ghosts.push(ghost);
+    } else {
+      break;
+    }
+  }
+
+  if (pg.ghosts.length >= pg.targetCount || pg.fallbackAttempts >= pg.targetCount * 12) {
+    pg.active = false;
+    return true;
+  }
+  return false;
+}
+
+function finalizeGhostPregen(state: GameState, now: number): GhostMonster[] {
+  if (!ghostPregen) {
+    return spawnNightGhostPackSync(state, now);
+  }
+  const pg = ghostPregen;
+
+  while (pg.ghosts.length < pg.targetCount && pg.fallbackAttempts < pg.targetCount * 12) {
+    pg.fallbackAttempts += 1;
+    const ghost = createNightGhost(state, pg.ghosts, now, null, false);
+    if (ghost) pg.ghosts.push(ghost);
+  }
+
+  if (pg.ghosts.length > 0 && !pg.hasAnchored) {
+    const replacement = createNightGhost(state, pg.ghosts.slice(1), now, null, true);
+    if (replacement) pg.ghosts[0] = replacement;
+  }
+
+  const result = pg.ghosts;
+  ghostPregen = null;
+  return result;
+}
+
+function spawnNightGhostPackSync(state: GameState, now: number) {
   const count = randomIntInRange(GHOST_COUNT_MIN, GHOST_COUNT_MAX);
   const ghosts: GhostMonster[] = [];
   const sectors = buildGhostSectors(count);
@@ -580,9 +697,18 @@ function spawnNightGhostPack(state: GameState, now: number) {
 
 function syncNightGhost(state: GameState, now: number) {
   const snapshot = getDayNightSnapshot(state, now);
-  const isNight = snapshot.phase === "night";
+  const phase = snapshot.phase;
 
-  if (!isNight) {
+  // During transition_to_night, pre-generate ghosts incrementally.
+  if (phase === "transition_to_night") {
+    if (lastPregenPhase !== "transition_to_night") {
+      initGhostPregen(state, now);
+    }
+    if (ghostPregen && ghostPregen.active) {
+      stepGhostPregen(state, now);
+    }
+    lastPregenPhase = phase;
+    // Still run despawn logic for any lingering ghosts from previous night.
     const nextMonsters: Monster[] = [];
     for (const monster of state.monsters) {
       if (monster.kind !== "ghost") {
@@ -600,6 +726,31 @@ function syncNightGhost(state: GameState, now: number) {
     return;
   }
 
+  const isNight = phase === "night";
+  lastPregenPhase = phase;
+
+  if (!isNight) {
+    const nextMonsters: Monster[] = [];
+    for (const monster of state.monsters) {
+      if (monster.kind !== "ghost") {
+        nextMonsters.push(monster);
+        continue;
+      }
+      if (monster.despawnStartMs === null) {
+        monster.despawnStartMs = now;
+      }
+      if (!isGhostDisappearAnimationFinished(monster, now)) {
+        nextMonsters.push(monster);
+      }
+    }
+    state.monsters = nextMonsters;
+    if (phase === "day") {
+      ghostPregen = null;
+    }
+    return;
+  }
+
+  // Night phase — inject ghosts.
   for (const monster of state.monsters) {
     if (monster.kind !== "ghost") continue;
     monster.despawnStartMs = null;
@@ -607,7 +758,9 @@ function syncNightGhost(state: GameState, now: number) {
 
   const hasGhost = state.monsters.some((monster) => monster.kind === "ghost");
   if (hasGhost) return;
-  state.monsters.push(...spawnNightGhostPack(state, now));
+
+  const ghosts = finalizeGhostPregen(state, now);
+  state.monsters.push(...ghosts);
 }
 
 function updateChaserMonster(
@@ -686,13 +839,12 @@ function updateChaserMonster(
       };
       const dist = Math.hypot(toTarget.x, toTarget.y);
       if (dist <= chaserSpeed) {
-        monster.pos = { ...monster.target };
+        monster.pos.x = monster.target.x;
+        monster.pos.y = monster.target.y;
         monster.target = null;
       } else {
-        monster.pos = {
-          x: monster.pos.x + (toTarget.x / dist) * chaserSpeed,
-          y: monster.pos.y + (toTarget.y / dist) * chaserSpeed,
-        };
+        monster.pos.x += (toTarget.x / dist) * chaserSpeed;
+        monster.pos.y += (toTarget.y / dist) * chaserSpeed;
       }
     }
   }
@@ -701,10 +853,8 @@ function updateChaserMonster(
 function setDirectionFromDelta(monster: GhostMonster, deltaX: number, deltaY: number) {
   const length = Math.hypot(deltaX, deltaY);
   if (length <= 0.000001) return;
-  monster.dir = {
-    x: deltaX / length,
-    y: deltaY / length,
-  };
+  monster.dir.x = deltaX / length;
+  monster.dir.y = deltaY / length;
 }
 
 function advanceGhostAlongPath(monster: GhostMonster, moveDistance: number) {
@@ -739,16 +889,15 @@ function advanceGhostAlongPath(monster: GhostMonster, moveDistance: number) {
       segmentIndex = nextIndex;
       currentPoint = monster.path[segmentIndex];
       progress = 0;
-      monster.pos = { ...currentPoint };
+      monster.pos.x = currentPoint.x;
+      monster.pos.y = currentPoint.y;
       setDirectionFromDelta(monster, deltaX, deltaY);
       continue;
     }
 
     progress += remaining / segmentLength;
-    monster.pos = {
-      x: currentPoint.x + deltaX * progress,
-      y: currentPoint.y + deltaY * progress,
-    };
+    monster.pos.x = currentPoint.x + deltaX * progress;
+    monster.pos.y = currentPoint.y + deltaY * progress;
     setDirectionFromDelta(monster, deltaX, deltaY);
     remaining = 0;
   }
@@ -804,8 +953,10 @@ function updateGhostMonster(state: GameState, monster: GhostMonster, dt: number,
     ) {
       returnGhostToPath(monster);
     } else {
-      monster.pos = { ...assignedHunter.pos };
-      monster.dir = { ...assignedHunter.dir };
+      monster.pos.x = assignedHunter.pos.x;
+      monster.pos.y = assignedHunter.pos.y;
+      monster.dir.x = assignedHunter.dir.x;
+      monster.dir.y = assignedHunter.dir.y;
       monster.target = null;
       if (updateGhostMemoryIfSeeing(monster, state, now)) {
         const rememberedPos = monster.rememberedPlayerPos ?? state.player;
@@ -838,7 +989,8 @@ function updateGhostMonster(state: GameState, monster: GhostMonster, dt: number,
     } else {
       const reached = moveGhostTowardsTarget(monster, monster.path[pathIndex], baseGhostSpeed);
       if (reached) {
-        monster.pos = { ...monster.path[pathIndex] };
+        monster.pos.x = monster.path[pathIndex].x;
+        monster.pos.y = monster.path[pathIndex].y;
         monster.pathIndex = pathIndex;
         monster.pathProgress = 0;
         monster.returnPathIndex = null;
@@ -910,12 +1062,22 @@ export function updateMonster(
   syncNightGhost(state, now);
   if (state.monsters.length === 0) return true;
 
+  const activeChunks = getGlobalActiveChunks();
   const playerCell = {
     x: Math.floor(state.player.x),
     y: Math.floor(state.player.y),
   };
 
   for (const monster of state.monsters) {
+    // Skip monsters outside active chunks for performance
+    // Still check collision to prevent unfair hits
+    if (monster.kind !== "ghost" && !shouldUpdateEntity(monster.pos.x, monster.pos.y, activeChunks)) {
+      if (distance(state.player, monster.pos) < 0.45) {
+        if (applyPlayerEnemyHit(state, now, "caught")) return false;
+      }
+      continue;
+    }
+
     if (monster.kind === "ghost") {
       updateGhostMonster(state, monster, dt, now);
     } else {

@@ -8,14 +8,27 @@ import type { GameState, Helper } from "../../model/types";
 import { cellCenter, cellKey } from "../../utils/grid";
 import { distance } from "../../utils/math";
 import { applyPlayerEnemyHit } from "../update/playerDamage";
+import { getGlobalActiveChunks, shouldUpdateEntity } from "../../world/chunkProcessing";
 
 export function updateHelpers(
   state: GameState,
   dt: number,
   now: number
 ) {
+  const activeChunks = getGlobalActiveChunks();
   const next: Helper[] = [];
+
   for (const helper of state.helpers) {
+    // Skip helpers outside active chunks for performance
+    // Still check collision to prevent unfair hits
+    if (!shouldUpdateEntity(helper.pos.x, helper.pos.y, activeChunks)) {
+      if (distance(state.player, helper.pos) < 0.45) {
+        if (applyPlayerEnemyHit(state, now, "helper")) return;
+      }
+      next.push(helper);
+      continue;
+    }
+
     const cell = {
       x: Math.floor(helper.pos.x),
       y: Math.floor(helper.pos.y),

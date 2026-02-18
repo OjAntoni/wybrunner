@@ -11,6 +11,7 @@ import {
 import type { GameState, Turret, Vec } from "../../model/types";
 import { isTargetVisibleInVisionCone } from "../../world/hunterVision";
 import { isPlayerInvisibleToEnemies } from "./playerDamage";
+import { getGlobalActiveChunks, shouldUpdateEntity } from "../../world/chunkProcessing";
 
 let turretIdCounter = 1;
 
@@ -82,7 +83,17 @@ function enterSweepMode(turret: Turret, now: number) {
 export function updateTurrets(state: GameState, dt: number, now: number) {
   if (state.turrets.length === 0) return;
 
+  const activeChunks = getGlobalActiveChunks();
+
   for (const turret of state.turrets) {
+    // Skip turrets outside active chunks for performance
+    // However, always update turrets that are tracking or in cooldown
+    // to maintain gameplay integrity (they could have been tracking player)
+    if (turret.mode === "sweep") {
+      if (!shouldUpdateEntity(turret.pos.x, turret.pos.y, activeChunks)) {
+        continue;
+      }
+    }
     const facingDirection = {
       x: Math.cos(turret.facingAngle),
       y: Math.sin(turret.facingAngle),

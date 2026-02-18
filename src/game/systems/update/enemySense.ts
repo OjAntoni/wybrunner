@@ -9,6 +9,13 @@ import { isCellCoveredByExploreClouds } from "../../world/exploration";
 const TWO_PI = Math.PI * 2;
 const BUCKET_SIZE = TWO_PI / ENEMY_SENSE_BUCKETS;
 
+// Pre-allocated collections reused every frame
+const _buckets = new Map<number, BucketAccum>();
+const _targets: { key: number; dir: Vec; angle: number }[] = [];
+const _usedSegments = new Set<number>();
+const _usedTargets = new Set<number>();
+const _segmentAngles = new Map<EnemySenseSegment, number>();
+
 type BucketAccum = {
   x: number;
   y: number;
@@ -61,7 +68,8 @@ function updateSegmentDir(segment: EnemySenseSegment, targetDir: Vec, lerp: numb
 }
 
 export function updateEnemySenseIndicator(state: GameState, dt: number) {
-  const buckets = new Map<number, BucketAccum>();
+  _buckets.clear();
+  const buckets = _buckets;
   const player = state.player;
 
   for (const monster of state.monsters) {
@@ -89,7 +97,8 @@ export function updateEnemySenseIndicator(state: GameState, dt: number) {
 
   if (buckets.size === 0 && state.enemySenseSegments.length === 0) return;
 
-  const targets: { key: number; dir: Vec; angle: number }[] = [];
+  _targets.length = 0;
+  const targets = _targets;
   buckets.forEach((entry, key) => {
     if (entry.weight <= 0.0001) return;
     const dir = { x: entry.x, y: entry.y };
@@ -100,11 +109,14 @@ export function updateEnemySenseIndicator(state: GameState, dt: number) {
 
   const segments = state.enemySenseSegments;
   const lerp = 1 - Math.exp(-dt * ENEMY_SENSE_FADE_SPEED);
-  const usedSegments = new Set<number>();
-  const usedTargets = new Set<number>();
+  _usedSegments.clear();
+  _usedTargets.clear();
+  const usedSegments = _usedSegments;
+  const usedTargets = _usedTargets;
   const maxSnap = BUCKET_SIZE * 1.6;
 
-  const segmentAngles = new Map<EnemySenseSegment, number>();
+  _segmentAngles.clear();
+  const segmentAngles = _segmentAngles;
   for (const segment of segments) {
     segmentAngles.set(segment, Math.atan2(segment.dir.y, segment.dir.x));
   }

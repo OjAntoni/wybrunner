@@ -24,9 +24,15 @@ type DarknessOverlay = {
   ctx: CanvasRenderingContext2D;
   scaleX: number;
   scaleY: number;
+  viewW: number;
+  viewH: number;
 };
 
 let darknessOverlayCanvas: HTMLCanvasElement | null = null;
+
+// Maximum overlay resolution to prevent performance issues in fullscreen
+const MAX_OVERLAY_WIDTH = 800;
+const MAX_OVERLAY_HEIGHT = 600;
 const PLAYER_NIGHT_VISION_RAY_COUNT = 64;
 const GHOST_VISION_BORDER_ALPHA = 0.28;
 const GHOST_VISION_BORDER_WIDTH_PX = 1.25;
@@ -51,31 +57,31 @@ function getDarknessOverlay(
   viewH: number
 ): DarknessOverlay | null {
   const transform = ctx.getTransform();
-  const scaleX = Math.max(1, Math.abs(transform.a));
-  const scaleY = Math.max(1, Math.abs(transform.d));
-  const width = Math.max(1, Math.ceil(viewW * scaleX));
-  const height = Math.max(1, Math.ceil(viewH * scaleY));
+  const deviceScaleX = Math.max(0.001, Math.abs(transform.a));
+  const deviceScaleY = Math.max(0.001, Math.abs(transform.d));
+  // Cap overlay resolution to prevent fullscreen performance issues
+  const rawWidth = Math.max(1, Math.ceil(viewW * deviceScaleX));
+  const rawHeight = Math.max(1, Math.ceil(viewH * deviceScaleY));
+  const capScale = Math.min(
+    1,
+    MAX_OVERLAY_WIDTH / rawWidth,
+    MAX_OVERLAY_HEIGHT / rawHeight
+  );
+  const width = Math.max(1, Math.round(rawWidth * capScale));
+  const height = Math.max(1, Math.round(rawHeight * capScale));
+  // Draw calls use view-space coords, so convert view units -> overlay pixels.
+  // (Using width/rawWidth here causes misalignment when DPR/zoom differs from 1.)
+  const overlayScaleX = width / Math.max(1, viewW);
+  const overlayScaleY = height / Math.max(1, viewH);
   const ownerDocument = ctx.canvas.ownerDocument ?? document;
   darknessOverlayCanvas = ensureOverlayCanvas(darknessOverlayCanvas, width, height, ownerDocument);
   const overlayCtx = darknessOverlayCanvas.getContext("2d");
   if (!overlayCtx) return null;
-  return { canvas: darknessOverlayCanvas, ctx: overlayCtx, scaleX, scaleY };
+  return { canvas: darknessOverlayCanvas, ctx: overlayCtx, scaleX: overlayScaleX, scaleY: overlayScaleY, viewW, viewH };
 }
 
-function buildVisionConePath(
-  ctx: CanvasRenderingContext2D,
-  originX: number,
-  originY: number,
-  points: { x: number; y: number }[],
-  camX: number,
-  camY: number
-) {
-  ctx.moveTo(originX, originY);
-  for (const point of points) {
-    ctx.lineTo(point.x * TILE_SIZE - camX, point.y * TILE_SIZE - camY);
-  }
-  ctx.closePath();
-}
+// Pre-allocated array for ghost vision circles, reused each frame
+const _ghostVisionCircles: VisionCircle[] = [];
 
 function collectGhostVisionCircles(
   state: GameState,
@@ -86,27 +92,28 @@ function collectGhostVisionCircles(
   viewH: number
 ): VisionCircle[] {
   const radiusPx = GHOST_NIGHT_VISION_RADIUS_TILES * TILE_SIZE;
-  const circles: VisionCircle[] = [];
-  
+  _ghostVisionCircles.length = 0;
+  const circles = _ghostVisionCircles;
+
   // Calculate viewport bounds with padding for ghost vision radius
   const padding = radiusPx;
   const minX = camX - padding;
   const minY = camY - padding;
   const maxX = camX + viewW + padding;
   const maxY = camY + viewH + padding;
-  
+
   for (const monster of state.monsters) {
     if (monster.kind !== "ghost") continue;
     const alpha = getGhostVisibilityAlpha(monster, now);
     if (alpha <= 0.001) continue;
-    
+
     // Skip ghosts outside viewport
     const ghostPixelX = monster.pos.x * TILE_SIZE;
     const ghostPixelY = monster.pos.y * TILE_SIZE;
     if (ghostPixelX < minX || ghostPixelX > maxX || ghostPixelY < minY || ghostPixelY > maxY) {
       continue;
     }
-    
+
     circles.push({
       x: ghostPixelX - camX,
       y: ghostPixelY - camY,
@@ -157,7 +164,11 @@ function eraseDarknessInVisionAreas(
 
   if (points.length > 0) {
     ctx.beginPath();
-    buildVisionConePath(ctx, playerX, playerY, points, camX, camY);
+    ctx.moveTo(playerX, playerY);
+    for (const point of points) {
+      ctx.lineTo(point.x * TILE_SIZE - camX, point.y * TILE_SIZE - camY);
+    }
+    ctx.closePath();
     ctx.fill();
   }
 
@@ -173,16 +184,13 @@ function eraseDarknessInVisionAreas(
 
 function drawGhostVisionBorders(
   ctx: CanvasRenderingContext2D,
-  ghostVisionCircles: VisionCircle[],
-  overlayScaleX: number,
-  overlayScaleY: number
+  ghostVisionCircles: VisionCircle[]
 ) {
   if (ghostVisionCircles.length === 0) return;
 
-  const invScale = 1 / Math.max(1, overlayScaleX, overlayScaleY);
   ctx.save();
   ctx.globalCompositeOperation = "source-over";
-  ctx.lineWidth = GHOST_VISION_BORDER_WIDTH_PX * invScale;
+  ctx.lineWidth = GHOST_VISION_BORDER_WIDTH_PX;
 
   for (const circle of ghostVisionCircles) {
     ctx.globalAlpha = circle.alpha * GHOST_VISION_BORDER_ALPHA;
@@ -216,17 +224,20 @@ export function drawNightLightingOverlay(
   }
 
   const overlayCtx = overlay.ctx;
+  // Reset transform and clear the actual canvas size
   overlayCtx.setTransform(1, 0, 0, 1, 0, 0);
   overlayCtx.globalCompositeOperation = "source-over";
   overlayCtx.globalAlpha = 1;
   overlayCtx.clearRect(0, 0, overlay.canvas.width, overlay.canvas.height);
+  // Set transform to scale view coordinates down to canvas pixels
   overlayCtx.setTransform(overlay.scaleX, 0, 0, overlay.scaleY, 0, 0);
   overlayCtx.fillStyle = `rgba(0, 0, 0, ${snapshot.darknessAlpha.toFixed(3)})`;
-  overlayCtx.fillRect(0, 0, viewW, viewH);
+  overlayCtx.fillRect(0, 0, overlay.viewW, overlay.viewH);
 
   const flashlightIsOff =
     snapshot.phase === "transition_to_night" && snapshot.flashlightFlickerAlpha >= 0.5;
   if (!snapshot.nightVisionActive || flashlightIsOff) {
+    // Draw the scaled overlay to cover the full view
     ctx.drawImage(overlay.canvas, 0, 0, viewW, viewH);
     return snapshot;
   }
@@ -254,8 +265,9 @@ export function drawNightLightingOverlay(
     camX,
     camY
   );
-  drawGhostVisionBorders(overlayCtx, ghostVisionCircles, overlay.scaleX, overlay.scaleY);
+  drawGhostVisionBorders(overlayCtx, ghostVisionCircles);
 
+  // Draw the scaled overlay to cover the full view
   ctx.drawImage(overlay.canvas, 0, 0, viewW, viewH);
   return snapshot;
 }

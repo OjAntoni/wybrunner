@@ -69,6 +69,7 @@
 - `src/game/render/camera.ts`: camera helpers plus smoothed follow, chase zoom hysteresis (trigger/release/hold), and heartbeat zoom pulse state used by scene viewport.
 - `src/game/render/camera.ts`: smoothing uses frame-time-normalized interpolation and an eased non-sinusoidal heartbeat pulse curve (zoom-in/zoom-out).
 - `src/game/render/heartbeatOverlay.ts`: post-process style border vignette overlay synced to chase heartbeat pulse.
+- Chase-release tuning is set for quicker post-chase fade so red heartbeat flicker does not linger after disengage.
 - `src/game/render/sceneTerrainLayer.ts`: tiles + arrow throwers.
 - `src/game/render/sceneObjectLayer.ts`: world object composition.
 - `src/game/render/sceneCollectiblesLayer.ts`: coins/items/life-hearts/boosters.
@@ -87,6 +88,8 @@
   - **Performance optimizations**:
     - Player vision rays reduced from 192 to 64 (67% reduction).
     - Ghost vision circles use viewport culling - only ghosts within viewport (+ padding) render vision circles.
+    - Night darkness overlay uses a capped-resolution offscreen canvas (max 800x600) scaled to fit fullscreen views, preventing fullscreen lag on high-DPI displays.
+    - Offscreen overlay projection is scaled in view space, keeping night-mask placement aligned for gameplay camera and map-window zoom/DPR combinations.
     - Combined optimizations reduce night rendering overhead by ~80%.
 - `src/game/render/dayNightLayer.ts`: player night-vision cone uses the smoothed facing indicator direction (`playerFacingIndicator`) each frame to avoid jittery front-edge snapping during movement/turning.
 - `src/game/render/hudOcclusion.ts`: HUD overlap checks with cached rect sampling and change-only class toggles to avoid unnecessary DOM writes on every frame.
@@ -131,6 +134,22 @@
 - `src/game/world/hunterFacing.ts`: hunter facing-angle/turn-animation helpers (1s rotation interpolation).
 - `src/game/world/ghostVisibility.ts`: ghost lifecycle alpha helpers (3s fade-in/fade-out) shared by monster update and render layers.
 - `src/game/world/pathingBfs.ts`: chaser BFS next-step pathing optimized with index-based queue/parent arrays (no `Array.shift()` / string key maps on hot path). Uses a global `BfsBufferPool` to reuse Int32Arrays across calls, eliminating ~48KB of allocations per BFS invocation.
+- `src/game/world/chunkProcessing.ts`: chunk-based spatial partitioning for entity update optimization. Divides the world into 16x16 tile chunks and calculates active chunks each frame based on camera viewport. Entity update systems check entity positions against active chunks to skip unnecessary computation for off-screen entities.
+
+### Chunk-Based Processing
+
+The game uses chunk-based spatial partitioning to optimize entity update performance:
+
+- **Active Chunks**: Each frame, `updateState.ts` calculates which chunks (16x16 tile regions) are "active" based on the camera viewport plus a configurable margin (`CHUNK_UPDATE_DISTANCE_CHUNKS = 3`).
+- **Entity Culling**: Update systems check if entities are within active chunks before processing:
+  - Hunters: Skip AI updates for off-screen hunters (except those in chase mode)
+  - Monsters (chasers): Skip pathfinding/AI for off-screen chasers
+  - Turrets: Skip sweep updates for off-screen turrets (except those tracking/cooling down)
+  - Helpers: Skip movement updates for off-screen helpers
+  - Projectiles: Skip arrow thrower updates and cull distant arrows
+- **Safety Measures**: Even off-screen entities still perform minimal collision checks to prevent unfair player hits from "frozen" enemies.
+- **Performance Impact**: With default 3-chunk margin, typically ~25-35% of the 96x64 grid (6x4 = 24 chunks) is active, reducing off-screen entity computation by ~65-75%.
+- **Files**: `src/game/world/chunkProcessing.ts` (core system), integrated into `updateState.ts` and all entity update systems.
 
 ## UI Layers
 

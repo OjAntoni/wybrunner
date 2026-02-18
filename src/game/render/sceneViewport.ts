@@ -59,5 +59,5 @@ export function prepareSceneViewport({
     endY: Math.min(GRID_H - 1, Math.floor((camY + viewH) / TILE_SIZE) + 2),
   };
 
-  return { camX, camY, viewW, viewH, heartbeatPulse: camera.heartbeatPulse, bounds };
+  return { camX, camY, viewW, viewH, heartbeatPulse: camera.heartbeatPulse, bounds, zoom: camera.zoom };
 }

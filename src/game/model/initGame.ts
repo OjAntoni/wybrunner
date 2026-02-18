@@ -2,6 +2,8 @@ import { generateMaze } from "../world/maze";
 import { buildExploreCloudBuckets, buildExploreClouds } from "../world/exploreClouds";
 import { cellCenter, cellKey } from "../utils/grid";
 import { resetSceneCamera } from "../render/camera";
+import { clearActiveChunks } from "../world/chunkProcessing";
+import { resetGhostPregen } from "../systems/update/monster";
 import type { GameState, Hunter } from "./types";
 import {
   GRID_H,
@@ -38,6 +40,8 @@ function randomIntInRange(min: number, max: number) {
 
 export function initGame(now: number = performance.now()): GameState {
   resetSceneCamera();
+  clearActiveChunks();
+  resetGhostPregen();
   const grid = generateMaze();
   const {
     playerCell,

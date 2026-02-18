@@ -105,7 +105,7 @@ function resolveCycleSnapshot(dayDurationMs: number, cycleOffsetMs: number): Day
   const darknessAlpha = 1 - reverseProgress;
   const nightVisionStrength = clamp01(
     (darknessAlpha - NIGHT_TO_DAY_VISION_DISABLE_DARKNESS_ALPHA) /
-      Math.max(0.001, NIGHT_TO_DAY_VISION_FADE_RANGE_ALPHA)
+    Math.max(0.001, NIGHT_TO_DAY_VISION_FADE_RANGE_ALPHA)
   );
   return {
     phase: "transition_to_day",
@@ -118,7 +118,16 @@ function resolveCycleSnapshot(dayDurationMs: number, cycleOffsetMs: number): Day
   };
 }
 
+// Per-frame cache: avoids recomputing the same snapshot multiple times per tick.
+let _cachedNowMs = -1;
+let _cachedCycleStart = -1;
+let _cachedSnapshot: DayNightSnapshot | null = null;
+
 export function getDayNightSnapshot(state: GameState, nowMs: number): DayNightSnapshot {
+  if (nowMs === _cachedNowMs && state.dayNightCycleStartMs === _cachedCycleStart && _cachedSnapshot) {
+    return _cachedSnapshot;
+  }
+
   const elapsedMs = Math.max(0, nowMs - state.dayNightCycleStartMs);
 
   const initialCycleMs =
@@ -127,16 +136,22 @@ export function getDayNightSnapshot(state: GameState, nowMs: number): DayNightSn
     NIGHT_DURATION_MS +
     NIGHT_TO_DAY_TRANSITION_MS;
 
+  let result: DayNightSnapshot;
   if (elapsedMs < initialCycleMs) {
-    return resolveCycleSnapshot(
+    result = resolveCycleSnapshot(
       DAY_NIGHT_INITIAL_DAY_DURATION_MS,
       normalizeCycleOffset(elapsedMs, initialCycleMs)
     );
+  } else {
+    const recurringElapsedMs = elapsedMs - initialCycleMs;
+    const recurringCycleMs =
+      DAY_DURATION_MS + DAY_TO_NIGHT_TRANSITION_MS + NIGHT_DURATION_MS + NIGHT_TO_DAY_TRANSITION_MS;
+    const recurringOffsetMs = normalizeCycleOffset(recurringElapsedMs, recurringCycleMs);
+    result = resolveCycleSnapshot(DAY_DURATION_MS, recurringOffsetMs);
   }
 
-  const recurringElapsedMs = elapsedMs - initialCycleMs;
-  const recurringCycleMs =
-    DAY_DURATION_MS + DAY_TO_NIGHT_TRANSITION_MS + NIGHT_DURATION_MS + NIGHT_TO_DAY_TRANSITION_MS;
-  const recurringOffsetMs = normalizeCycleOffset(recurringElapsedMs, recurringCycleMs);
-  return resolveCycleSnapshot(DAY_DURATION_MS, recurringOffsetMs);
+  _cachedNowMs = nowMs;
+  _cachedCycleStart = state.dayNightCycleStartMs;
+  _cachedSnapshot = result;
+  return result;
 }

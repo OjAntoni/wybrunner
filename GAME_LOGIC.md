@@ -147,6 +147,7 @@ Code references:
   - ghost path lines are drawn above the night darkness layer, so they stay visible even outside revealed vision.
   - not hidden by exploration-cloud coverage.
 - Collision with chaser triggers lose state; ghosts are non-lethal relays.
+- **Performance optimization**: Chasers outside the visible chunk area have their AI updates skipped to improve performance. They still check for collision with the player to prevent unfair hits.
 
 Code references:
 - `src/game/systems/update/monster.ts`
@@ -200,6 +201,7 @@ Code references:
   - Trigger probability on applicable cells is low (`10%`).
   - Hunter pauses, rotates to back view, checks for a short time, rotates back, then continues patrol.
 - Contact with any hunter triggers lose state (`caught`).
+- **Performance optimization**: Hunters outside the visible chunk area have their AI updates (patrol logic, pathfinding, turret placement) skipped. Hunters in chase mode or nervous scan always update regardless of chunk location to maintain gameplay integrity. All hunters still check for collision with the player.
 
 Code references:
 - `src/game/systems/update/hunter.ts`
@@ -223,6 +225,7 @@ Code references:
   - If line-of-sight is lost, turret keeps its last lock for `3s`.
   - If vision is not reacquired, it transitions back to sweep mode with reversed line-to-cone animation.
 - Turrets are bomb-destroyable and are unaffected by spikes.
+- **Performance optimization**: Turrets outside the visible chunk area have their sweep updates skipped. Turrets in track or cooldown mode always update regardless of chunk location to maintain gameplay integrity (they could have been tracking the player).
 
 Code references:
 - `src/game/systems/update/turret.ts`
@@ -237,6 +240,7 @@ Code references:
 - Arrows move continuously and collide with walls/player.
 - Bombed thrower walls disable corresponding throwers.
 - Turrets also fire projectiles that share the projectile update/collision pipeline.
+- **Performance optimization**: Arrow throwers outside the visible chunk area don't spawn arrows. Arrows that travel far outside the active chunk area are culled to prevent memory accumulation.
 
 Code references:
 - `src/game/systems/update/projectiles.ts`
@@ -267,6 +271,7 @@ Code references:
 - Helpers spawn with generated patrol paths.
 - They move along path endpoints with direction reversal.
 - They can consume traps/boosters and can kill the player on contact.
+- **Performance optimization**: Helpers outside the visible chunk area have their movement updates skipped to improve performance. They still check for collision with the player to prevent unfair hits.
 
 Code references:
 - `src/game/systems/helpers/spawnHelpers.ts`
@@ -318,6 +323,7 @@ Camera behavior:
 - During active chase zoom, a subtle heartbeat pulse is applied to camera zoom to increase tension.
 - During active chase pulse, the scene also applies a soft red blurred border vignette synced to the heartbeat.
 - Camera/chase blend smoothing is frame-time normalized (delta-based), and heartbeat pulse uses eased zoom-in/zoom-out (non-sinusoidal) for smoother transitions under variable frame pacing.
+- Post-chase red heartbeat flicker now decays faster (shorter hold + faster blend-out) so the effect clears shortly after hunters disengage.
 
 Code references:
 - `src/game/render/scene.ts`
@@ -362,6 +368,8 @@ Code references:
     - Player night vision rays reduced from 192 to 64 (67% reduction in ray casting)
     - Hunter/turret vision cones use viewport culling - only visible enemies render vision
     - Ghost vision circles use viewport culling - only visible ghosts render vision circles
+    - Night darkness overlay uses a capped-resolution offscreen canvas (max 800x600) that scales to fit fullscreen views, preventing fullscreen lag on high-DPI displays
+    - Offscreen overlay projection uses view-space scaling, so night darkening and vision masks stay aligned in both gameplay and map zoom levels (including high-DPR displays)
     - These optimizations reduce ray casting work by ~80% during night mode
   - turret vision cone boundary sampling is cached across frames; hunter and player night-vision cones sample every frame using smooth facing to avoid front-edge snapping/jitter.
   - visible areas use hard borders only (no perimeter soft-transition/falloff).

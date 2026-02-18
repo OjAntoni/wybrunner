@@ -25,4 +25,9 @@ export type SceneViewport = {
   viewH: number;
   heartbeatPulse: number;
   bounds: VisibleTileBounds;
+  /**
+   * The current camera zoom level. Higher values = zoomed in, lower values = zoomed out.
+   * Used to enable level-of-detail rendering optimizations.
+   */
+  zoom: number;
 };
